@@ -1,0 +1,15 @@
+{
+  "name": "tracking-ships",
+  "version": "0.1.0",
+  "private": true,
+  "devDependencies": {
+    "jest": "^26.6.3",
+    "ts-jest": "^26.4.4",
+    "ts-node": "^9.0.0",
+    "ts-standard": "*",
+    "typescript": "^4.1.2"
+  },
+  "scripts": {
+    "test": "ts-standard && jest"
+  }
+}
