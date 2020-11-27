@@ -3,6 +3,7 @@ import { CreateShipController } from '../../../../application/use-cases/create-s
 import { CreateShipUseCase } from '../../../../application/use-cases/create-ship/use-case'
 import { InMemoryEventJournal } from '../../../persistence/in-memory-event-journal'
 import { eventPayloadHandler } from '../../../../domain/events'
+import { UniqueIdentifier } from '../../../guid/unique-identifier'
 
 const shipRouter = express.Router()
 
@@ -11,7 +12,10 @@ const controller = new CreateShipController(
 )
 
 shipRouter.post('/', (req, res) => {
-  const httpResponse = controller.create({ id: req.body.id, name: req.body.name })
+  let id = String(req.body.id).trim()
+  if (id === 'null' || id === 'undefined' || id.length === 0) id = new UniqueIdentifier().toString()
+
+  const httpResponse = controller.create({ id, name: req.body.name })
   res.status(httpResponse.status).json(httpResponse)
 })
 
