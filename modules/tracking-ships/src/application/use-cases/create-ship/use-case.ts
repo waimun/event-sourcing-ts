@@ -17,16 +17,21 @@ export class CreateShipUseCase {
   }
 
   create (request: CreateShipRequest): Result<void> {
-    const idExists = this.journal.entriesByAggregate(request.id).length !== 0
+    const commandCreated: Result<CreateShip> = CreateShip.command(request.name, request.id)
+
+    if (commandCreated.isFailure) return Result.fail(commandCreated.getValue() as Error)
+
+    const command = commandCreated.getValue() as CreateShip
+
+    const idExists = this.journal.entriesByAggregate(command.id).length !== 0
 
     if (idExists) return Result.fail(new Error('cannot create ship; id exists'))
 
-    const command = new CreateShip(request.name, request.id)
     const commandEvents = Ship.create(command, Ship.uninitialized())
 
     if (commandEvents.isFailure) return Result.fail(new Error('cannot create ship; internal error'))
 
-    this.journal.append(request.id, commandEvents.getValue() as DomainEvent[])
+    this.journal.append(command.id, commandEvents.getValue() as DomainEvent[])
 
     return Result.ok(undefined)
   }

@@ -17,7 +17,7 @@ export class CreateShipController {
   create (request: CreateShipRequest): HttpResponse {
     const result = this.useCase.create(request)
     return result.isSuccess
-      ? { status: 201, body: request, dateTime: new Date() }
+      ? { status: 201, dateTime: new Date() }
       : { status: 500, error: (result.getValue() as Error).message, dateTime: new Date() }
   }
 }

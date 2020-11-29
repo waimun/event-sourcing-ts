@@ -17,7 +17,7 @@ let v1: Ship
 let e1: DomainEvent[]
 
 beforeEach(() => {
-  const createShipResult: Result<DomainEvent[]> = Ship.create(new CreateShip('King Roy', shipId), Ship.uninitialized())
+  const createShipResult: Result<DomainEvent[]> = Ship.create(CreateShip.command('King Roy', shipId).getValue() as CreateShip, Ship.uninitialized())
   expect(createShipResult.isSuccess).toBeTruthy()
   e1 = createShipResult.getValue() as DomainEvent[]
   expect(e1.length).toEqual(1)

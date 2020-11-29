@@ -13,9 +13,14 @@ const controller = new CreateShipController(
 
 shipRouter.post('/', (req, res) => {
   let id = String(req.body.id).trim()
-  if (id === 'null' || id === 'undefined' || id.length === 0) id = new UniqueIdentifier().toString()
+  const generateId = id === 'null' || id === 'undefined' || id.length === 0
+
+  if (generateId) id = new UniqueIdentifier().toString()
 
   const httpResponse = controller.create({ id, name: req.body.name })
+
+  if (generateId) httpResponse.body = { id }
+
   res.status(httpResponse.status).json(httpResponse)
 })
 
