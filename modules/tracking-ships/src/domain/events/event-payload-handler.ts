@@ -1,19 +1,23 @@
-import { Result } from '../../shared/result'
+import { EventSerializable } from './serializers/event-serializable'
+import { EventSerializerNotFound } from '../errors/event-payload-handler'
+import { DomainEvent } from './domain-event'
 
 export class EventPayloadHandler {
-  private readonly handlers: Map<string, Function>
+  private readonly handlers: Map<string, EventSerializable<any>>
 
   constructor () {
-    this.handlers = new Map<string, Function>()
+    this.handlers = new Map<string, EventSerializable<DomainEvent>>()
   }
 
-  register (type: string, fn: Function): void {
-    this.handlers.set(type, fn)
+  register (type: string, serializer: EventSerializable<any>): void {
+    this.handlers.set(type, serializer)
   }
 
-  byType (type: string): Result<Function> {
-    const fn = this.handlers.get(type)
-    if (fn !== undefined) return Result.ok(fn)
-    return Result.fail(new Error(`No registered handler for payload type ${type}`))
+  byType (type: string): EventSerializable<DomainEvent> {
+    const serializer = this.handlers.get(type)
+
+    if (serializer === undefined) throw new EventSerializerNotFound(type)
+
+    return serializer
   }
 }

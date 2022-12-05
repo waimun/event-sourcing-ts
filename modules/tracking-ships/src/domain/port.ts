@@ -1,3 +1,6 @@
+import { isValidName, NameIsRequired, NameNotAllowed } from '../shared/validators/name'
+import { isEmptyString } from '../shared/utils/text'
+
 export enum Country {
   NO_COUNTRY,
   US,
@@ -5,10 +8,13 @@ export enum Country {
 }
 
 export class Port {
-  name: string
-  country: Country
+  readonly name: string
+  readonly country: Country
 
   constructor (name: string, country: Country) {
+    if (isEmptyString(name)) throw new NameIsRequired()
+    if (!isValidName(name)) throw new NameNotAllowed()
+
     this.name = name
     this.country = country
   }
@@ -22,14 +28,26 @@ export class Port {
   }
 }
 
-class AtSea extends Port {
+export class AtSea extends Port {
+  private static readonly _name: string = 'AT_SEA'
+
   constructor () {
-    super('AT_SEA', Country.NO_COUNTRY)
+    super(AtSea._name, Country.NO_COUNTRY)
+  }
+
+  static equals (port: Port): boolean {
+    return AtSea._name === port?.name && Country.NO_COUNTRY === port?.country
   }
 }
 
-class MissingPort extends Port {
+export class MissingPort extends Port {
+  private static readonly _name: string = 'MISSING_PORT'
+
   constructor () {
-    super('MISSING_PORT', Country.NO_COUNTRY)
+    super(MissingPort._name, Country.NO_COUNTRY)
+  }
+
+  static equals (port: Port): boolean {
+    return MissingPort._name === port?.name && Country.NO_COUNTRY === port?.country
   }
 }

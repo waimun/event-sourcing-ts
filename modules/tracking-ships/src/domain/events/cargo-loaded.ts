@@ -8,19 +8,4 @@ export class CargoLoaded extends BaseDomainEvent {
     super(CargoLoaded.name, aggregateId, dateTime)
     this.cargo = cargo
   }
-
-  payload (): string {
-    const payload = JSON.parse(this.basePayload)
-    payload.cargo = this.cargo.name
-    payload.dateTime = this.dateTimeOccurred
-
-    return JSON.stringify(payload)
-  }
-
-  static handlePayload (): Function {
-    return (payload: string): CargoLoaded => {
-      const { aggregateId, cargo, dateTime } = JSON.parse(payload)
-      return new CargoLoaded(aggregateId, new Cargo(cargo), dateTime)
-    }
-  }
 }

@@ -4,6 +4,7 @@ import { CreateShipUseCase } from '../../../../application/use-cases/create-ship
 import { InMemoryEventJournal } from '../../../persistence/in-memory-event-journal'
 import { eventPayloadHandler } from '../../../../domain/events'
 import { UniqueIdentifier } from '../../../guid/unique-identifier'
+import { trim } from '../../../../shared/utils/text'
 
 const shipRouter = express.Router()
 
@@ -12,14 +13,18 @@ const controller = new CreateShipController(
 )
 
 shipRouter.post('/', (req, res) => {
-  let id = String(req.body.id).trim()
-  const generateId = id === 'null' || id === 'undefined' || id.length === 0
+  let id = trim(req.body.id)
+  const idNotSpecified = id.length === 0
 
-  if (generateId) id = new UniqueIdentifier().toString()
+  if (idNotSpecified) {
+    id = new UniqueIdentifier().toString()
+  }
 
   const httpResponse = controller.create({ id, name: req.body.name })
 
-  if (generateId) httpResponse.body = { id }
+  if (httpResponse.status === 201 && idNotSpecified) {
+    httpResponse.body = { id }
+  }
 
   res.status(httpResponse.status).json(httpResponse)
 })

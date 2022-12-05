@@ -1,4 +1,5 @@
 import { CreateShipRequest, CreateShipUseCase } from './use-case'
+import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
 
 export interface HttpResponse {
   status: number
@@ -15,9 +16,16 @@ export class CreateShipController {
   }
 
   create (request: CreateShipRequest): HttpResponse {
-    const result = this.useCase.create(request)
-    return result.isSuccess
-      ? { status: 201, dateTime: new Date() }
-      : { status: 500, error: (result.getValue() as Error).message, dateTime: new Date() }
+    try {
+      this.useCase.create(request)
+      return { status: 201, dateTime: new Date() }
+    } catch (e) {
+      if (e instanceof InvalidArgumentError) {
+        return { status: 400, error: e.message, dateTime: new Date() }
+      }
+
+      console.error(e)
+      return { status: 500, error: new ApplicationError().message, dateTime: new Date() }
+    }
   }
 }

@@ -1,4 +1,4 @@
-import { Port } from './port'
+import { AtSea, MissingPort, Port } from './port'
 import { ShipDeparted } from './events/ship-departed'
 import { ShipArrived } from './events/ship-arrived'
 import { Cargo } from './cargo'
@@ -12,7 +12,7 @@ import { SailShip } from './commands/sail-ship'
 import { DockShip } from './commands/dock-ship'
 import { LoadCargo } from './commands/load-cargo'
 import { UnloadCargo } from './commands/unload-cargo'
-import { Result } from '../shared/result'
+import * as AggregateError from './errors/ship'
 
 export class Ship extends SourcedAggregate {
   name: string
@@ -61,40 +61,54 @@ export class Ship extends SourcedAggregate {
     return events.reduce((state, event) => Ship.apply(state, event), initial)
   }
 
-  static create (command: CreateShip, state: Ship): Result<DomainEvent[]> {
-    if (state.equals(Ship.uninitialized())) return Result.ok([new ShipCreated(command.id, command.name)])
+  static create (command: CreateShip, state: Ship): ShipCreated {
+    if (state.equals(Ship.uninitialized())) return new ShipCreated(command.id, command.name)
 
-    return Result.fail(new Error('Uninitialized state is required to create'))
+    throw new AggregateError.UninitializedShipRequiredToCreate()
   }
 
-  static depart (command: SailShip, state: Ship): Result<DomainEvent[]> {
-    if (state.equals(Ship.uninitialized())) return Result.fail(new Error('Create ship first!'))
+  static depart (command: SailShip, state: Ship): ShipDeparted {
+    if (state.equals(Ship.uninitialized())) throw new AggregateError.ShipMustBeCreatedFirst()
 
-    return Result.ok([new ShipDeparted(command.id, command.dateTime)])
+    if (state.id !== command.id) throw new AggregateError.IdsMismatch()
+
+    if (MissingPort.equals(state.port) || AtSea.equals(state.port)) {
+      throw new AggregateError.InvalidPortForDeparture()
+    }
+
+    return new ShipDeparted(command.id, command.dateTime)
   }
 
-  static arrive (command: DockShip, state: Ship): Result<DomainEvent[]> {
-    if (state.equals(Ship.uninitialized())) return Result.fail(new Error('Create ship first!'))
+  static arrive (command: DockShip, state: Ship): ShipArrived {
+    if (state.equals(Ship.uninitialized())) throw new AggregateError.ShipMustBeCreatedFirst()
 
-    return Result.ok([new ShipArrived(command.id, command.port, command.dateTime)])
+    if (state.id !== command.id) throw new AggregateError.IdsMismatch()
+
+    return new ShipArrived(command.id, command.port, command.dateTime)
   }
 
-  static loadCargo (command: LoadCargo, state: Ship): Result<DomainEvent[]> {
-    if (state.equals(Ship.uninitialized())) return Result.fail(new Error('Create ship first!'))
+  static loadCargo (command: LoadCargo, state: Ship): CargoLoaded {
+    if (state.equals(Ship.uninitialized())) throw new AggregateError.ShipMustBeCreatedFirst()
+
+    if (state.id !== command.id) throw new AggregateError.IdsMismatch()
 
     const found = state.cargo.find(cargo => cargo.name === command.cargo.name)
-    if (found !== undefined) return Result.fail(new Error('Cargo is already loaded'))
 
-    return Result.ok([new CargoLoaded(command.id, command.cargo, command.dateTime)])
+    if (found !== undefined) throw new AggregateError.CargoAlreadyLoaded()
+
+    return new CargoLoaded(command.id, command.cargo, command.dateTime)
   }
 
-  static unloadCargo (command: UnloadCargo, state: Ship): Result<DomainEvent[]> {
-    if (state.equals(Ship.uninitialized())) return Result.fail(new Error('Create ship first!'))
+  static unloadCargo (command: UnloadCargo, state: Ship): CargoUnloaded {
+    if (state.equals(Ship.uninitialized())) throw new AggregateError.ShipMustBeCreatedFirst()
+
+    if (state.id !== command.id) throw new AggregateError.IdsMismatch()
 
     const found = state.cargo.find(cargo => cargo.name === command.cargo.name)
-    if (found === undefined) return Result.fail(new Error('Cannot find cargo to unload'))
 
-    return Result.ok([new CargoUnloaded(command.id, command.cargo, command.dateTime)])
+    if (found === undefined) throw new AggregateError.CargoNotFound(command.cargo.name)
+
+    return new CargoUnloaded(command.id, command.cargo, command.dateTime)
   }
 
   static handleShipCreated (current: Ship, event: ShipCreated): Ship {
