@@ -2,14 +2,13 @@ import express from 'express'
 import { CreateShipController } from '../../../../application/use-cases/create-ship/controller'
 import { CreateShipUseCase } from '../../../../application/use-cases/create-ship/use-case'
 import { InMemoryEventJournal } from '../../../persistence/in-memory-event-journal'
-import { eventPayloadHandler } from '../../../../domain/events'
 import { UniqueIdentifier } from '../../../guid/unique-identifier'
 import { trim } from '../../../../shared/utils/text'
 
 const shipRouter = express.Router()
 
 const controller = new CreateShipController(
-  new CreateShipUseCase(new InMemoryEventJournal('tracking-ships', eventPayloadHandler))
+  new CreateShipUseCase(new InMemoryEventJournal('ships-n-cargo'))
 )
 
 shipRouter.post('/', (req, res) => {

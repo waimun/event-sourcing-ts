@@ -1,7 +1,5 @@
-import { DomainEvent } from './domain-event'
-
-export interface EventJournal {
-  append: (aggregateId: string, ...events: DomainEvent[]) => void
-  entriesByAggregate: (aggregateId: string) => DomainEvent[]
-  eventFrom: (json: string) => DomainEvent
+export interface EventJournal<K, V> {
+  newEntry: (id: K, ...events: V[]) => void
+  appendEvents: (id: K, ...events: V[]) => void
+  eventsById: (id: K) => V[]
 }

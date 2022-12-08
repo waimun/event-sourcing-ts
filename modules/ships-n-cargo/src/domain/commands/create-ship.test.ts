@@ -20,16 +20,19 @@ test('name with leading and trailing space', () => {
 test('name with dashes', () => {
   const result = new CreateShip('king-roy', '123')
   expect(result).toBeTruthy()
+  expect(result.name).toEqual('king-roy')
 })
 
 test('name with underscores', () => {
   const result = new CreateShip('king_roy', '123')
   expect(result).toBeTruthy()
+  expect(result.name).toEqual('king_roy')
 })
 
 test('name with spaces', () => {
   const result = new CreateShip('king roy', '123')
   expect(result).toBeTruthy()
+  expect(result.name).toEqual('king roy')
 })
 
 test('name with invalid chars', () => {
@@ -41,10 +44,9 @@ test('name < 3 chars', () => {
 })
 
 test('name > 50 chars', () => {
-  expect(() => {
-    const result = new CreateShip('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy', '123')
-    expect(result).toBeTruthy()
-  }).toThrow(NameNotAllowed)
+  expect(() =>
+    new CreateShip('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy', '123')
+  ).toThrow(NameNotAllowed)
 })
 
 test('empty id', () => {
@@ -59,18 +61,19 @@ test('id with 2 whitespaces', () => {
 test('id = 1 char', () => {
   const result = new CreateShip('king-roy', 'x')
   expect(result).toBeTruthy()
+  expect(result.id).toEqual('x')
 })
 
 test('id > 36 chars', () => {
-  expect(() => {
-    const result = new CreateShip('king-roy', 'XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox')
-    expect(result).toBeTruthy()
-  }).toThrow(IdNotAllowed)
+  expect(() =>
+    new CreateShip('king-roy', 'XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox')
+  ).toThrow(IdNotAllowed)
 })
 
 test('id with dashes', () => {
   const result = new CreateShip('king-roy', 'king-1')
   expect(result).toBeTruthy()
+  expect(result.id).toEqual('king-1')
 })
 
 test('id with underscores', () => {
