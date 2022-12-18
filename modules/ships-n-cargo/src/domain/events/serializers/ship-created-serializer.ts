@@ -3,8 +3,8 @@ import { ShipCreated } from '../ship-created'
 
 export class ShipCreatedSerializer implements EventSerializable<ShipCreated> {
   eventFromJson (json: string): ShipCreated {
-    const { aggregateId, name } = JSON.parse(json)
-    return new ShipCreated(aggregateId, name)
+    const { aggregateId, name, dateTimeOccurred } = JSON.parse(json)
+    return new ShipCreated(aggregateId, name, new Date(dateTimeOccurred))
   }
 
   eventToJson (event: ShipCreated): string {

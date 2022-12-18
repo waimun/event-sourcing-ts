@@ -11,7 +11,10 @@
     "typescript": "^4.8.4"
   },
   "scripts": {
-    "test": "ts-standard && jest"
+    "lint": "ts-standard",
+    "compile": "tsc",
+    "test": "jest",
+    "build": "npm run lint && npm run compile && npm run test"
   },
   "dependencies": {
     "express": "^4.18.2",

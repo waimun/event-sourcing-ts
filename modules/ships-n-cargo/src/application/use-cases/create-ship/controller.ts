@@ -1,12 +1,6 @@
 import { CreateShipRequest, CreateShipUseCase } from './use-case'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
-
-export interface HttpResponse {
-  status: number
-  body?: unknown
-  error?: unknown
-  dateTime: Date
-}
+import { Response } from '../response'
 
 export class CreateShipController {
   useCase: CreateShipUseCase
@@ -15,7 +9,7 @@ export class CreateShipController {
     this.useCase = useCase
   }
 
-  create (request: CreateShipRequest): HttpResponse {
+  create (request: CreateShipRequest): Response {
     try {
       this.useCase.create(request)
       return { status: 201, dateTime: new Date() }
@@ -24,7 +18,7 @@ export class CreateShipController {
         return { status: 400, error: e.message, dateTime: new Date() }
       }
 
-      console.error(e)
+      console.error('%s\n', request, e)
       return { status: 500, error: new ApplicationError().message, dateTime: new Date() }
     }
   }

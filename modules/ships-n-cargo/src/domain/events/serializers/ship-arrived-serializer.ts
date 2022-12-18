@@ -4,8 +4,8 @@ import { ShipArrived } from '../ship-arrived'
 
 export class ShipArrivedSerializer implements EventSerializable<ShipArrived> {
   eventFromJson (json: string): ShipArrived {
-    const { aggregateId, portName, portCountry, dateTime } = JSON.parse(json)
-    return new ShipArrived(aggregateId, new Port(portName, portCountry), dateTime)
+    const { aggregateId, portName, portCountry, dateTimeOccurred } = JSON.parse(json)
+    return new ShipArrived(aggregateId, new Port(portName, portCountry), new Date(dateTimeOccurred))
   }
 
   eventToJson (event: ShipArrived): string {
