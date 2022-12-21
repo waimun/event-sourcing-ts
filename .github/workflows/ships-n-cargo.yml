@@ -37,6 +37,7 @@ jobs:
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
+        cache-dependency-path: modules/ships-n-cargo/package-lock.json
     - name: Clean install
       if: steps.filter.outputs.src == 'true'
       run: npm ci
