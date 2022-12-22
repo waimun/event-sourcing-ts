@@ -31,6 +31,7 @@ jobs:
         filters: |
           src:
             - 'modules/ships-n-cargo/**'
+            - '.github/workflows/ships-n-cargo.yml'
     - name: Use Node.js ${{ matrix.node-version }}
       if: steps.filter.outputs.src == 'true'
       uses: actions/setup-node@v3
