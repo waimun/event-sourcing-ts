@@ -45,3 +45,10 @@ jobs:
     - name: Build
       if: steps.filter.outputs.src == 'true'
       run: npm run build
+    - name: Upload coverage to Codecov
+      if: steps.filter.outputs.src == 'true'
+      uses: codecov/codecov-action@v3
+      with:
+        flags: unit
+        fail_ci_if_error: true
+        verbose: true
