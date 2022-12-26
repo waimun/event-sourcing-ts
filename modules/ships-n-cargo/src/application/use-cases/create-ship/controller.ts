@@ -1,6 +1,7 @@
-import { CreateShipRequest, CreateShipUseCase } from './use-case'
+import { CreateShipUseCase } from './use-case'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
 import { Response } from '../response'
+import { CreateShipDto } from './create-ship-dto'
 
 export class CreateShipController {
   useCase: CreateShipUseCase
@@ -9,7 +10,7 @@ export class CreateShipController {
     this.useCase = useCase
   }
 
-  create (request: CreateShipRequest): Response {
+  create (request: CreateShipDto): Response {
     try {
       this.useCase.create(request)
       return { status: 201, dateTime: new Date() }

@@ -1,11 +1,12 @@
 import { expect, test, jest } from '@jest/globals'
-import { CreateShipRequest, CreateShipUseCase } from './use-case'
+import { CreateShipUseCase } from './use-case'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { CreateShipController } from './controller'
 import { IdIsRequired, IdNotAllowed } from '../../../shared/validators/id'
 import { NameIsRequired, NameNotAllowed } from '../../../shared/validators/name'
 import { ApplicationError } from '../../../shared/error'
 import { Response } from '../response'
+import { CreateShipDto } from './create-ship-dto'
 
 test('construct class object', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
@@ -15,7 +16,7 @@ test('construct class object', () => {
 test('create with valid request', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'abc', name: 'testing' }
+  const request: CreateShipDto = { id: 'abc', name: 'testing' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(201)
@@ -27,7 +28,7 @@ test('create with valid request', () => {
 test('create with an empty id', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: '', name: 'testing' }
+  const request: CreateShipDto = { id: '', name: 'testing' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -39,7 +40,7 @@ test('create with an empty id', () => {
 test('create with an id that contains whitespaces', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: '   ', name: 'testing' }
+  const request: CreateShipDto = { id: '   ', name: 'testing' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -51,7 +52,7 @@ test('create with an id that contains whitespaces', () => {
 test('create with an invalid id', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'a!', name: 'testing' }
+  const request: CreateShipDto = { id: 'a!', name: 'testing' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -63,7 +64,7 @@ test('create with an invalid id', () => {
 test('create with an empty name', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'abc', name: '' }
+  const request: CreateShipDto = { id: 'abc', name: '' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -75,7 +76,7 @@ test('create with an empty name', () => {
 test('create with a name that contains whitespaces', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'abc', name: '   ' }
+  const request: CreateShipDto = { id: 'abc', name: '   ' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -87,7 +88,7 @@ test('create with a name that contains whitespaces', () => {
 test('create with an invalid name', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'abc', name: 'a!' }
+  const request: CreateShipDto = { id: 'abc', name: 'a!' }
   const response: Response = controller.create(request)
 
   expect(response.status).toEqual(400)
@@ -99,7 +100,7 @@ test('create with an invalid name', () => {
 test('create throws an unexpected application error', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal('test-journal'))
   const controller = new CreateShipController(useCase)
-  const request: CreateShipRequest = { id: 'abc', name: 'testing' }
+  const request: CreateShipDto = { id: 'abc', name: 'testing' }
   jest.spyOn(console, 'error').mockImplementation(jest.fn())
   const createMock = jest.spyOn(CreateShipUseCase.prototype, 'create').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
