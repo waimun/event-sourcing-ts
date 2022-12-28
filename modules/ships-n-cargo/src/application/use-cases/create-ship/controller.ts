@@ -19,7 +19,7 @@ export class CreateShipController {
         return { status: 400, error: e.message, dateTime: new Date() }
       }
 
-      console.error('%s\n', request, e)
+      console.error('%s\n', JSON.stringify(request), e)
       return { status: 500, error: new ApplicationError().message, dateTime: new Date() }
     }
   }
