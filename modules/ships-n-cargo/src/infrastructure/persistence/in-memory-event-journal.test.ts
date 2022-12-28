@@ -2,8 +2,9 @@ import { expect, test } from '@jest/globals'
 import { EntryAlreadyExists, EntryDoesNotExist, EventIsRequired, InMemoryEventJournal } from './in-memory-event-journal'
 import { ShipCreated } from '../../domain/events/ship-created'
 import { ShipArrived } from '../../domain/events/ship-arrived'
-import { Country, Port } from '../../domain/port'
+import { Port } from '../../domain/port'
 import { ShipDeparted } from '../../domain/events/ship-departed'
+import { Country } from '../../domain/country'
 
 test('creation of the class object', () => {
   const journal = new InMemoryEventJournal('Test Journal')
@@ -22,7 +23,7 @@ test('new entry with two events', () => {
   const journal = new InMemoryEventJournal('Test Journal')
   const events = [
     new ShipCreated('123', 'King Roy'),
-    new ShipArrived('123', new Port('Kingston', Country.US))
+    new ShipArrived('123', new Port('Kingston', Country.UNITED_STATES))
   ]
 
   journal.newEntry('123', ...events)
@@ -58,7 +59,7 @@ test('get events by id that does not exist', () => {
 test('append with one event', () => {
   const journal = new InMemoryEventJournal('Test Journal')
   journal.newEntry('123', new ShipCreated('123', 'King Roy'))
-  journal.appendEvents('123', new ShipArrived('123', new Port('Kingston', Country.US)))
+  journal.appendEvents('123', new ShipArrived('123', new Port('Kingston', Country.UNITED_STATES)))
   expect(journal.eventsById('123').length).toEqual(2)
 })
 
@@ -67,7 +68,7 @@ test('append with two events', () => {
   journal.newEntry('123', new ShipCreated('123', 'King Roy'))
 
   const events = [
-    new ShipArrived('123', new Port('Kingston', Country.US)),
+    new ShipArrived('123', new Port('Kingston', Country.UNITED_STATES)),
     new ShipDeparted('123')
   ]
 

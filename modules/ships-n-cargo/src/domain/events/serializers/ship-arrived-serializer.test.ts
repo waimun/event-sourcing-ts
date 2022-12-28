@@ -1,7 +1,8 @@
 import { expect, test } from '@jest/globals'
 import { ShipArrivedSerializer } from './ship-arrived-serializer'
 import { ShipArrived } from '../ship-arrived'
-import { Country, Port } from '../../port'
+import { Port } from '../../port'
+import { Country } from '../../country'
 
 test('return event object from json string', () => {
   const payload = {
@@ -24,7 +25,7 @@ test('return event object from json string', () => {
 
 test('return json string from event object', () => {
   const serializer = new ShipArrivedSerializer()
-  const event = new ShipArrived('abc', new Port('Harrison', Country.US))
+  const event = new ShipArrived('abc', new Port('Harrison', Country.UNITED_STATES))
   const json = serializer.eventToJson(event)
   const { type, aggregateId, dateTimeOccurred, portName, portCountry } = JSON.parse(json)
 

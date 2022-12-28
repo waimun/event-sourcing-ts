@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../../shared/error'
-import { Country } from '../port'
+import { Country } from '../country'
 
 export class CannotDockShipAtSea extends InvalidArgumentError {
   constructor () {
@@ -20,8 +20,8 @@ export class NoCountrySpecifiedForPort extends InvalidArgumentError {
 }
 
 export class InvalidCountry extends InvalidArgumentError {
-  constructor (country: number) {
-    const countries = Object.entries(Country).filter(e => typeof e[1] === 'number').map(e => `${e[0]}(${e[1]})`)
+  constructor (country: string) {
+    const countries = Object.entries(Country).map(e => `${e[0]}(${e[1]})`)
     super(`Country '${country}' is not in the list of ${countries.join(',')}`)
   }
 }

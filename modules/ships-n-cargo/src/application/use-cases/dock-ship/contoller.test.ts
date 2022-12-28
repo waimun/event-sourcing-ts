@@ -26,7 +26,7 @@ test('dock with valid request', () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 1 } })
+  const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
 
   expect(response2.status).toEqual(200)
 })
@@ -35,18 +35,18 @@ test('dock with a port that does not have a country', () => {
   const journal = new InMemoryEventJournal('test-journal')
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
-  const request = { id: 'xyz', port: { name: 'Henderson', country: 0 } }
+  const request = { id: 'xyz', port: { name: 'Henderson', country: 'NO_COUNTRY' } }
 
   const response = controller.dock(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new NoCountrySpecifiedForPort().message)
 })
 
-test('dock with a port that has invalid country', () => {
+test('dock with a port that has an invalid country', () => {
   const journal = new InMemoryEventJournal('test-journal')
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
-  const request = { id: 'xyz', port: { name: 'Henderson', country: -1 } }
+  const request = { id: 'xyz', port: { name: 'Henderson', country: 'ZZ' } }
 
   const response = controller.dock(request)
   expect(response.status).toEqual(400)
@@ -57,7 +57,7 @@ test('invalid name for port', () => {
   const journal = new InMemoryEventJournal('test-journal')
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
-  const request = { id: 'xyz', port: { name: '', country: 2 } }
+  const request = { id: 'xyz', port: { name: '', country: 'CA' } }
 
   const response = controller.dock(request)
   expect(response.status).toEqual(400)
@@ -75,7 +75,7 @@ test('ship does not exist to dock', () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const request2 = { id: 'xyz', port: { name: 'Henderson', country: 1 } }
+  const request2 = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
   const response2 = controller2.dock(request2)
 
   expect(response2.status).toEqual(400)
@@ -86,7 +86,7 @@ test('throws an unexpected application error', () => {
   const journal = new InMemoryEventJournal('test-journal')
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
-  const request = { id: 'xyz', port: { name: 'Henderson', country: 1 } }
+  const request = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
 
   jest.spyOn(console, 'error').mockImplementation(jest.fn())
   const dockMock = jest.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {

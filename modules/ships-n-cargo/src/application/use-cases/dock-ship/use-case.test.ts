@@ -31,7 +31,7 @@ test('dock ship request', () => {
   expect(journal.eventsById('abc').length).toEqual(1)
 
   const useCase = new DockShipUseCase(journal)
-  const request: DockShipDto = { id: 'abc', port: { name: 'Henderson', country: 1 } }
+  const request: DockShipDto = { id: 'abc', port: { name: 'Henderson', country: 'US' } }
   useCase.dock(request)
   expect(journal.eventsById('abc').length).toEqual(2)
 })
@@ -40,6 +40,6 @@ test('ship id not found', () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal('testing')
 
   const useCase = new DockShipUseCase(journal)
-  const request: DockShipDto = { id: 'abc', port: { name: 'Henderson', country: 1 } }
+  const request: DockShipDto = { id: 'abc', port: { name: 'Henderson', country: 'US' } }
   expect(() => useCase.dock(request)).toThrow(new ShipNotFound(request.id))
 })

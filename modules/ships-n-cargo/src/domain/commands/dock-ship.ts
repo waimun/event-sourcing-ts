@@ -1,12 +1,12 @@
-import { AtSea, Country, MissingPort, Port } from '../port'
+import { AtSea, MissingPort, Port } from '../port'
 import {
   CannotDockShipAtSea,
   CannotDockWithoutPort,
-  InvalidCountry,
   NoCountrySpecifiedForPort
 } from '../errors/dock-ship'
 import { IdIsRequired, IdNotAllowed, isValidIdentifier } from '../../shared/validators/id'
 import { isEmptyString } from '../../shared/utils/text'
+import { Country } from '../country'
 
 export class DockShip {
   readonly id: string
@@ -19,7 +19,6 @@ export class DockShip {
     if (AtSea.equals(port)) throw new CannotDockShipAtSea()
     if (MissingPort.equals(port)) throw new CannotDockWithoutPort()
     if (port.country === Country.NO_COUNTRY) throw new NoCountrySpecifiedForPort()
-    if (!(port.country in Country)) throw new InvalidCountry(port.country)
 
     this.id = id
     this.port = port

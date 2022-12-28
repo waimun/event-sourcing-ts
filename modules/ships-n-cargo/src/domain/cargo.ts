@@ -1,5 +1,5 @@
 import { ShipArrived } from './events/ship-arrived'
-import { Country } from './port'
+import { Country } from './country'
 
 export class Cargo {
   name: string

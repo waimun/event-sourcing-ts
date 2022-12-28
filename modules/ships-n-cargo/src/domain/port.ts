@@ -1,22 +1,20 @@
 import { isValidName, NameIsRequired, NameNotAllowed } from '../shared/validators/name'
 import { isEmptyString } from '../shared/utils/text'
-
-export enum Country {
-  NO_COUNTRY,
-  US,
-  CANADA
-}
+import { Country, countryFromString } from './country'
+import { InvalidCountry } from './errors/dock-ship'
 
 export class Port {
   readonly name: string
   readonly country: Country
 
-  constructor (name: string, country: Country) {
+  constructor (name: string, country: string) {
     if (isEmptyString(name)) throw new NameIsRequired()
     if (!isValidName(name)) throw new NameNotAllowed()
+    const _country = countryFromString(country)
+    if (_country === undefined) throw new InvalidCountry(country)
 
     this.name = name
-    this.country = country
+    this.country = _country
   }
 
   static atSea (): Port {
