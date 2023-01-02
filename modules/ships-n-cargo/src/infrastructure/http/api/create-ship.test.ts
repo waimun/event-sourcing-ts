@@ -1,11 +1,11 @@
-import { beforeAll, expect, jest, test } from '@jest/globals'
+import { beforeEach, expect, jest, test } from '@jest/globals'
 import { createShip } from './create-ship'
 import { Request, Response, Send } from 'express'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 
-beforeAll(() => {
+beforeEach(() => {
   res.status = jest.fn<Send>().mockReturnValue(res as Response)
   res.json = jest.fn<Send>().mockReturnValue(res as Response)
 })

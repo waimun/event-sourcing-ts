@@ -1,5 +1,5 @@
 import { ShipArrived } from './events/ship-arrived'
-import { Country } from './country'
+import { EnumCountry } from './country'
 
 export class Cargo {
   name: string
@@ -12,7 +12,7 @@ export class Cargo {
   static handleArrival (current: Cargo, event: ShipArrived): Cargo {
     const nextState = new Cargo(current.name)
     nextState.hasBeenInCanada = current.hasBeenInCanada
-    if (Country.CANADA === event.port.country) nextState.hasBeenInCanada = true
+    if (EnumCountry.CANADA === event.port.country) nextState.hasBeenInCanada = true
     return nextState
   }
 }

@@ -2,6 +2,8 @@ import { CreateShipUseCase } from './use-case'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
 import { Response } from '../response'
 import { CreateShipDto } from './create-ship-dto'
+import { Id } from '../../../shared/domain/id'
+import { Name } from '../../../shared/domain/name'
 
 export class CreateShipController {
   useCase: CreateShipUseCase
@@ -12,7 +14,7 @@ export class CreateShipController {
 
   create (request: CreateShipDto): Response {
     try {
-      this.useCase.create(request)
+      this.useCase.create(new Name(request.name), new Id(request.id))
       return { status: 201, dateTime: new Date() }
     } catch (e) {
       if (e instanceof InvalidArgumentError) {

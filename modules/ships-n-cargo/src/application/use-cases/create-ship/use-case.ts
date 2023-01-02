@@ -4,7 +4,8 @@ import { CreateShip } from '../../../domain/commands/create-ship'
 import { IdAlreadyExists } from './error'
 import { DomainEvent } from '../../../domain/events/domain-event'
 import { EntryAlreadyExists } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { CreateShipDto } from './create-ship-dto'
+import { Name } from '../../../shared/domain/name'
+import { Id } from '../../../shared/domain/id'
 
 export class CreateShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>
@@ -13,13 +14,13 @@ export class CreateShipUseCase {
     this.journal = journal
   }
 
-  create (request: CreateShipDto): void {
+  create (name: Name, id: Id): void {
     try {
-      const command = new CreateShip(request.name, request.id)
+      const command = new CreateShip(name, id)
       const shipCreated = Ship.create(command, Ship.uninitialized())
       this.journal.newEntry(command.id, shipCreated)
     } catch (e) {
-      if (e instanceof EntryAlreadyExists) throw new IdAlreadyExists(request.id)
+      if (e instanceof EntryAlreadyExists) throw new IdAlreadyExists(id.value)
       throw e
     }
   }

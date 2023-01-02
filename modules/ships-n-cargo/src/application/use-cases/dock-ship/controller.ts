@@ -2,6 +2,13 @@ import { DockShipUseCase } from './use-case'
 import { DockShipDto } from './dock-ship-dto'
 import { Response } from '../response'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
+import { Id } from '../../../shared/domain/id'
+import { Port } from '../../../domain/port'
+import { Country } from '../../../domain/country'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { PortName } from '../../../domain/port-name'
+import { ISODate } from '../../../shared/domain/date'
+import { isNotObject } from '../../../shared/utils/object'
 
 export class DockShipController {
   useCase: DockShipUseCase
@@ -12,7 +19,11 @@ export class DockShipController {
 
   dock (request: DockShipDto): Response {
     try {
-      this.useCase.dock(request)
+      const id = new Id(request.id)
+      if (isNotObject(request.port)) throw new IsRequired('Port')
+      const port = new Port(new PortName(request.port.name), new Country(request.port.country))
+      const dateTime = new ISODate(request.dateTime)
+      this.useCase.dock(id, port, dateTime)
       return { status: 200, dateTime: new Date() }
     } catch (e) {
       if (e instanceof InvalidArgumentError) {

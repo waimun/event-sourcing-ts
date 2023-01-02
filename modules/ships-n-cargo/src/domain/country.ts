@@ -1,6 +1,8 @@
-import { trim } from '../shared/utils/text'
+import { isEmptyString, trim } from '../shared/utils/text'
+import { InvalidCountry } from './errors/dock-ship'
+import { IsRequired } from '../shared/domain/errors/is-required'
 
-export enum Country {
+export enum EnumCountry {
   NO_COUNTRY = 'NO_COUNTRY',
   UNITED_STATES = 'US',
   CANADA = 'CA',
@@ -11,6 +13,15 @@ export enum Country {
   AUSTRALIA = 'AU'
 }
 
-export const countryFromString = (code: string): Country => {
-  return Object.values(Country).find(v => v === trim(code).toUpperCase()) as Country
+export class Country {
+  public readonly value: EnumCountry
+
+  constructor (code: string) {
+    if (isEmptyString(code)) throw new IsRequired('Country')
+
+    const _value = Object.values(EnumCountry).find(v => v === trim(code).toUpperCase())
+    if (_value === undefined) throw new InvalidCountry(code)
+
+    this.value = _value
+  }
 }

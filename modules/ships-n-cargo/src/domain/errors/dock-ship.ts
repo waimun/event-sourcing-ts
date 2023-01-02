@@ -1,5 +1,5 @@
 import { InvalidArgumentError } from '../../shared/error'
-import { Country } from '../country'
+import { EnumCountry } from '../country'
 
 export class CannotDockShipAtSea extends InvalidArgumentError {
   constructor () {
@@ -21,7 +21,7 @@ export class NoCountrySpecifiedForPort extends InvalidArgumentError {
 
 export class InvalidCountry extends InvalidArgumentError {
   constructor (country: string) {
-    const countries = Object.entries(Country).map(e => `${e[0]}(${e[1]})`)
+    const countries = Object.entries(EnumCountry).map(e => `${e[0]}(${e[1]})`)
     super(`Country '${country}' is not in the list of ${countries.join(',')}`)
   }
 }

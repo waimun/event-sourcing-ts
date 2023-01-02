@@ -1,22 +1,27 @@
 import { expect, test } from '@jest/globals'
-import { Country, countryFromString } from './country'
+import { Country, EnumCountry } from './country'
+import { InvalidCountry } from './errors/dock-ship'
+import { IsRequired } from '../shared/domain/errors/is-required'
 
 test('valid country', () => {
-  const country = countryFromString('US')
-  expect(country).toEqual(Country.UNITED_STATES)
+  const country = new Country('US')
+  expect(country.value).toEqual(EnumCountry.UNITED_STATES)
 })
 
 test('valid country (case insensitive)', () => {
-  const country = countryFromString('ca')
-  expect(country).toEqual(Country.CANADA)
+  const country = new Country('ca')
+  expect(country.value).toEqual(EnumCountry.CANADA)
 })
 
 test('invalid country', () => {
-  const country = countryFromString('ZZ')
-  expect(country).toBeUndefined()
+  expect(() => new Country('ZZ')).toThrow(InvalidCountry)
+})
+
+test('empty string', () => {
+  expect(() => new Country('')).toThrow(IsRequired)
 })
 
 test('country with leading and trailing spaces', () => {
-  const country = countryFromString('  fr ')
-  expect(country).toEqual(Country.FRANCE)
+  const country = new Country('  fr ')
+  expect(country.value).toEqual(EnumCountry.FRANCE)
 })

@@ -1,15 +1,13 @@
 import { EventJournal } from '../../domain/events/event-journal'
 import { DomainEvent } from '../../domain/events/domain-event'
-import { isValidName, NameNotAllowed } from '../../shared/validators/name'
+import { Name } from '../../shared/domain/name'
 
 export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   readonly name: string
   readonly entries: Map<string, DomainEvent[]>
 
-  constructor (name: string) {
-    if (!isValidName(name)) throw new NameNotAllowed()
-
-    this.name = name
+  constructor (name: Name) {
+    this.name = name.value
     this.entries = new Map<string, DomainEvent[]>()
   }
 

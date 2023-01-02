@@ -3,6 +3,7 @@ import { ShipArrivedSerializer } from './ship-arrived-serializer'
 import { ShipArrived } from '../ship-arrived'
 import { Port } from '../../port'
 import { Country } from '../../country'
+import { PortName } from '../../port-name'
 
 test('return event object from json string', () => {
   const payload = {
@@ -25,7 +26,7 @@ test('return event object from json string', () => {
 
 test('return json string from event object', () => {
   const serializer = new ShipArrivedSerializer()
-  const event = new ShipArrived('abc', new Port('Harrison', Country.UNITED_STATES))
+  const event = new ShipArrived('abc', new Port(new PortName('Harrison'), new Country('US')))
   const json = serializer.eventToJson(event)
   const { type, aggregateId, dateTimeOccurred, portName, portCountry } = JSON.parse(json)
 

@@ -8,15 +8,16 @@ import { CreateShipDto } from '../create-ship/create-ship-dto'
 import { ShipNotFound } from './error'
 import { ApplicationError } from '../../../shared/error'
 import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/errors/dock-ship'
-import { NameIsRequired } from '../../../shared/validators/name'
+import { Name } from '../../../shared/domain/name'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
 
 test('construct class object', () => {
-  const useCase = new DockShipUseCase(new InMemoryEventJournal('test-journal'))
+  const useCase = new DockShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   expect(new DockShipController(useCase)).toBeTruthy()
 })
 
 test('dock with valid request', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
@@ -31,8 +32,44 @@ test('dock with valid request', () => {
   expect(response2.status).toEqual(200)
 })
 
+test('port is undefined', () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  const useCase = new DockShipUseCase(journal)
+  const controller = new DockShipController(useCase)
+  const request = { id: 'xyz' }
+
+  // @ts-expect-error
+  const response = controller.dock(request)
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(new IsRequired('Port').message)
+})
+
+test('port is null', () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  const useCase = new DockShipUseCase(journal)
+  const controller = new DockShipController(useCase)
+  const request = { id: 'xyz', port: null }
+
+  // @ts-expect-error
+  const response = controller.dock(request)
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(new IsRequired('Port').message)
+})
+
+test('port is an array', () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  const useCase = new DockShipUseCase(journal)
+  const controller = new DockShipController(useCase)
+  const request = { id: 'xyz', port: [] }
+
+  // @ts-expect-error
+  const response = controller.dock(request)
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(new IsRequired('Port').message)
+})
+
 test('dock with a port that does not have a country', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
   const request = { id: 'xyz', port: { name: 'Henderson', country: 'NO_COUNTRY' } }
@@ -43,7 +80,7 @@ test('dock with a port that does not have a country', () => {
 })
 
 test('dock with a port that has an invalid country', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
   const request = { id: 'xyz', port: { name: 'Henderson', country: 'ZZ' } }
@@ -54,18 +91,18 @@ test('dock with a port that has an invalid country', () => {
 })
 
 test('invalid name for port', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
   const request = { id: 'xyz', port: { name: '', country: 'CA' } }
 
   const response = controller.dock(request)
   expect(response.status).toEqual(400)
-  expect(response.error).toEqual(new NameIsRequired().message)
+  expect(response.error).toEqual(new IsRequired('Port name').message)
 })
 
 test('ship does not exist to dock', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'Queen Mary' }
@@ -83,7 +120,7 @@ test('ship does not exist to dock', () => {
 })
 
 test('throws an unexpected application error', () => {
-  const journal = new InMemoryEventJournal('test-journal')
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new DockShipUseCase(journal)
   const controller = new DockShipController(useCase)
   const request = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
