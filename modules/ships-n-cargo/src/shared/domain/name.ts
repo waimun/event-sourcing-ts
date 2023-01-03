@@ -11,7 +11,7 @@ export class Name {
     if (isEmptyString(value)) throw new IsRequired(kind)
     if (!isValidName(value)) throw new NameNotAllowed(value, kind)
 
-    this.value = value
+    this.value = trim(value)
   }
 }
 

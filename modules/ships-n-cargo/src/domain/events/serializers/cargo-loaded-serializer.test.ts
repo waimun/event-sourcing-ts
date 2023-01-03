@@ -2,6 +2,7 @@ import { expect, test } from '@jest/globals'
 import { CargoLoadedSerializer } from './cargo-loaded-serializer'
 import { CargoLoaded } from '../cargo-loaded'
 import { Cargo } from '../../cargo'
+import { Name } from '../../../shared/domain/name'
 
 test('return event object from json string', () => {
   const payload = {
@@ -21,7 +22,7 @@ test('return event object from json string', () => {
 
 test('return json string from event object', () => {
   const serializer = new CargoLoadedSerializer()
-  const event = new CargoLoaded('abc', new Cargo('Refactoring Book'))
+  const event = new CargoLoaded('abc', new Cargo(new Name('Refactoring Book')))
   const json = serializer.eventToJson(event)
   const { type, aggregateId, cargo, dateTimeOccurred, dateTimeRecorded } = JSON.parse(json)
 

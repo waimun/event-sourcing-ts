@@ -11,7 +11,7 @@ export class Id {
     if (isEmptyString(value)) throw new IsRequired('Id')
     if (!isValidIdentifier(value)) throw new IdNotAllowed(value)
 
-    this.value = value
+    this.value = trim(value)
   }
 }
 
