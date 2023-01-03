@@ -1,6 +1,6 @@
 export interface Response {
   status: number
-  body?: unknown
-  error?: unknown
+  body?: object
+  error?: string
   dateTime: Date
 }
