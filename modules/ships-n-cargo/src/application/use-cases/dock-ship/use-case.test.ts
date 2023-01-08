@@ -20,14 +20,14 @@ test('dock ship request', () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
-  createShipUseCase.create(new Name('testing'), new Id('abc'))
-  expect(journal.eventsById('abc').length).toEqual(1)
+  const id = new Id('abc')
+  createShipUseCase.create(new Name('Queen Mary'), id)
+  expect(journal.eventsById(id.value).length).toEqual(1)
 
   const useCase = new DockShipUseCase(journal)
-  const id = new Id('abc')
-  const port = new Port(new PortName('Henderson'), new Country('US'))
+  const port = new Port(new PortName('Tennessee'), new Country('US'))
   useCase.dock(id, port)
-  expect(journal.eventsById('abc').length).toEqual(2)
+  expect(journal.eventsById(id.value).length).toEqual(2)
 })
 
 test('ship id not found', () => {
@@ -35,6 +35,6 @@ test('ship id not found', () => {
 
   const useCase = new DockShipUseCase(journal)
   const id = new Id('abc')
-  const port = new Port(new PortName('Henderson'), new Country('US'))
+  const port = new Port(new PortName('Tennessee'), new Country('US'))
   expect(() => useCase.dock(id, port)).toThrow(new ShipNotFound(id.value))
 })

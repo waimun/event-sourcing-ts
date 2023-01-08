@@ -1,8 +1,8 @@
 import { Id } from '../../shared/domain/id'
 
 export class SailShip {
-  id: string
-  dateTime: Date = new Date()
+  readonly id: string
+  readonly dateTime: Date
 
   constructor (id: Id, dateTime: Date = new Date()) {
     this.id = id.value

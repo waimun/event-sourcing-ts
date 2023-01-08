@@ -1,34 +1,36 @@
-export class UninitializedShipRequiredToCreate extends Error {
+import { InvalidArgumentError } from '../../shared/error'
+
+export class UninitializedShipRequiredToCreate extends InvalidArgumentError {
   constructor () {
     super('Uninitialized state is required to create')
   }
 }
 
-export class ShipMustBeCreatedFirst extends Error {
+export class ShipMustBeCreatedFirst extends InvalidArgumentError {
   constructor () {
     super('Create ship first!')
   }
 }
 
-export class IdsMismatch extends Error {
+export class IdsMismatch extends InvalidArgumentError {
   constructor () {
     super('IDs of command and aggregate objects must be identical')
   }
 }
 
-export class InvalidPortForDeparture extends Error {
+export class InvalidPortForDeparture extends InvalidArgumentError {
   constructor () {
     super('Ship cannot depart from a missing port or at sea')
   }
 }
 
-export class CargoAlreadyLoaded extends Error {
+export class CargoAlreadyLoaded extends InvalidArgumentError {
   constructor () {
     super('Cargo is already loaded')
   }
 }
 
-export class CargoNotFound extends Error {
+export class CargoNotFound extends InvalidArgumentError {
   constructor (cargoName: string) {
     super(`Cannot find cargo '${cargoName}'`)
   }

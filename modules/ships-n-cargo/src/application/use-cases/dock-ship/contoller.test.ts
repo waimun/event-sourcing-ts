@@ -18,17 +18,16 @@ test('construct class object', () => {
 
 test('dock with valid request', () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
+
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
   const response1 = controller1.create(request1)
-
   expect(response1.status).toEqual(201)
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
   const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
-
   expect(response2.status).toEqual(200)
 })
 
@@ -103,11 +102,11 @@ test('invalid name for port', () => {
 
 test('ship does not exist to dock', () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
+
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'Queen Mary' }
   const response1 = controller1.create(request1)
-
   expect(response1.status).toEqual(201)
 
   const useCase2 = new DockShipUseCase(journal)
