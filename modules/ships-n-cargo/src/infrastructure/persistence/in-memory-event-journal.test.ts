@@ -7,12 +7,21 @@ import { ShipDeparted } from '../../domain/events/ship-departed'
 import { Country } from '../../domain/country'
 import { Name } from '../../shared/domain/name'
 import { PortName } from '../../domain/port-name'
+import { IsRequired } from '../../shared/domain/errors/is-required'
 
 test('creation of the class object', () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
   expect(journal).toBeTruthy()
   expect(journal.name).toEqual('Test Journal')
   expect(journal.entries.size).toEqual(0)
+})
+
+test('create journal with empty name', () => {
+  expect(() => new InMemoryEventJournal(new Name(''))).toThrow(IsRequired)
+})
+
+test('create journal with three white spaces', () => {
+  expect(() => new InMemoryEventJournal(new Name('   '))).toThrow(IsRequired)
 })
 
 test('new entry with one event', () => {

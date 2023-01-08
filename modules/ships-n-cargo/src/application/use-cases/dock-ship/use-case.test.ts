@@ -10,19 +10,10 @@ import { Id } from '../../../shared/domain/id'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { Country } from '../../../domain/country'
-import { IsRequired } from '../../../shared/domain/errors/is-required'
 
 test('construct class object', () => {
   const useCase = new DockShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   expect(useCase).toBeTruthy()
-})
-
-test('create journal with empty name', () => {
-  expect(() => new DockShipUseCase(new InMemoryEventJournal(new Name('')))).toThrow(IsRequired)
-})
-
-test('create journal with three white spaces', () => {
-  expect(() => new DockShipUseCase(new InMemoryEventJournal(new Name('   ')))).toThrow(IsRequired)
 })
 
 test('dock ship request', () => {
