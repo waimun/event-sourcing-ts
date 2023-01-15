@@ -103,13 +103,13 @@ test('create throws an unexpected application error', () => {
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: 'testing' }
   jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const createMock = jest.spyOn(CreateShipUseCase.prototype, 'create').mockImplementation(() => {
+  const useCaseMock = jest.spyOn(CreateShipUseCase.prototype, 'create').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 
   const response: Response = controller.create(request)
 
-  expect(createMock).toHaveBeenCalled()
+  expect(useCaseMock).toHaveBeenCalled()
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()

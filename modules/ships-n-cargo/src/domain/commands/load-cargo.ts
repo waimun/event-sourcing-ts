@@ -2,9 +2,9 @@ import { Cargo } from '../cargo'
 import { Id } from '../../shared/domain/id'
 
 export class LoadCargo {
-  id: string
-  dateTime: Date = new Date()
-  cargo: Cargo
+  readonly id: string
+  readonly dateTime: Date
+  readonly cargo: Cargo
 
   constructor (id: Id, cargo: Cargo, dateTime: Date = new Date()) {
     this.id = id.value

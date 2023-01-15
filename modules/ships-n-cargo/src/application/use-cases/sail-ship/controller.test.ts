@@ -114,13 +114,13 @@ test('throws an unexpected application error', () => {
   const request = { id: 'xyz' }
 
   jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const sailMock = jest.spyOn(SailShipUseCase.prototype, 'sail').mockImplementation(() => {
+  const useCaseMock = jest.spyOn(SailShipUseCase.prototype, 'sail').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 
   const response = controller.sail(request)
 
-  expect(sailMock).toHaveBeenCalled()
+  expect(useCaseMock).toHaveBeenCalled()
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()

@@ -25,8 +25,8 @@ export class InvalidPortForDeparture extends InvalidArgumentError {
 }
 
 export class CargoAlreadyLoaded extends InvalidArgumentError {
-  constructor () {
-    super('Cargo is already loaded')
+  constructor (cargoName: string) {
+    super(`Cargo '${cargoName}' is already loaded`)
   }
 }
 

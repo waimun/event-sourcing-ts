@@ -125,13 +125,13 @@ test('throws an unexpected application error', () => {
   const request = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
 
   jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const dockMock = jest.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {
+  const useCaseMock = jest.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 
   const response = controller.dock(request)
 
-  expect(dockMock).toHaveBeenCalled()
+  expect(useCaseMock).toHaveBeenCalled()
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()

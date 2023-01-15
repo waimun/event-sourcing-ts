@@ -92,9 +92,9 @@ export class Ship extends SourcedAggregate {
 
     if (state.id !== command.id) throw new AggregateError.IdsMismatch()
 
-    const found = state.cargo.find(cargo => cargo.name === command.cargo.name)
+    const found = state.cargo.find(cargo => cargo.name.toLowerCase() === command.cargo.name.toLowerCase())
 
-    if (found !== undefined) throw new AggregateError.CargoAlreadyLoaded()
+    if (found !== undefined) throw new AggregateError.CargoAlreadyLoaded(command.cargo.name)
 
     return new CargoLoaded(command.id, command.cargo, command.dateTime)
   }
