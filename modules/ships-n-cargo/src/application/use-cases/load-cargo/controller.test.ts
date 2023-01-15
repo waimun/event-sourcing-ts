@@ -43,7 +43,7 @@ test('empty cargo name', () => {
   const request = { id: 'abc', cargoName: '' }
   const response = controller.loadCargo(request)
   expect(response.status).toEqual(400)
-  expect(response.error).toEqual(new IsRequired('Name').message)
+  expect(response.error).toEqual(new IsRequired('Cargo name').message)
 })
 
 test('invalid cargo name', () => {
@@ -53,7 +53,7 @@ test('invalid cargo name', () => {
   const request = { id: 'abc', cargoName: 'a!b' }
   const response = controller.loadCargo(request)
   expect(response.status).toEqual(400)
-  expect(response.error).toEqual(new NameNotAllowed(request.cargoName).message)
+  expect(response.error).toEqual(new NameNotAllowed(request.cargoName, 'Cargo name').message)
 })
 
 test('invalid date', () => {
