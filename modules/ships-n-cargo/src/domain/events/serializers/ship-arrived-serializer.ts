@@ -6,8 +6,8 @@ import { Country } from '../../country'
 
 export class ShipArrivedSerializer implements EventSerializable<ShipArrived> {
   eventFromJson (json: string): ShipArrived {
-    const { aggregateId, portName, portCountry, dateTimeOccurred } = JSON.parse(json)
-    return new ShipArrived(aggregateId, new Port(new PortName(portName), new Country(portCountry)), new Date(dateTimeOccurred))
+    const { aggregateId, portName, portCountry, occurredAt } = JSON.parse(json)
+    return new ShipArrived(aggregateId, new Port(new PortName(portName), new Country(portCountry)), new Date(occurredAt))
   }
 
   eventToJson (event: ShipArrived): string {

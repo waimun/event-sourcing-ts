@@ -5,8 +5,8 @@ import { Name } from '../../../shared/domain/name'
 
 export class CargoUnloadedSerializer implements EventSerializable<CargoUnloaded> {
   eventFromJson (json: string): CargoUnloaded {
-    const { aggregateId, cargo, dateTimeOccurred } = JSON.parse(json)
-    return new CargoUnloaded(aggregateId, new Cargo(new Name(cargo)), new Date(dateTimeOccurred))
+    const { aggregateId, cargo, occurredAt } = JSON.parse(json)
+    return new CargoUnloaded(aggregateId, new Cargo(new Name(cargo)), new Date(occurredAt))
   }
 
   eventToJson (event: CargoUnloaded): string {

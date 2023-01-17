@@ -6,7 +6,7 @@ test('return event object from json string', () => {
   const payload = {
     type: 'ShipCreated',
     aggregateId: 'abc',
-    dateTimeOccurred: new Date().toISOString(),
+    occurredAt: new Date().toISOString(),
     name: 'King Roy'
   }
 
@@ -15,7 +15,7 @@ test('return event object from json string', () => {
 
   expect(event.type).toEqual(payload.type)
   expect(event.aggregateId).toEqual(payload.aggregateId)
-  expect(event.dateTimeOccurred).toEqual(new Date(payload.dateTimeOccurred))
+  expect(event.occurredAt).toEqual(new Date(payload.occurredAt))
   expect(event.name).toEqual(payload.name)
 })
 
@@ -23,10 +23,10 @@ test('return json string from event object', () => {
   const serializer = new ShipCreatedSerializer()
   const event = new ShipCreated('abc', 'King Roy')
   const json = serializer.eventToJson(event)
-  const { type, aggregateId, dateTimeOccurred, name } = JSON.parse(json)
+  const { type, aggregateId, occurredAt, name } = JSON.parse(json)
 
   expect(type).toEqual(event.type)
   expect(aggregateId).toEqual(event.aggregateId)
-  expect(new Date(dateTimeOccurred)).toEqual(event.dateTimeOccurred)
+  expect(new Date(occurredAt)).toEqual(event.occurredAt)
   expect(name).toEqual(event.name)
 })

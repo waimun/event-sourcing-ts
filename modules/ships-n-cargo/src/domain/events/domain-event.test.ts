@@ -10,6 +10,6 @@ test('output domain event as JSON', () => {
   const obj = JSON.parse(json)
   expect(obj.type).toEqual(ShipCreated.name)
   expect(obj.aggregateId).toEqual('123')
-  expect(obj.dateTimeOccurred).toBeTruthy()
-  expect(obj.dateTimeRecorded).toBeTruthy()
+  expect(obj.occurredAt).toBeTruthy()
+  expect(obj.recordedAt).toBeTruthy()
 })

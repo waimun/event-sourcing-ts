@@ -3,8 +3,8 @@ import { ShipDeparted } from '../ship-departed'
 
 export class ShipDepartedSerializer implements EventSerializable<ShipDeparted> {
   eventFromJson (json: string): ShipDeparted {
-    const { aggregateId, dateTimeOccurred } = JSON.parse(json)
-    return new ShipDeparted(aggregateId, new Date(dateTimeOccurred))
+    const { aggregateId, occurredAt } = JSON.parse(json)
+    return new ShipDeparted(aggregateId, new Date(occurredAt))
   }
 
   eventToJson (event: ShipDeparted): string {

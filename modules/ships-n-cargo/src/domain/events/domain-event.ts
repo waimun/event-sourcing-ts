@@ -1,20 +1,20 @@
 export interface DomainEvent {
-  dateTimeOccurred: Date
-  dateTimeRecorded: Date
+  occurredAt: Date
+  recordedAt: Date
   type: string
   aggregateId: string
   asJson: () => string
 }
 
 export abstract class BaseDomainEvent implements DomainEvent {
-  dateTimeOccurred: Date
-  dateTimeRecorded: Date
+  occurredAt: Date
+  recordedAt: Date
   type: string
   aggregateId: string
 
-  protected constructor (type: string, aggregateId: string, dateTimeOccurred: Date = new Date()) {
-    this.dateTimeOccurred = dateTimeOccurred
-    this.dateTimeRecorded = new Date()
+  protected constructor (type: string, aggregateId: string, occurredAt: Date = new Date()) {
+    this.occurredAt = occurredAt
+    this.recordedAt = new Date()
     this.type = type
     this.aggregateId = aggregateId
   }
@@ -23,8 +23,8 @@ export abstract class BaseDomainEvent implements DomainEvent {
     return JSON.stringify({
       type: this.type,
       aggregateId: this.aggregateId,
-      dateTimeRecorded: this.dateTimeRecorded,
-      dateTimeOccurred: this.dateTimeOccurred
+      recordedAt: this.recordedAt,
+      occurredAt: this.occurredAt
     })
   }
 }
