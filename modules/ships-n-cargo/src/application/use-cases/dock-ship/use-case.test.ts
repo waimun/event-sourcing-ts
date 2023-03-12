@@ -16,25 +16,27 @@ test('construct class object', () => {
   expect(useCase).toBeTruthy()
 })
 
-test('dock ship request', () => {
+test('dock ship request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('Queen Mary'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('Queen Mary'), id)
+  const events1 = await journal.eventsById(id.value)
+  expect(events1.length).toEqual(1)
 
   const useCase = new DockShipUseCase(journal)
   const port = new Port(new PortName('Tennessee'), new Country('US'))
-  useCase.dock(id, port)
-  expect(journal.eventsById(id.value).length).toEqual(2)
+  await useCase.dock(id, port)
+  const events2 = await journal.eventsById(id.value)
+  expect(events2.length).toEqual(2)
 })
 
-test('ship id not found', () => {
+test('ship id not found', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const useCase = new DockShipUseCase(journal)
   const id = new Id('abc')
   const port = new Port(new PortName('Tennessee'), new Country('US'))
-  expect(() => useCase.dock(id, port)).toThrow(new ShipNotFound(id.value))
+  await expect(useCase.dock(id, port)).rejects.toThrow(new ShipNotFound(id.value))
 })

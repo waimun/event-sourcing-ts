@@ -14,11 +14,11 @@ export class CreateShipUseCase {
     this.journal = journal
   }
 
-  create (name: Name, id: Id): void {
+  async create (name: Name, id: Id): Promise<void> {
     try {
       const command = new CreateShip(name, id)
       const shipCreated = Ship.create(command, Ship.uninitialized())
-      this.journal.newEntry(command.id, shipCreated)
+      await this.journal.newEntry(command.id, shipCreated)
     } catch (e) {
       if (e instanceof EntryAlreadyExists) throw new IdAlreadyExists(id.value)
       throw e

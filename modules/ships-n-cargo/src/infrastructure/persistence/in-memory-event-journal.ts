@@ -11,21 +11,21 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
     this.entries = new Map<string, DomainEvent[]>()
   }
 
-  newEntry (id: string, ...events: DomainEvent[]): void {
+  async newEntry (id: string, ...events: DomainEvent[]): Promise<void> {
     if (events.length === 0) throw new EventIsRequired()
     if (this.entries.has(id)) throw new EntryAlreadyExists(id)
 
     this.entries.set(id, events)
   }
 
-  appendEvents (id: string, ...events: DomainEvent[]): void {
+  async appendEvents (id: string, ...events: DomainEvent[]): Promise<void> {
     if (events.length === 0) throw new EventIsRequired()
     if (!this.entries.has(id)) throw new EntryDoesNotExist(id)
 
     this.entries.get(id)?.push(...events)
   }
 
-  eventsById (id: string): DomainEvent[] {
+  async eventsById (id: string): Promise<DomainEvent[]> {
     return this.entries.get(id) ?? []
   }
 }

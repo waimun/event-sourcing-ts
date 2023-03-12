@@ -14,48 +14,50 @@ test('construct class object', () => {
   expect(useCase).toBeTruthy()
 })
 
-test('ship id not found', () => {
+test('ship id not found', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const useCase = new LoadCargoUseCase(journal)
   const id = new Id('abc')
 
-  expect(() => useCase.load(id, new Name('Refactoring Book'))).toThrow(new ShipNotFound(id.value))
+  await expect(useCase.load(id, new Name('Refactoring Book'))).rejects.toThrow(new ShipNotFound(id.value))
 })
 
-test('cargo already loaded', () => {
+test('cargo already loaded', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('Queen Mary'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('Queen Mary'), id)
+  const events1 = await journal.eventsById(id.value)
+  expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   const cargoName = new Name('Refactoring Book')
-  loadCargoUseCase.load(id, cargoName)
-  expect(journal.eventsById(id.value).length).toEqual(2)
+  await loadCargoUseCase.load(id, cargoName)
+  const events2 = await journal.eventsById(id.value)
+  expect(events2.length).toEqual(2)
 
   // try to load the same cargo twice; cargo name is an unique identifier
-  expect(() => {
-    loadCargoUseCase.load(id, cargoName)
-  }).toThrow(new CargoAlreadyLoaded(cargoName.value))
+  await expect(loadCargoUseCase.load(id, cargoName))
+    .rejects.toThrow(new CargoAlreadyLoaded(cargoName.value))
 
   // try to load the same cargo twice; cargo name is case-insensitive
-  expect(() => {
-    loadCargoUseCase.load(id, new Name('REFACTORING Book'))
-  }).toThrow(new CargoAlreadyLoaded(new Name('REFACTORING Book').value))
+  await expect(loadCargoUseCase.load(id, new Name('REFACTORING Book')))
+    .rejects.toThrow(new CargoAlreadyLoaded(new Name('REFACTORING Book').value))
 })
 
-test('valid request', () => {
+test('valid request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('King Roy'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('King Roy'), id)
+  const events1 = await journal.eventsById(id.value)
+  expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
-  loadCargoUseCase.load(id, new Name('Refactoring Book'))
-  expect(journal.eventsById(id.value).length).toEqual(2)
+  await loadCargoUseCase.load(id, new Name('Refactoring Book'))
+  const events2 = await journal.eventsById(id.value)
+  expect(events2.length).toEqual(2)
 })

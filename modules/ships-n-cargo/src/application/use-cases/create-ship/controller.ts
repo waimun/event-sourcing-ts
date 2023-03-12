@@ -12,9 +12,9 @@ export class CreateShipController {
     this.useCase = useCase
   }
 
-  create (request: CreateShipDto): Response {
+  async create (request: CreateShipDto): Promise<Response> {
     try {
-      this.useCase.create(new Name(request.name), new Id(request.id))
+      await this.useCase.create(new Name(request.name), new Id(request.id))
       return { status: 201, dateTime: new Date() }
     } catch (e) {
       if (e instanceof InvalidArgumentError) {

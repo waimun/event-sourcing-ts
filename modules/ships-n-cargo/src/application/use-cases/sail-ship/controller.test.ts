@@ -19,95 +19,95 @@ test('construct class object', () => {
   expect(new SailShipController(useCase)).toBeTruthy()
 })
 
-test('sail with valid request', () => {
+test('sail with valid request', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
-  const response1 = controller1.create(request1)
+  const response1 = await controller1.create(request1)
   expect(response1.status).toEqual(201)
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)
   const controller3 = new SailShipController(useCase3)
-  const response3 = controller3.sail({ id: 'abc' })
+  const response3 = await controller3.sail({ id: 'abc' })
   expect(response3.status).toEqual(200)
 })
 
-test('invalid id', () => {
+test('invalid id', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
-  const response1 = controller1.create(request1)
+  const response1 = await controller1.create(request1)
   expect(response1.status).toEqual(201)
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)
   const controller3 = new SailShipController(useCase3)
-  const response3 = controller3.sail({ id: 'a!c' })
+  const response3 = await controller3.sail({ id: 'a!c' })
   expect(response3.status).toEqual(400)
   expect(response3.error).toEqual(new IdNotAllowed('a!c').message)
 })
 
-test('invalid date', () => {
+test('invalid date', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
-  const response1 = controller1.create(request1)
+  const response1 = await controller1.create(request1)
   expect(response1.status).toEqual(201)
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)
   const controller3 = new SailShipController(useCase3)
-  const response3 = controller3.sail({ id: 'abc', dateTime: 'not-a-date' })
+  const response3 = await controller3.sail({ id: 'abc', dateTime: 'not-a-date' })
   expect(response3.status).toEqual(400)
   expect(response3.error).toEqual(new InvalidDate().message)
 })
 
-test('ship does not exist', () => {
+test('ship does not exist', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase = new SailShipUseCase(journal)
   const controller = new SailShipController(useCase)
-  const response = controller.sail({ id: 'abc' })
+  const response = await controller.sail({ id: 'abc' })
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new ShipNotFound('abc').message)
 })
 
-test('cannot depart from a missing port', () => {
+test('cannot depart from a missing port', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase1 = new CreateShipUseCase(journal)
   const controller1 = new CreateShipController(useCase1)
   const request1: CreateShipDto = { id: 'abc', name: 'King Roy' }
-  const response1 = controller1.create(request1)
+  const response1 = await controller1.create(request1)
   expect(response1.status).toEqual(201)
 
   const useCase2 = new SailShipUseCase(journal)
   const controller2 = new SailShipController(useCase2)
-  const response2 = controller2.sail({ id: 'abc' })
+  const response2 = await controller2.sail({ id: 'abc' })
   expect(response2.status).toEqual(400)
   expect(response2.error).toEqual(new InvalidPortForDeparture().message)
 })
 
-test('throws an unexpected application error', () => {
+test('throws an unexpected application error', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new SailShipUseCase(journal)
   const controller = new SailShipController(useCase)
@@ -118,7 +118,7 @@ test('throws an unexpected application error', () => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 
-  const response = controller.sail(request)
+  const response = await controller.sail(request)
 
   expect(useCaseMock).toHaveBeenCalled()
   expect(response.status).toEqual(500)

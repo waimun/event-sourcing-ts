@@ -12,28 +12,30 @@ test('construct class object', () => {
   expect(useCase).toBeTruthy()
 })
 
-test('create ship request', () => {
+test('create ship request', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
-  useCase.create(name, id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await useCase.create(name, id)
+  const events = await journal.eventsById(id.value)
+  expect(events.length).toEqual(1)
 })
 
-test('create with an id that already exists in the journal', () => {
+test('create with an id that already exists in the journal', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
-  useCase.create(name, id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await useCase.create(name, id)
+  const events = await journal.eventsById(id.value)
+  expect(events.length).toEqual(1)
 
   // create with duplicated id
-  expect(() => useCase.create(name, id)).toThrow(new IdAlreadyExists(id.value))
+  await expect(useCase.create(name, id)).rejects.toThrow(new IdAlreadyExists(id.value))
 })
 
-test('throws an unknown error', () => {
+test('throws an unknown error', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
@@ -43,6 +45,6 @@ test('throws an unknown error', () => {
     throw new Error('Some error that is not an instance of EntryAlreadyExists')
   })
 
-  expect(() => useCase.create(name, id)).toThrow(Error)
+  await expect(useCase.create(name, id)).rejects.toThrow(Error)
   expect(eventJournalMock).toHaveBeenCalled()
 })

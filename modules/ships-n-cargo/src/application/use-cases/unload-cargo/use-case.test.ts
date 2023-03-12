@@ -15,42 +15,46 @@ test('construct class object', () => {
   expect(useCase).toBeTruthy()
 })
 
-test('ship id not found', () => {
+test('ship id not found', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const useCase = new UnloadCargoUseCase(journal)
   const id = new Id('abc')
 
-  expect(() => useCase.unload(id, new Name('Refactoring Book'))).toThrow(new ShipNotFound(id.value))
+  await expect(useCase.unload(id, new Name('Refactoring Book'))).rejects.toThrow(new ShipNotFound(id.value))
 })
 
-test('cannot find cargo to unload', () => {
+test('cannot find cargo to unload', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('Thomas Jefferson'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('Thomas Jefferson'), id)
+  const events = await journal.eventsById(id.value)
+  expect(events.length).toEqual(1)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
   const cargoName = new Name('Cloud Architecture')
-  expect(() => unloadCargoUseCase.unload(id, cargoName)).toThrow(new CargoNotFound(cargoName.value))
+  await expect(unloadCargoUseCase.unload(id, cargoName)).rejects.toThrow(new CargoNotFound(cargoName.value))
 })
 
-test('valid request', () => {
+test('valid request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('Thomas Jefferson'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('Thomas Jefferson'), id)
+  const events1 = await journal.eventsById(id.value)
+  expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   const cargoName = new Name('Cloud Architecture')
-  loadCargoUseCase.load(id, cargoName)
-  expect(journal.eventsById(id.value).length).toEqual(2)
+  await loadCargoUseCase.load(id, cargoName)
+  const events2 = await journal.eventsById(id.value)
+  expect(events2.length).toEqual(2)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
-  unloadCargoUseCase.unload(id, cargoName)
-  expect(journal.eventsById(id.value).length).toEqual(3)
+  await unloadCargoUseCase.unload(id, cargoName)
+  const events3 = await journal.eventsById(id.value)
+  expect(events3.length).toEqual(3)
 })

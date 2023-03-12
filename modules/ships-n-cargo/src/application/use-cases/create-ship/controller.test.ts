@@ -14,11 +14,11 @@ test('construct class object', () => {
   expect(new CreateShipController(useCase)).toBeTruthy()
 })
 
-test('create with valid request', () => {
+test('create with valid request', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: 'testing' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(201)
   expect(response.dateTime).toBeTruthy()
@@ -26,11 +26,11 @@ test('create with valid request', () => {
   expect(response.error).toBeUndefined()
 })
 
-test('create with an empty id', () => {
+test('create with an empty id', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: '', name: 'testing' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Id').message)
@@ -38,11 +38,11 @@ test('create with an empty id', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create with an id that contains whitespaces', () => {
+test('create with an id that contains whitespaces', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: '   ', name: 'testing' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Id').message)
@@ -50,11 +50,11 @@ test('create with an id that contains whitespaces', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create with an invalid id', () => {
+test('create with an invalid id', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'a!', name: 'testing' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IdNotAllowed(request.id).message)
@@ -62,11 +62,11 @@ test('create with an invalid id', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create with an empty name', () => {
+test('create with an empty name', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: '' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Name').message)
@@ -74,11 +74,11 @@ test('create with an empty name', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create with a name that contains whitespaces', () => {
+test('create with a name that contains whitespaces', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: '   ' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Name').message)
@@ -86,11 +86,11 @@ test('create with a name that contains whitespaces', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create with an invalid name', () => {
+test('create with an invalid name', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: 'a!' }
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new NameNotAllowed(request.name).message)
@@ -98,7 +98,7 @@ test('create with an invalid name', () => {
   expect(response.body).toBeUndefined()
 })
 
-test('create throws an unexpected application error', () => {
+test('create throws an unexpected application error', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
   const request: CreateShipDto = { id: 'abc', name: 'testing' }
@@ -107,7 +107,7 @@ test('create throws an unexpected application error', () => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 
-  const response: Response = controller.create(request)
+  const response: Response = await controller.create(request)
 
   expect(useCaseMock).toHaveBeenCalled()
   expect(response.status).toEqual(500)

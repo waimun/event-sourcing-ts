@@ -16,10 +16,10 @@ beforeEach(() => {
   res.json = jest.fn<Send>().mockReturnValue(res as Response)
 })
 
-test('id is required', () => {
+test('id is required', async () => {
   req.body = {}
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -29,10 +29,10 @@ test('id is required', () => {
   })
 })
 
-test('id is invalid', () => {
+test('id is invalid', async () => {
   req.body = { id: 'a!b' }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -42,10 +42,10 @@ test('id is invalid', () => {
   })
 })
 
-test('port is required', () => {
+test('port is required', async () => {
   req.body = { id: 'abc' }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -55,10 +55,10 @@ test('port is required', () => {
   })
 })
 
-test('port name is required', () => {
+test('port name is required', async () => {
   req.body = { id: 'abc', port: {} }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -68,10 +68,10 @@ test('port name is required', () => {
   })
 })
 
-test('port name is invalid', () => {
+test('port name is invalid', async () => {
   req.body = { id: 'abc', port: { name: 'a!b' } }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -81,10 +81,10 @@ test('port name is invalid', () => {
   })
 })
 
-test('port country is required', () => {
+test('port country is required', async () => {
   req.body = { id: 'abc', port: { name: 'Henderson' } }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -94,10 +94,10 @@ test('port country is required', () => {
   })
 })
 
-test('port country is invalid', () => {
+test('port country is invalid', async () => {
   req.body = { id: 'abc', port: { name: 'Henderson', country: 'ZZ' } }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -107,10 +107,10 @@ test('port country is invalid', () => {
   })
 })
 
-test('dateTime is invalid', () => {
+test('dateTime is invalid', async () => {
   req.body = { id: 'abc', port: { name: 'Henderson', country: 'us' }, dateTime: 'invalid-date-format' }
 
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -120,14 +120,14 @@ test('dateTime is invalid', () => {
   })
 })
 
-test('valid request', () => {
+test('valid request', async () => {
   req.body = { id: 'abc', name: 'King Roy' }
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
 
   req.body = { id: 'abc', port: { name: 'Henderson', country: 'us' } }
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(200)
   expect(res.json).toHaveBeenCalledWith({

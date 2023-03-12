@@ -18,41 +18,45 @@ test('construct class object', () => {
   expect(useCase).toBeTruthy()
 })
 
-test('sail ship request', () => {
+test('sail ship request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('King Roy'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('King Roy'), id)
+  const events1 = await journal.eventsById(id.value)
+  expect(events1.length).toEqual(1)
 
   const dockShipUseCase = new DockShipUseCase(journal)
   const port = new Port(new PortName('Henderson'), new Country('US'))
-  dockShipUseCase.dock(id, port)
-  expect(journal.eventsById(id.value).length).toEqual(2)
+  await dockShipUseCase.dock(id, port)
+  const events2 = await journal.eventsById(id.value)
+  expect(events2.length).toEqual(2)
 
   const useCase = new SailShipUseCase(journal)
-  useCase.sail(id)
-  expect(journal.eventsById(id.value).length).toEqual(3)
+  await useCase.sail(id)
+  const events3 = await journal.eventsById(id.value)
+  expect(events3.length).toEqual(3)
 })
 
-test('ship id not found', () => {
+test('ship id not found', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const useCase = new SailShipUseCase(journal)
   const id = new Id('abc')
-  expect(() => useCase.sail(id)).toThrow(new ShipNotFound(id.value))
+  await expect(useCase.sail(id)).rejects.toThrow(new ShipNotFound(id.value))
 })
 
-test('cannot depart from a missing port', () => {
+test('cannot depart from a missing port', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
-  createShipUseCase.create(new Name('King Roy'), id)
-  expect(journal.eventsById(id.value).length).toEqual(1)
+  await createShipUseCase.create(new Name('King Roy'), id)
+  const events = await journal.eventsById(id.value)
+  expect(events.length).toEqual(1)
   // after ship is created, it has a missing port by default.
 
   const useCase = new SailShipUseCase(journal)
-  expect(() => useCase.sail(id)).toThrow(InvalidPortForDeparture)
+  await expect(useCase.sail(id)).rejects.toThrow(InvalidPortForDeparture)
 })

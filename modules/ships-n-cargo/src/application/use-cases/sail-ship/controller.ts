@@ -12,11 +12,11 @@ export class SailShipController {
     this.useCase = useCase
   }
 
-  sail (request: SailShipDto): Response {
+  async sail (request: SailShipDto): Promise<Response> {
     try {
       const id = new Id(request.id)
       const dateTime = new ISODate(request.dateTime)
-      this.useCase.sail(id, dateTime)
+      await this.useCase.sail(id, dateTime)
       return { status: 200, dateTime: new Date() }
     } catch (e) {
       if (e instanceof InvalidArgumentError) {

@@ -10,10 +10,10 @@ beforeEach(() => {
   res.json = jest.fn<Send>().mockReturnValue(res as Response)
 })
 
-test('id provided to create ship aggregate', () => {
+test('id provided to create ship aggregate', async () => {
   req.body = { id: 'abc', name: 'King Roy' }
 
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
   expect(res.json).toHaveBeenCalledWith({
@@ -22,10 +22,10 @@ test('id provided to create ship aggregate', () => {
   })
 })
 
-test('missing id to create ship aggregate', () => {
+test('missing id to create ship aggregate', async () => {
   req.body = { name: 'King Roy' }
 
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
   expect(res.json).toHaveBeenCalledWith({

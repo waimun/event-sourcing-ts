@@ -24,78 +24,80 @@ test('create journal with three white spaces', () => {
   expect(() => new InMemoryEventJournal(new Name('   '))).toThrow(IsRequired)
 })
 
-test('new entry with one event', () => {
+test('new entry with one event', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
   expect(journal.entries.size).toEqual(1)
 })
 
-test('new entry with two events', () => {
+test('new entry with two events', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
   const events = [
     new ShipCreated('123', 'King Roy'),
     new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
   ]
 
-  journal.newEntry('123', ...events)
+  await journal.newEntry('123', ...events)
   expect(journal.entries.size).toEqual(1)
 })
 
-test('new entry without any event', () => {
+test('new entry without any event', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  expect(() => journal.newEntry('123')).toThrow(EventIsRequired)
+  await expect(journal.newEntry('123')).rejects.toThrow(EventIsRequired)
 })
 
-test('new entry with an id that already exists', () => {
+test('new entry with an id that already exists', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
   expect(journal.entries.size).toEqual(1)
 
-  expect(() => {
-    journal.newEntry('123', new ShipCreated('123', 'King Roy'))
-  }).toThrow(new EntryAlreadyExists('123'))
+  await expect(journal.newEntry('123', new ShipCreated('123', 'King Roy')))
+    .rejects.toThrow(new EntryAlreadyExists('123'))
 })
 
-test('get events by id', () => {
+test('get events by id', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
-  expect(journal.eventsById('123').length).toEqual(1)
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  const events = await journal.eventsById('123')
+  expect(events.length).toEqual(1)
 })
 
-test('get events by id that does not exist', () => {
+test('get events by id that does not exist', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  expect(journal.eventsById('123').length).toEqual(0)
+  const events = await journal.eventsById('123')
+  expect(events.length).toEqual(0)
 })
 
-test('append with one event', () => {
+test('append with one event', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
-  journal.appendEvents('123', new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))))
-  expect(journal.eventsById('123').length).toEqual(2)
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  await journal.appendEvents('123', new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))))
+  const events = await journal.eventsById('123')
+  expect(events.length).toEqual(2)
 })
 
-test('append with two events', () => {
+test('append with two events', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
 
   const events = [
     new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))),
     new ShipDeparted('123')
   ]
 
-  journal.appendEvents('123', ...events)
-  expect(journal.eventsById('123').length).toEqual(3)
+  await journal.appendEvents('123', ...events)
+  const result = await journal.eventsById('123')
+  expect(result.length).toEqual(3)
 })
 
-test('append without any event', () => {
+test('append without any event', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  journal.newEntry('123', new ShipCreated('123', 'King Roy'))
-  expect(() => journal.appendEvents('123')).toThrow(EventIsRequired)
+  await journal.newEntry('123', new ShipCreated('123', 'King Roy'))
+  await expect(journal.appendEvents('123')).rejects.toThrow(EventIsRequired)
 })
 
-test('append to an id that does not exist in the journal', () => {
+test('append to an id that does not exist in the journal', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  expect(() =>
-    journal.appendEvents('123', new ShipCreated('123', 'King Roy'))
-  ).toThrow(new EntryDoesNotExist('123'))
+  await expect(journal.appendEvents('123', new ShipCreated('123', 'King Roy')))
+    .rejects.toThrow(new EntryDoesNotExist('123'))
 })

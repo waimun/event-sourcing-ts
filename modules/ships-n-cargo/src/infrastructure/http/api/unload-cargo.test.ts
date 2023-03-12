@@ -18,10 +18,10 @@ beforeEach(() => {
   res.json = jest.fn<Send>().mockReturnValue(res as Response)
 })
 
-test('id is required', () => {
+test('id is required', async () => {
   req.body = {}
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -31,10 +31,10 @@ test('id is required', () => {
   })
 })
 
-test('empty id', () => {
+test('empty id', async () => {
   req.body = { id: '' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -44,10 +44,10 @@ test('empty id', () => {
   })
 })
 
-test('id is invalid', () => {
+test('id is invalid', async () => {
   req.body = { id: 'a!b' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -57,10 +57,10 @@ test('id is invalid', () => {
   })
 })
 
-test('cargo name is required', () => {
+test('cargo name is required', async () => {
   req.body = { id: 'abc' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -70,10 +70,10 @@ test('cargo name is required', () => {
   })
 })
 
-test('invalid cargo name', () => {
+test('invalid cargo name', async () => {
   req.body = { id: 'abc', cargoName: 'a#*x' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -83,10 +83,10 @@ test('invalid cargo name', () => {
   })
 })
 
-test('dateTime is invalid', () => {
+test('dateTime is invalid', async () => {
   req.body = { id: 'abc', cargoName: 'Microservices Architecture', dateTime: 'invalid-date-format' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -96,10 +96,10 @@ test('dateTime is invalid', () => {
   })
 })
 
-test('id not found', () => {
+test('id not found', async () => {
   req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -109,14 +109,14 @@ test('id not found', () => {
   })
 })
 
-test('cannot find cargo to unload', () => {
+test('cannot find cargo to unload', async () => {
   req.body = { id: 'abc', name: 'King Roy' }
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
   expect(res.status).toHaveBeenCalledWith(201)
 
   req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
     status: 400,
@@ -125,20 +125,20 @@ test('cannot find cargo to unload', () => {
   })
 })
 
-test('valid request', () => {
+test('valid request', async () => {
   req.body = { id: 'xyz', name: 'King Roy' }
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
   expect(res.status).toHaveBeenNthCalledWith(1, 201)
 
   req.body = { id: 'xyz', cargoName: 'Microservices Architecture' }
-  loadCargo(req as Request, res as Response)
+  await loadCargo(req as Request, res as Response)
   expect(res.status).toHaveBeenNthCalledWith(2, 200)
   expect(res.json).toHaveBeenNthCalledWith(2, {
     status: 200,
     dateTime: expect.any(Date)
   })
 
-  unloadCargo(req as Request, res as Response)
+  await unloadCargo(req as Request, res as Response)
   expect(res.status).toHaveBeenNthCalledWith(3, 200)
   expect(res.json).toHaveBeenNthCalledWith(3, {
     status: 200,

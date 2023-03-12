@@ -13,14 +13,14 @@ export class SailShipUseCase {
     this.journal = journal
   }
 
-  sail (id: Id, dateTime: ISODate = new ISODate()): void {
+  async sail (id: Id, dateTime: ISODate = new ISODate()): Promise<void> {
     const command = new SailShip(id, dateTime.value)
-    const events = this.journal.eventsById(id.value)
+    const events = await this.journal.eventsById(id.value)
 
     if (events.length === 0) throw new ShipNotFound(id.value)
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const shipDeparted = Ship.depart(command, ship)
-    this.journal.appendEvents(id.value, shipDeparted)
+    await this.journal.appendEvents(id.value, shipDeparted)
   }
 }

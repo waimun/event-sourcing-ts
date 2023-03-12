@@ -17,10 +17,10 @@ beforeEach(() => {
   res.json = jest.fn<Send>().mockReturnValue(res as Response)
 })
 
-test('id is required', () => {
+test('id is required', async () => {
   req.body = {}
 
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -30,10 +30,10 @@ test('id is required', () => {
   })
 })
 
-test('id is invalid', () => {
+test('id is invalid', async () => {
   req.body = { id: 'a!b' }
 
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -43,10 +43,10 @@ test('id is invalid', () => {
   })
 })
 
-test('dateTime is invalid', () => {
+test('dateTime is invalid', async () => {
   req.body = { id: 'abc', dateTime: 'invalid-date-format' }
 
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -56,9 +56,9 @@ test('dateTime is invalid', () => {
   })
 })
 
-test('id not found', () => {
+test('id not found', async () => {
   req.body = { id: 'abc' }
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -68,14 +68,14 @@ test('id not found', () => {
   })
 })
 
-test('cannot depart from a missing port', () => {
+test('cannot depart from a missing port', async () => {
   req.body = { id: 'abc', name: 'Queen Mary' }
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
 
   req.body = { id: 'abc' }
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -85,14 +85,14 @@ test('cannot depart from a missing port', () => {
   })
 })
 
-test('valid request', () => {
+test('valid request', async () => {
   req.body = { id: 'xyz', name: 'King Roy' }
-  createShip(req as Request, res as Response)
+  await createShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenNthCalledWith(1, 201)
 
   req.body = { id: 'xyz', port: { name: 'Tennessee', country: 'us' } }
-  dockShip(req as Request, res as Response)
+  await dockShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenNthCalledWith(2, 200)
   expect(res.json).toHaveBeenNthCalledWith(2, {
@@ -101,7 +101,7 @@ test('valid request', () => {
   })
 
   req.body = { id: 'xyz' }
-  sailShip(req as Request, res as Response)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenNthCalledWith(3, 200)
   expect(res.json).toHaveBeenNthCalledWith(3, {

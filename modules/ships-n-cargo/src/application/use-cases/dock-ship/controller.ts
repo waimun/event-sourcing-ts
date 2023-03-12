@@ -17,13 +17,13 @@ export class DockShipController {
     this.useCase = useCase
   }
 
-  dock (request: DockShipDto): Response {
+  async dock (request: DockShipDto): Promise<Response> {
     try {
       const id = new Id(request.id)
       if (isNotObject(request.port)) throw new IsRequired('Port')
       const port = new Port(new PortName(request.port.name), new Country(request.port.country))
       const dateTime = new ISODate(request.dateTime)
-      this.useCase.dock(id, port, dateTime)
+      await this.useCase.dock(id, port, dateTime)
       return { status: 200, dateTime: new Date() }
     } catch (e) {
       if (e instanceof InvalidArgumentError) {
