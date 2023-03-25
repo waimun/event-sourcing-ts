@@ -41,7 +41,7 @@ test('throws an unknown error', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
 
-  const eventJournalMock = jest.spyOn(InMemoryEventJournal.prototype, 'newEntry').mockImplementation(() => {
+  const eventJournalMock = jest.spyOn(InMemoryEventJournal.prototype, 'appendEvents').mockImplementation(() => {
     throw new Error('Some error that is not an instance of EntryAlreadyExists')
   })
 
