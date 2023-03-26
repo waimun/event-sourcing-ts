@@ -21,6 +21,6 @@ export class SailShipUseCase {
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const shipDeparted = Ship.depart(command, ship)
-    await this.journal.appendEvents(id.value, shipDeparted)
+    await this.journal.appendEvents(shipDeparted)
   }
 }

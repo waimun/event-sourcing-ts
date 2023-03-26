@@ -22,6 +22,6 @@ export class DockShipUseCase {
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const shipArrived = Ship.arrive(command, ship)
-    await this.journal.appendEvents(id.value, shipArrived)
+    await this.journal.appendEvents(shipArrived)
   }
 }

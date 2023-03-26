@@ -23,6 +23,6 @@ export class LoadCargoUseCase {
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const cargoLoaded = Ship.loadCargo(command, ship)
-    await this.journal.appendEvents(id.value, cargoLoaded)
+    await this.journal.appendEvents(cargoLoaded)
   }
 }

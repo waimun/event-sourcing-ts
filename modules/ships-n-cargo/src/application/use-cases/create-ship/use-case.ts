@@ -20,6 +20,6 @@ export class CreateShipUseCase {
     if (events.length !== 0) throw new IdAlreadyExists(id.value)
 
     const shipCreated = Ship.create(command, Ship.uninitialized())
-    await this.journal.appendEvents(command.id, shipCreated)
+    await this.journal.appendEvents(shipCreated)
   }
 }
