@@ -1,4 +1,4 @@
 export interface EventJournal<K, V> {
-  appendEvents: (...events: V[]) => Promise<void>
-  eventsById: (id: K) => Promise<V[]>
+  append: (...events: V[]) => Promise<void>
+  eventsByAggregate: (id: K) => Promise<V[]>
 }

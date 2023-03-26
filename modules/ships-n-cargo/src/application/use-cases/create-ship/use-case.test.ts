@@ -18,7 +18,7 @@ test('create ship request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
   await useCase.create(name, id)
-  const events = await journal.eventsById(id.value)
+  const events = await journal.eventsByAggregate(id.value)
   expect(events.length).toEqual(1)
 })
 
@@ -28,7 +28,7 @@ test('create with an id that already exists in the journal', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
   await useCase.create(name, id)
-  const events = await journal.eventsById(id.value)
+  const events = await journal.eventsByAggregate(id.value)
   expect(events.length).toEqual(1)
 
   // create with duplicated id
@@ -41,7 +41,7 @@ test('throws an unknown error', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
 
-  const eventJournalMock = jest.spyOn(InMemoryEventJournal.prototype, 'appendEvents').mockImplementation(() => {
+  const eventJournalMock = jest.spyOn(InMemoryEventJournal.prototype, 'append').mockImplementation(() => {
     throw new Error('Some error that is not an instance of EntryAlreadyExists')
   })
 

@@ -17,12 +17,12 @@ export class LoadCargoUseCase {
 
   async load (id: Id, cargoName: Name, dateTime: ISODate = new ISODate()): Promise<void> {
     const command = new LoadCargo(id, new Cargo(cargoName), dateTime.value)
-    const events = await this.journal.eventsById(id.value)
+    const events = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) throw new ShipNotFound(id.value)
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const cargoLoaded = Ship.loadCargo(command, ship)
-    await this.journal.appendEvents(cargoLoaded)
+    await this.journal.append(cargoLoaded)
   }
 }

@@ -25,21 +25,21 @@ test('create journal with three white spaces', () => {
 
 test('get events by aggregate id', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.appendEvents(new ShipCreated('123', 'King Roy'))
-  const events = await journal.eventsById('123')
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  const events = await journal.eventsByAggregate('123')
   expect(events.length).toEqual(1)
 })
 
 test('get events by aggregate id that does not exist', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  const events = await journal.eventsById('123')
+  const events = await journal.eventsByAggregate('123')
   expect(events.length).toEqual(0)
 })
 
 test('append one event for the aggregate', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.appendEvents(new ShipCreated('123', 'King Roy'))
-  const events = await journal.eventsById('123')
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  const events = await journal.eventsByAggregate('123')
   expect(events.length).toEqual(1)
 })
 
@@ -51,20 +51,20 @@ test('append two events for the same aggregate', async () => {
     new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
   ]
 
-  await journal.appendEvents(...events)
-  const result = await journal.eventsById('123')
+  await journal.append(...events)
+  const result = await journal.eventsByAggregate('123')
   expect(result.length).toEqual(2)
 })
 
 test('append without any event specified', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await expect(journal.appendEvents()).rejects.toThrow(EventIsRequired)
+  await expect(journal.append()).rejects.toThrow(EventIsRequired)
 })
 
 test('appendEvents called twice', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.appendEvents(new ShipCreated('123', 'King Roy'))
-  await journal.appendEvents(new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))))
-  const events = await journal.eventsById('123')
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  await journal.append(new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))))
+  const events = await journal.eventsByAggregate('123')
   expect(events.length).toEqual(2)
 })

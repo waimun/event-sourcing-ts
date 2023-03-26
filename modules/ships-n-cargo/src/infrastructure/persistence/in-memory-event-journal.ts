@@ -11,7 +11,7 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
     this.entries = new Map<string, DomainEvent[]>()
   }
 
-  async appendEvents (...events: DomainEvent[]): Promise<void> {
+  async append (...events: DomainEvent[]): Promise<void> {
     if (events.length === 0) throw new EventIsRequired()
 
     events.forEach(event => {
@@ -23,7 +23,7 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
     })
   }
 
-  async eventsById (id: string): Promise<DomainEvent[]> {
+  async eventsByAggregate (id: string): Promise<DomainEvent[]> {
     return this.entries.get(id) ?? []
   }
 }

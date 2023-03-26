@@ -17,12 +17,12 @@ export class UnloadCargoUseCase {
 
   async unload (id: Id, cargoName: Name, dateTime: ISODate = new ISODate()): Promise<void> {
     const command = new UnloadCargo(id, new Cargo(cargoName), dateTime.value)
-    const events = await this.journal.eventsById(id.value)
+    const events = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) throw new ShipNotFound(id.value)
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const cargoUnloaded = Ship.unloadCargo(command, ship)
-    await this.journal.appendEvents(cargoUnloaded)
+    await this.journal.append(cargoUnloaded)
   }
 }

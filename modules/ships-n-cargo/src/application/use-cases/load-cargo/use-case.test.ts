@@ -29,13 +29,13 @@ test('cargo already loaded', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('Queen Mary'), id)
-  const events1 = await journal.eventsById(id.value)
+  const events1 = await journal.eventsByAggregate(id.value)
   expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   const cargoName = new Name('Refactoring Book')
   await loadCargoUseCase.load(id, cargoName)
-  const events2 = await journal.eventsById(id.value)
+  const events2 = await journal.eventsByAggregate(id.value)
   expect(events2.length).toEqual(2)
 
   // try to load the same cargo twice; cargo name is an unique identifier
@@ -53,11 +53,11 @@ test('valid request', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('King Roy'), id)
-  const events1 = await journal.eventsById(id.value)
+  const events1 = await journal.eventsByAggregate(id.value)
   expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   await loadCargoUseCase.load(id, new Name('Refactoring Book'))
-  const events2 = await journal.eventsById(id.value)
+  const events2 = await journal.eventsByAggregate(id.value)
   expect(events2.length).toEqual(2)
 })
