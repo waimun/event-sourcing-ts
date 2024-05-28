@@ -47,8 +47,9 @@ jobs:
       run: npm run build
     - name: Upload coverage to Codecov
       if: steps.filter.outputs.src == 'true'
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        flags: unit
-        fail_ci_if_error: true
-        verbose: true
+        token: ${{ secrets.CODECOV_TOKEN }} # required
+        flags: unittests # optional
+        fail_ci_if_error: true # optional
+        verbose: true # optional
