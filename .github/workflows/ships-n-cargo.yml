@@ -25,28 +25,28 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v2
-      id: filter
+    - uses: dorny/paths-filter@v3
+      id: changes
       with:
         filters: |
           src:
             - 'modules/ships-n-cargo/**'
             - '.github/workflows/ships-n-cargo.yml'
     - name: Use Node.js ${{ matrix.node-version }}
-      if: steps.filter.outputs.src == 'true'
+      if: steps.changes.outputs.src == 'true'
       uses: actions/setup-node@v4
       with:
         node-version: ${{ matrix.node-version }}
         cache: 'npm'
         cache-dependency-path: modules/ships-n-cargo/package-lock.json
     - name: Clean install
-      if: steps.filter.outputs.src == 'true'
+      if: steps.changes.outputs.src == 'true'
       run: npm ci
     - name: Build
-      if: steps.filter.outputs.src == 'true'
+      if: steps.changes.outputs.src == 'true'
       run: npm run build
     - name: Upload coverage to Codecov
-      if: steps.filter.outputs.src == 'true'
+      if: steps.changes.outputs.src == 'true'
       uses: codecov/codecov-action@v4
       with:
         token: ${{ secrets.CODECOV_TOKEN }} # required
