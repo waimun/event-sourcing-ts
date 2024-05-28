@@ -8,7 +8,7 @@
     "ts-jest": "^29.0.3",
     "ts-node": "^10.9.1",
     "ts-standard": "^12.0.2",
-    "typescript": "^4.9.4"
+    "typescript": "^5.4.5"
   },
   "scripts": {
     "lint": "ts-standard",
@@ -17,7 +17,7 @@
     "build": "npm run lint && npm run compile && npm test"
   },
   "dependencies": {
-    "express": "^4.18.2",
+    "express": "^4.19.2",
     "ksuid": "^3.0.0"
   }
 }
