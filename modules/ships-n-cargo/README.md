@@ -1,12 +1,13 @@
 # 🚢 Ships and Cargo
 An experiment of event sourcing with domain driven design, CQRS, and clean architecture based on a fictitious model of ships and cargo.
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/waimun/event-sourcing-ts/ships-n-cargo.yml?branch=main)
+![CI Status](https://github.com/waimun/event-sourcing-ts/actions/workflows/ships-n-cargo.yml/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/waimun/event-sourcing-ts/branch/main/graph/badge.svg?token=PAWBB5Z6Q4)](https://codecov.io/gh/waimun/event-sourcing-ts)
 
 ## 🏗️ Build
-To build this module, use:
+This module currently supports [Node.js](https://nodejs.org/en/about/releases) runtimes 16.x, 18.x, and 20.x. Our CI [workflow](https://github.com/waimun/event-sourcing-ts/actions/workflows/ships-n-cargo.yml) accurately reflects the different builds and the steps to build the module locally.
 
-- Node.js 18.12.1
-  - Download at [Node.js official website](https://nodejs.org/)
-  - Code written and tested with this version so can't guarantee it will run on lower or higher versions
+### Building locally:
+
+1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
+2. `npm run build`
