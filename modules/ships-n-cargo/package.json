@@ -18,6 +18,6 @@
   },
   "dependencies": {
     "express": "^4.19.2",
-    "ksuid": "^3.0.0"
+    "uuidv7": "^1.0.0"
   }
 }

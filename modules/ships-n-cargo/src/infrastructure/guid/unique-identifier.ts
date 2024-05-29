@@ -1,25 +1,17 @@
-import k from 'ksuid'
+import { UUID, uuidv7obj } from 'uuidv7'
 
-export class UniqueIdentifier {
-  private readonly value: k
+export interface UniqueIdentifier {
+  toString: () => string
+}
 
-  constructor (date: Date = new Date()) {
-    this.value = k.randomSync(date)
+export class Guid implements UniqueIdentifier {
+  private readonly value: UUID
+
+  constructor () {
+    this.value = uuidv7obj()
   }
 
   toString (): string {
-    return this.value.string
-  }
-
-  date (): Date {
-    return this.value.date
-  }
-
-  compare (other: UniqueIdentifier): number {
-    return this.value.compare(other.value)
-  }
-
-  equals (other: UniqueIdentifier): boolean {
-    return this.compare(other) === 0
+    return this.value.toHex()
   }
 }

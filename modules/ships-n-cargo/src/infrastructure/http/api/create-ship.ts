@@ -1,6 +1,6 @@
 import { Request, Response } from 'express'
 import { trim } from '../../../shared/utils/text'
-import { UniqueIdentifier } from '../../guid/unique-identifier'
+import { Guid } from '../../guid/unique-identifier'
 import { controller } from '../../../application/use-cases/create-ship'
 
 export const createShip = async (req: Request, res: Response): Promise<void> => {
@@ -8,7 +8,7 @@ export const createShip = async (req: Request, res: Response): Promise<void> => 
   const idNotSpecified = id.length === 0
 
   if (idNotSpecified) {
-    id = new UniqueIdentifier().toString()
+    id = new Guid().toString()
   }
 
   const response = await controller.create({ id, name: req.body.name })
