@@ -5,7 +5,7 @@ An experiment of event sourcing with domain driven design, CQRS, and clean archi
 [![codecov](https://codecov.io/gh/waimun/event-sourcing-ts/branch/main/graph/badge.svg?token=PAWBB5Z6Q4)](https://codecov.io/gh/waimun/event-sourcing-ts)
 
 ## 🏗️ Build
-This module currently supports [Node.js](https://nodejs.org/en/about/releases) runtimes 16.x, 18.x, and 20.x. Our CI [workflow](https://github.com/waimun/event-sourcing-ts/actions/workflows/ships-n-cargo.yml) accurately reflects the different builds and the steps to build the module locally.
+This module currently supports [Node.js](https://nodejs.org/en/about/releases) 24.x. Our CI [workflow](https://github.com/waimun/event-sourcing-ts/actions/workflows/ships-n-cargo.yml) reflects the supported runtime and the steps to build the module locally.
 
 ### Building locally:
 

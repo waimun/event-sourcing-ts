@@ -1,4 +1,4 @@
-# This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
+# This workflow installs dependencies, builds the source, and runs the test suite on Node.js 24.
 # For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-nodejs
 
 name: Node.js CI
@@ -11,45 +11,28 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     defaults:
       run:
         working-directory: 'modules/ships-n-cargo'
 
-    strategy:
-      matrix:
-        node-version: [16.x, 18.x, 20.x]
-        # See supported Node.js release schedule at https://nodejs.org/en/about/releases/
-
     steps:
-    - uses: actions/checkout@v4
-    - uses: dorny/paths-filter@v3
-      id: changes
-      with:
-        filters: |
-          src:
-            - 'modules/ships-n-cargo/**'
-            - '.github/workflows/ships-n-cargo.yml'
-    - name: Use Node.js ${{ matrix.node-version }}
-      if: steps.changes.outputs.src == 'true'
-      uses: actions/setup-node@v4
-      with:
-        node-version: ${{ matrix.node-version }}
-        cache: 'npm'
-        cache-dependency-path: modules/ships-n-cargo/package-lock.json
-    - name: Clean install
-      if: steps.changes.outputs.src == 'true'
-      run: npm ci
-    - name: Build
-      if: steps.changes.outputs.src == 'true'
-      run: npm run build
-    - name: Upload coverage to Codecov
-      if: steps.changes.outputs.src == 'true'
-      uses: codecov/codecov-action@v4
-      with:
-        token: ${{ secrets.CODECOV_TOKEN }} # required
-        flags: unittests # optional
-        fail_ci_if_error: true # optional
-        verbose: true # optional
+      - uses: actions/checkout@v7
+      - name: Use Node.js 24
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24.x
+          cache: 'npm'
+          cache-dependency-path: modules/ships-n-cargo/package-lock.json
+      - name: Clean install
+        run: npm ci
+      - name: Build
+        run: npm run build
+      - name: Upload coverage to Codecov
+        uses: codecov/codecov-action@v7
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          flags: unittests
+          fail_ci_if_error: true
+          verbose: true
