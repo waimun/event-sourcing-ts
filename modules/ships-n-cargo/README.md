@@ -11,3 +11,11 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
 2. `npm run build`
+
+## 🚀 Running locally
+
+1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
+2. `npm start`
+
+The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
+request to `/` to verify that it is running.
