@@ -1,15 +1,9 @@
 /* v8 ignore file -- @preserve */
-import express from 'express'
-import { ping } from './ping'
-import { v1Router } from './routes/v1'
+import { createApplication } from './application'
 
-const app = express()
-app.use(express.json())
+const application = createApplication()
 const port = 3000
 
-app.get('/', ping)
-app.use('/api/v1', v1Router)
-
-app.listen(port, () => {
+application.listen(port, () => {
   console.log(`API listening at http://localhost:${port}`)
 })
