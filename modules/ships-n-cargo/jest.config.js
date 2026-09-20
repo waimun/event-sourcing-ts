@@ -1,7 +1,0 @@
-module.exports = {
-  preset: 'ts-jest',
-  testEnvironment: 'node',
-  collectCoverage: true,
-  collectCoverageFrom: ['./src/**'],
-  testPathIgnorePatterns: ['<rootDir>/dist/']
-}

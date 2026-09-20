@@ -1,4 +1,4 @@
-/* istanbul ignore file */
+/* v8 ignore file -- @preserve */
 import express from 'express'
 import { ping } from './ping'
 import { v1Router } from './routes/v1'

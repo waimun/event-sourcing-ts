@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { Country } from '../../../domain/country'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'

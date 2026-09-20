@@ -1,4 +1,4 @@
-import { expect, jest, test } from '@jest/globals'
+import { expect, test, vi } from 'vitest'
 import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/errors/dock-ship'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -127,8 +127,8 @@ test('throws an unexpected application error', async () => {
   const controller = new DockShipController(useCase)
   const request = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
 
-  jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const useCaseMock = jest.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  const useCaseMock = vi.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 

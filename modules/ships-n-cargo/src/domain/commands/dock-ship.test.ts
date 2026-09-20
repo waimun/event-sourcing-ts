@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { IsRequired } from '../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../shared/domain/id'
 import { Country, EnumCountry } from '../country'

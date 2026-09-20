@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { EventSerializerNotFound } from '../errors/event-payload-handler'
 import { CargoLoaded } from './cargo-loaded'
 import { EventPayloadHandler } from './event-payload-handler'

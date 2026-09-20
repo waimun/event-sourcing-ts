@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { CargoLoaded } from './cargo-loaded'
 import { CargoUnloaded } from './cargo-unloaded'
 import { eventPayloadHandler } from './index'

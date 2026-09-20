@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
 import { Cargo } from './cargo'

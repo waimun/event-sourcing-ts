@@ -1,5 +1,5 @@
-import { beforeEach, expect, jest, test } from '@jest/globals'
 import type { Request, Response, Send } from 'express'
+import { beforeEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../application/use-cases/unload-cargo/error'
 import { CargoNotFound } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
@@ -14,8 +14,8 @@ const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 
 beforeEach(() => {
-  res.status = jest.fn<Send>().mockReturnValue(res as Response)
-  res.json = jest.fn<Send>().mockReturnValue(res as Response)
+  res.status = vi.fn<Send>().mockReturnValue(res as Response)
+  res.json = vi.fn<Send>().mockReturnValue(res as Response)
 })
 
 test('id is required', async () => {
