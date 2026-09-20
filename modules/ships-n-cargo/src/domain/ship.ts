@@ -48,16 +48,16 @@ export class Ship extends SourcedAggregate {
   }
 
   static apply(state: Ship, event: DomainEvent): Ship {
-    switch (event.constructor.name) {
-      case ShipCreated.name:
+    switch (event.type) {
+      case ShipCreated.eventType:
         return Ship.handleShipCreated(state, event as ShipCreated)
-      case ShipDeparted.name:
+      case ShipDeparted.eventType:
         return Ship.handleDeparture(state, event as ShipDeparted)
-      case ShipArrived.name:
+      case ShipArrived.eventType:
         return Ship.handleArrival(state, event as ShipArrived)
-      case CargoLoaded.name:
+      case CargoLoaded.eventType:
         return Ship.handleCargoLoaded(state, event as CargoLoaded)
-      case CargoUnloaded.name:
+      case CargoUnloaded.eventType:
         return Ship.handleCargoUnloaded(state, event as CargoUnloaded)
       default:
         return state

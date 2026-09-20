@@ -13,13 +13,19 @@ import { ShipDeparted } from './ship-departed'
 
 test('imported file should have event serializers registered', () => {
   expect(eventPayloadHandler).toBeTruthy()
-  expect(eventPayloadHandler.byType(CargoLoaded.name) instanceof CargoLoadedSerializer).toBeTruthy()
   expect(
-    eventPayloadHandler.byType(CargoUnloaded.name) instanceof CargoUnloadedSerializer
+    eventPayloadHandler.byType(CargoLoaded.eventType) instanceof CargoLoadedSerializer
   ).toBeTruthy()
-  expect(eventPayloadHandler.byType(ShipArrived.name) instanceof ShipArrivedSerializer).toBeTruthy()
-  expect(eventPayloadHandler.byType(ShipCreated.name) instanceof ShipCreatedSerializer).toBeTruthy()
   expect(
-    eventPayloadHandler.byType(ShipDeparted.name) instanceof ShipDepartedSerializer
+    eventPayloadHandler.byType(CargoUnloaded.eventType) instanceof CargoUnloadedSerializer
+  ).toBeTruthy()
+  expect(
+    eventPayloadHandler.byType(ShipArrived.eventType) instanceof ShipArrivedSerializer
+  ).toBeTruthy()
+  expect(
+    eventPayloadHandler.byType(ShipCreated.eventType) instanceof ShipCreatedSerializer
+  ).toBeTruthy()
+  expect(
+    eventPayloadHandler.byType(ShipDeparted.eventType) instanceof ShipDepartedSerializer
   ).toBeTruthy()
 })

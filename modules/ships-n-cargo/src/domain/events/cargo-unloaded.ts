@@ -1,11 +1,14 @@
 import type { Cargo } from '../cargo'
 import { BaseDomainEvent } from './domain-event'
 
-export class CargoUnloaded extends BaseDomainEvent {
+const EVENT_TYPE = 'CargoUnloaded'
+
+export class CargoUnloaded extends BaseDomainEvent<typeof EVENT_TYPE> {
+  static readonly eventType = EVENT_TYPE
   cargo: Cargo
 
   constructor(aggregateId: string, cargo: Cargo, dateTime?: Date) {
-    super(CargoUnloaded.name, aggregateId, dateTime)
+    super(CargoUnloaded.eventType, aggregateId, dateTime)
     this.cargo = cargo
   }
 }

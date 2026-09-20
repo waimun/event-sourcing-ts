@@ -1,11 +1,14 @@
 import type { Port } from '../port'
 import { BaseDomainEvent } from './domain-event'
 
-export class ShipArrived extends BaseDomainEvent {
+const EVENT_TYPE = 'ShipArrived'
+
+export class ShipArrived extends BaseDomainEvent<typeof EVENT_TYPE> {
+  static readonly eventType = EVENT_TYPE
   port: Port
 
   constructor(aggregateId: string, port: Port, dateTime?: Date) {
-    super(ShipArrived.name, aggregateId, dateTime)
+    super(ShipArrived.eventType, aggregateId, dateTime)
     this.port = port
   }
 }

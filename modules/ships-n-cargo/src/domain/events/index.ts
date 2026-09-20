@@ -11,8 +11,8 @@ import { ShipCreated } from './ship-created'
 import { ShipDeparted } from './ship-departed'
 
 export const eventPayloadHandler = new EventPayloadHandler()
-eventPayloadHandler.register(CargoLoaded.name, new CargoLoadedSerializer())
-eventPayloadHandler.register(CargoUnloaded.name, new CargoUnloadedSerializer())
-eventPayloadHandler.register(ShipArrived.name, new ShipArrivedSerializer())
-eventPayloadHandler.register(ShipCreated.name, new ShipCreatedSerializer())
-eventPayloadHandler.register(ShipDeparted.name, new ShipDepartedSerializer())
+eventPayloadHandler.register(CargoLoaded.eventType, new CargoLoadedSerializer())
+eventPayloadHandler.register(CargoUnloaded.eventType, new CargoUnloadedSerializer())
+eventPayloadHandler.register(ShipArrived.eventType, new ShipArrivedSerializer())
+eventPayloadHandler.register(ShipCreated.eventType, new ShipCreatedSerializer())
+eventPayloadHandler.register(ShipDeparted.eventType, new ShipDepartedSerializer())

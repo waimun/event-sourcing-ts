@@ -4,6 +4,8 @@ import { CargoUnloaded } from '../cargo-unloaded'
 import type { EventSerializable } from './event-serializable'
 
 export class CargoUnloadedSerializer implements EventSerializable<CargoUnloaded> {
+  readonly eventType = CargoUnloaded.eventType
+
   eventFromJson(json: string): CargoUnloaded {
     const { aggregateId, cargo, occurredAt } = JSON.parse(json)
     return new CargoUnloaded(aggregateId, new Cargo(new Name(cargo)), new Date(occurredAt))

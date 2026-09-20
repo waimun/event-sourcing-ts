@@ -1,18 +1,18 @@
-export interface DomainEvent {
+export interface DomainEvent<TType extends string = string> {
   occurredAt: Date
   recordedAt: Date
-  type: string
+  readonly type: TType
   aggregateId: string
   asJson: () => string
 }
 
-export abstract class BaseDomainEvent implements DomainEvent {
+export abstract class BaseDomainEvent<TType extends string = string> implements DomainEvent<TType> {
   occurredAt: Date
   recordedAt: Date
-  type: string
+  readonly type: TType
   aggregateId: string
 
-  protected constructor(type: string, aggregateId: string, occurredAt: Date = new Date()) {
+  protected constructor(type: TType, aggregateId: string, occurredAt: Date = new Date()) {
     this.occurredAt = occurredAt
     this.recordedAt = new Date()
     this.type = type
