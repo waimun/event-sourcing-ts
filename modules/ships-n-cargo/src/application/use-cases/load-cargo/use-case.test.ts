@@ -1,13 +1,13 @@
 import { expect, test } from '@jest/globals'
-import { LoadCargoUseCase } from './use-case'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { Name } from '../../../shared/domain/name'
-import { EventJournal } from '../../../domain/events/event-journal'
-import { DomainEvent } from '../../../domain/events/domain-event'
-import { Id } from '../../../shared/domain/id'
-import { ShipNotFound } from './error'
-import { CreateShipUseCase } from '../create-ship/use-case'
 import { CargoAlreadyLoaded } from '../../../domain/errors/ship'
+import type { DomainEvent } from '../../../domain/events/domain-event'
+import type { EventJournal } from '../../../domain/events/event-journal'
+import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
+import { Id } from '../../../shared/domain/id'
+import { Name } from '../../../shared/domain/name'
+import { CreateShipUseCase } from '../create-ship/use-case'
+import { ShipNotFound } from './error'
+import { LoadCargoUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -20,7 +20,9 @@ test('ship id not found', async () => {
   const useCase = new LoadCargoUseCase(journal)
   const id = new Id('abc')
 
-  await expect(useCase.load(id, new Name('Refactoring Book'))).rejects.toThrow(new ShipNotFound(id.value))
+  await expect(useCase.load(id, new Name('Refactoring Book'))).rejects.toThrow(
+    new ShipNotFound(id.value)
+  )
 })
 
 test('cargo already loaded', async () => {
@@ -39,12 +41,14 @@ test('cargo already loaded', async () => {
   expect(events2.length).toEqual(2)
 
   // try to load the same cargo twice; cargo name is an unique identifier
-  await expect(loadCargoUseCase.load(id, cargoName))
-    .rejects.toThrow(new CargoAlreadyLoaded(cargoName.value))
+  await expect(loadCargoUseCase.load(id, cargoName)).rejects.toThrow(
+    new CargoAlreadyLoaded(cargoName.value)
+  )
 
   // try to load the same cargo twice; cargo name is case-insensitive
-  await expect(loadCargoUseCase.load(id, new Name('REFACTORING Book')))
-    .rejects.toThrow(new CargoAlreadyLoaded(new Name('REFACTORING Book').value))
+  await expect(loadCargoUseCase.load(id, new Name('REFACTORING Book'))).rejects.toThrow(
+    new CargoAlreadyLoaded(new Name('REFACTORING Book').value)
+  )
 })
 
 test('valid request', async () => {

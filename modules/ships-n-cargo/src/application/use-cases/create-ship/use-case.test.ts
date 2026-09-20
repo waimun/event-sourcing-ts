@@ -1,11 +1,11 @@
 import { expect, jest, test } from '@jest/globals'
-import { CreateShipUseCase } from './use-case'
+import type { DomainEvent } from '../../../domain/events/domain-event'
+import type { EventJournal } from '../../../domain/events/event-journal'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { EventJournal } from '../../../domain/events/event-journal'
-import { DomainEvent } from '../../../domain/events/domain-event'
-import { IdAlreadyExists } from './error'
-import { Name } from '../../../shared/domain/name'
 import { Id } from '../../../shared/domain/id'
+import { Name } from '../../../shared/domain/name'
+import { IdAlreadyExists } from './error'
+import { CreateShipUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -41,9 +41,11 @@ test('throws an unknown error', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
 
-  const eventJournalMock = jest.spyOn(InMemoryEventJournal.prototype, 'append').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of EntryAlreadyExists')
-  })
+  const eventJournalMock = jest
+    .spyOn(InMemoryEventJournal.prototype, 'append')
+    .mockImplementation(() => {
+      throw new Error('Some error that is not an instance of EntryAlreadyExists')
+    })
 
   await expect(useCase.create(name, id)).rejects.toThrow(Error)
   expect(eventJournalMock).toHaveBeenCalled()

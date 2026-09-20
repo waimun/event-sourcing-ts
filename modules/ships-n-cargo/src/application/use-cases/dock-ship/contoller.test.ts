@@ -1,15 +1,15 @@
 import { expect, jest, test } from '@jest/globals'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { DockShipUseCase } from './use-case'
-import { DockShipController } from './controller'
-import { CreateShipUseCase } from '../create-ship/use-case'
-import { CreateShipController } from '../create-ship/controller'
-import { CreateShipDto } from '../create-ship/create-ship-dto'
-import { ShipNotFound } from './error'
-import { ApplicationError } from '../../../shared/error'
 import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/errors/dock-ship'
-import { Name } from '../../../shared/domain/name'
+import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { Name } from '../../../shared/domain/name'
+import { ApplicationError } from '../../../shared/error'
+import { CreateShipController } from '../create-ship/controller'
+import type { CreateShipDto } from '../create-ship/create-ship-dto'
+import { CreateShipUseCase } from '../create-ship/use-case'
+import { DockShipController } from './controller'
+import { ShipNotFound } from './error'
+import { DockShipUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new DockShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -27,7 +27,10 @@ test('dock with valid request', async () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({
+    id: 'abc',
+    port: { name: 'Henderson', country: 'US' }
+  })
   expect(response2.status).toEqual(200)
 })
 

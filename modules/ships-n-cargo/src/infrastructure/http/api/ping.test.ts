@@ -1,5 +1,5 @@
 import { expect, jest, test } from '@jest/globals'
-import { Request, Response, Send } from 'express'
+import type { Request, Response, Send } from 'express'
 import { ping } from './ping'
 
 test('ping', () => {

@@ -12,14 +12,14 @@ export abstract class BaseDomainEvent implements DomainEvent {
   type: string
   aggregateId: string
 
-  protected constructor (type: string, aggregateId: string, occurredAt: Date = new Date()) {
+  protected constructor(type: string, aggregateId: string, occurredAt: Date = new Date()) {
     this.occurredAt = occurredAt
     this.recordedAt = new Date()
     this.type = type
     this.aggregateId = aggregateId
   }
 
-  asJson (): string {
+  asJson(): string {
     return JSON.stringify({
       type: this.type,
       aggregateId: this.aggregateId,

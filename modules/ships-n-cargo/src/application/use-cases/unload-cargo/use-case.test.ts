@@ -1,14 +1,14 @@
 import { expect, test } from '@jest/globals'
-import { UnloadCargoUseCase } from './use-case'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { Name } from '../../../shared/domain/name'
-import { EventJournal } from '../../../domain/events/event-journal'
-import { DomainEvent } from '../../../domain/events/domain-event'
-import { Id } from '../../../shared/domain/id'
-import { ShipNotFound } from '../unload-cargo/error'
-import { CreateShipUseCase } from '../create-ship/use-case'
 import { CargoNotFound } from '../../../domain/errors/ship'
+import type { DomainEvent } from '../../../domain/events/domain-event'
+import type { EventJournal } from '../../../domain/events/event-journal'
+import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
+import { Id } from '../../../shared/domain/id'
+import { Name } from '../../../shared/domain/name'
+import { CreateShipUseCase } from '../create-ship/use-case'
 import { LoadCargoUseCase } from '../load-cargo/use-case'
+import { ShipNotFound } from '../unload-cargo/error'
+import { UnloadCargoUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new UnloadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -21,7 +21,9 @@ test('ship id not found', async () => {
   const useCase = new UnloadCargoUseCase(journal)
   const id = new Id('abc')
 
-  await expect(useCase.unload(id, new Name('Refactoring Book'))).rejects.toThrow(new ShipNotFound(id.value))
+  await expect(useCase.unload(id, new Name('Refactoring Book'))).rejects.toThrow(
+    new ShipNotFound(id.value)
+  )
 })
 
 test('cannot find cargo to unload', async () => {
@@ -35,7 +37,9 @@ test('cannot find cargo to unload', async () => {
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
   const cargoName = new Name('Cloud Architecture')
-  await expect(unloadCargoUseCase.unload(id, cargoName)).rejects.toThrow(new CargoNotFound(cargoName.value))
+  await expect(unloadCargoUseCase.unload(id, cargoName)).rejects.toThrow(
+    new CargoNotFound(cargoName.value)
+  )
 })
 
 test('valid request', async () => {

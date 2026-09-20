@@ -1,20 +1,26 @@
 import { expect, test } from '@jest/globals'
-import { DockShip } from './dock-ship'
-import { Port } from '../port'
-import { CannotDockShipAtSea, CannotDockWithoutPort, NoCountrySpecifiedForPort } from '../errors/dock-ship'
-import { Country, EnumCountry } from '../country'
-import { PortName } from '../port-name'
-import { Id, IdNotAllowed } from '../../shared/domain/id'
 import { IsRequired } from '../../shared/domain/errors/is-required'
+import { Id, IdNotAllowed } from '../../shared/domain/id'
+import { Country, EnumCountry } from '../country'
+import {
+  CannotDockShipAtSea,
+  CannotDockWithoutPort,
+  NoCountrySpecifiedForPort
+} from '../errors/dock-ship'
+import { Port } from '../port'
+import { PortName } from '../port-name'
+import { DockShip } from './dock-ship'
 
 test('empty id', () => {
-  expect(() => new DockShip(new Id(''), new Port(new PortName('test'), new Country('US')))
-  ).toThrow(IsRequired)
+  expect(() => new DockShip(new Id(''), new Port(new PortName('test'), new Country('US')))).toThrow(
+    IsRequired
+  )
 })
 
 test('id with 2 whitespaces', () => {
   // evaluates to empty string
-  expect(() => new DockShip(new Id('  '), new Port(new PortName('test'), new Country('US')))
+  expect(
+    () => new DockShip(new Id('  '), new Port(new PortName('test'), new Country('US')))
   ).toThrow(IsRequired)
 })
 
@@ -24,9 +30,12 @@ test('id = 1 char', () => {
 })
 
 test('id > 36 chars', () => {
-  expect(() =>
-    new DockShip(new Id('XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox'),
-      new Port(new PortName('test'), new Country('US')))
+  expect(
+    () =>
+      new DockShip(
+        new Id('XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox'),
+        new Port(new PortName('test'), new Country('US'))
+      )
   ).toThrow(IdNotAllowed)
 })
 
@@ -36,22 +45,22 @@ test('id with dashes', () => {
 })
 
 test('id with underscores', () => {
-  expect(() => new DockShip(new Id('king_1'), new Port(new PortName('test'), new Country('US')))
+  expect(
+    () => new DockShip(new Id('king_1'), new Port(new PortName('test'), new Country('US')))
   ).toThrow(IdNotAllowed)
 })
 
 test('with Port.atSea()', () => {
-  expect(() => new DockShip(new Id('king-1'), Port.atSea())
-  ).toThrow(CannotDockShipAtSea)
+  expect(() => new DockShip(new Id('king-1'), Port.atSea())).toThrow(CannotDockShipAtSea)
 })
 
 test('with Port.none()', () => {
-  expect(() => new DockShip(new Id('king-1'), Port.none())
-  ).toThrow(CannotDockWithoutPort)
+  expect(() => new DockShip(new Id('king-1'), Port.none())).toThrow(CannotDockWithoutPort)
 })
 
 test('port without country', () => {
-  expect(() => new DockShip(new Id('king-1'), new Port(new PortName('test'), new Country('NO_COUNTRY')))
+  expect(
+    () => new DockShip(new Id('king-1'), new Port(new PortName('test'), new Country('NO_COUNTRY')))
   ).toThrow(NoCountrySpecifiedForPort)
 })
 

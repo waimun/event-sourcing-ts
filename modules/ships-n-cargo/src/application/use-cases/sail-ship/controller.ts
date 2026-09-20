@@ -1,18 +1,18 @@
-import { SailShipUseCase } from './use-case'
-import { Response } from '../response'
-import { SailShipDto } from './sail-ship-dto'
-import { Id } from '../../../shared/domain/id'
 import { ISODate } from '../../../shared/domain/date'
+import { Id } from '../../../shared/domain/id'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
+import type { Response } from '../response'
+import type { SailShipDto } from './sail-ship-dto'
+import type { SailShipUseCase } from './use-case'
 
 export class SailShipController {
   useCase: SailShipUseCase
 
-  constructor (useCase: SailShipUseCase) {
+  constructor(useCase: SailShipUseCase) {
     this.useCase = useCase
   }
 
-  async sail (request: SailShipDto): Promise<Response> {
+  async sail(request: SailShipDto): Promise<Response> {
     try {
       const id = new Id(request.id)
       const dateTime = new ISODate(request.dateTime)

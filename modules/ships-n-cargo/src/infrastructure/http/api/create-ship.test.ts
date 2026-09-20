@@ -1,6 +1,6 @@
 import { beforeEach, expect, jest, test } from '@jest/globals'
+import type { Request, Response, Send } from 'express'
 import { createShip } from './create-ship'
-import { Request, Response, Send } from 'express'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}

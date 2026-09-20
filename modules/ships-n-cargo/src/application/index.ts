@@ -1,5 +1,5 @@
-import { EventJournal } from '../domain/events/event-journal'
-import { DomainEvent } from '../domain/events/domain-event'
+import type { DomainEvent } from '../domain/events/domain-event'
+import type { EventJournal } from '../domain/events/event-journal'
 import { InMemoryEventJournal } from '../infrastructure/persistence/in-memory-event-journal'
 import { Name } from '../shared/domain/name'
 

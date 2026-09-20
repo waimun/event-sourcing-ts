@@ -1,12 +1,12 @@
 import { expect, test } from '@jest/globals'
-import { EventIsRequired, InMemoryEventJournal } from './in-memory-event-journal'
-import { ShipCreated } from '../../domain/events/ship-created'
-import { ShipArrived } from '../../domain/events/ship-arrived'
-import { Port } from '../../domain/port'
 import { Country } from '../../domain/country'
-import { Name } from '../../shared/domain/name'
+import { ShipArrived } from '../../domain/events/ship-arrived'
+import { ShipCreated } from '../../domain/events/ship-created'
+import { Port } from '../../domain/port'
 import { PortName } from '../../domain/port-name'
 import { IsRequired } from '../../shared/domain/errors/is-required'
+import { Name } from '../../shared/domain/name'
+import { EventIsRequired, InMemoryEventJournal } from './in-memory-event-journal'
 
 test('creation of the journal object', () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
@@ -64,7 +64,9 @@ test('append without any event specified', async () => {
 test('appendEvents called twice', async () => {
   const journal = new InMemoryEventJournal(new Name('Test Journal'))
   await journal.append(new ShipCreated('123', 'King Roy'))
-  await journal.append(new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US'))))
+  await journal.append(
+    new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
+  )
   const events = await journal.eventsByAggregate('123')
   expect(events.length).toEqual(2)
 })

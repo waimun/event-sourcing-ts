@@ -1,6 +1,6 @@
 import { expect, test } from '@jest/globals'
-import { Id, IdNotAllowed } from './id'
 import { IsRequired } from './errors/is-required'
+import { Id, IdNotAllowed } from './id'
 
 test('empty id', () => {
   expect(() => new Id('')).toThrow(IsRequired)

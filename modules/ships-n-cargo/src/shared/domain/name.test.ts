@@ -1,6 +1,6 @@
 import { expect, test } from '@jest/globals'
-import { Name, NameNotAllowed } from './name'
 import { IsRequired } from './errors/is-required'
+import { Name, NameNotAllowed } from './name'
 
 test('empty name', () => {
   expect(() => new Name('')).toThrow(IsRequired)

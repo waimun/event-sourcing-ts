@@ -1,15 +1,15 @@
 import { expect, jest, test } from '@jest/globals'
-import { LoadCargoUseCase } from './use-case'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { Name, NameNotAllowed } from '../../../shared/domain/name'
-import { LoadCargoController } from './controller'
-import { IdNotAllowed } from '../../../shared/domain/id'
-import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { InvalidDate } from '../../../shared/domain/date'
-import { CreateShipUseCase } from '../create-ship/use-case'
-import { CreateShipController } from '../create-ship/controller'
-import { Response } from '../response'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { IdNotAllowed } from '../../../shared/domain/id'
+import { Name, NameNotAllowed } from '../../../shared/domain/name'
 import { ApplicationError } from '../../../shared/error'
+import { CreateShipController } from '../create-ship/controller'
+import { CreateShipUseCase } from '../create-ship/use-case'
+import type { Response } from '../response'
+import { LoadCargoController } from './controller'
+import { LoadCargoUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))

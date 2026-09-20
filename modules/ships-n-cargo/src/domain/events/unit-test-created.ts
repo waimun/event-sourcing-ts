@@ -5,7 +5,7 @@ import { BaseDomainEvent } from './domain-event'
  * during the replay of events where no event handler exist for this type.
  */
 export class UnitTestCreated extends BaseDomainEvent {
-  constructor (aggregateId: string) {
+  constructor(aggregateId: string) {
     super(UnitTestCreated.name, aggregateId)
   }
 }

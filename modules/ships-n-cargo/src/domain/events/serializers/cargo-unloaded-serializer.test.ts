@@ -1,8 +1,8 @@
 import { expect, test } from '@jest/globals'
-import { CargoUnloadedSerializer } from './cargo-unloaded-serializer'
+import { Name } from '../../../shared/domain/name'
 import { Cargo } from '../../cargo'
 import { CargoUnloaded } from '../cargo-unloaded'
-import { Name } from '../../../shared/domain/name'
+import { CargoUnloadedSerializer } from './cargo-unloaded-serializer'
 
 test('return event object from json string', () => {
   const payload = {

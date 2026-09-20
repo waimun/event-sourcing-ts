@@ -1,6 +1,6 @@
 import express from 'express'
-import { shipRouter } from './ships'
 import { ping } from '../ping'
+import { shipRouter } from './ships'
 
 const v1Router = express.Router()
 
