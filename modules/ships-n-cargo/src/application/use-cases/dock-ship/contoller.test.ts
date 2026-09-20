@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/errors/dock-ship'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -10,6 +10,10 @@ import { CreateShipUseCase } from '../create-ship/use-case'
 import { DockShipController } from './controller'
 import { ShipNotFound } from './error'
 import { DockShipUseCase } from './use-case'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 test('construct class object', () => {
   const useCase = new DockShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
