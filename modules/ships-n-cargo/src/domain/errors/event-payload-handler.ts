@@ -3,3 +3,9 @@ export class EventSerializerNotFound extends Error {
     super(`Event serializer of event type '${eventName}' is not registered`)
   }
 }
+
+export class EventSerializerTypeMismatch extends Error {
+  constructor(eventType: string, serializerEventType: string) {
+    super(`Cannot register serializer for event type '${serializerEventType}' under '${eventType}'`)
+  }
+}

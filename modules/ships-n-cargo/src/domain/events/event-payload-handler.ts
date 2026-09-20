@@ -1,4 +1,7 @@
-import { EventSerializerNotFound } from '../errors/event-payload-handler'
+import {
+  EventSerializerNotFound,
+  EventSerializerTypeMismatch
+} from '../errors/event-payload-handler'
 import type { DomainEvent } from './domain-event'
 import type { EventSerializable } from './serializers/event-serializable'
 
@@ -12,7 +15,14 @@ export class EventPayloadHandler {
     this.handlers = new Map<string, RegisteredEventSerializer>()
   }
 
-  register(type: string, serializer: RegisteredEventSerializer): void {
+  register<TEvent extends DomainEvent>(
+    type: TEvent['type'],
+    serializer: EventSerializable<TEvent>
+  ): void {
+    if (type !== serializer.eventType) {
+      throw new EventSerializerTypeMismatch(type, serializer.eventType)
+    }
+
     this.handlers.set(type, serializer)
   }
 

@@ -5,6 +5,8 @@ import { ShipArrived } from '../ship-arrived'
 import type { EventSerializable } from './event-serializable'
 
 export class ShipArrivedSerializer implements EventSerializable<ShipArrived> {
+  readonly eventType = ShipArrived.eventType
+
   eventFromJson(json: string): ShipArrived {
     const { aggregateId, portName, portCountry, occurredAt } = JSON.parse(json)
     return new ShipArrived(
