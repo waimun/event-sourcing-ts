@@ -1,13 +1,27 @@
 import { expect, test } from '@jest/globals'
 import { shipRouter } from './ships'
 
+type RouteLayer = {
+  route: {
+    methods: Record<string, boolean>
+    path: string
+    stack: Array<{ name: string }>
+  }
+}
+
+const findRoute = (stack: RouteLayer[], path: string): RouteLayer => {
+  const layer = stack.find((layer) => layer.route.path === path)
+  if (layer === undefined) throw new Error(`Route ${path} not found`)
+  return layer
+}
+
 test('layers count', () => {
   expect(shipRouter.stack.length).toEqual(5)
 })
 
 test('contains route /create', () => {
-  const stack: any[] = shipRouter.stack
-  const layer = stack.find(layer => layer.route.path === '/create')
+  const stack = shipRouter.stack as unknown as RouteLayer[]
+  const layer = findRoute(stack, '/create')
   expect(layer).toBeTruthy()
   expect(layer.route.methods.post).toBeTruthy()
   expect(layer.route.stack.length).toEqual(1)
@@ -15,8 +29,8 @@ test('contains route /create', () => {
 })
 
 test('contains route /dock', () => {
-  const stack: any[] = shipRouter.stack
-  const layer = stack.find(layer => layer.route.path === '/dock')
+  const stack = shipRouter.stack as unknown as RouteLayer[]
+  const layer = findRoute(stack, '/dock')
   expect(layer).toBeTruthy()
   expect(layer.route.methods.post).toBeTruthy()
   expect(layer.route.stack.length).toEqual(1)
@@ -24,8 +38,8 @@ test('contains route /dock', () => {
 })
 
 test('contains route /sail', () => {
-  const stack: any[] = shipRouter.stack
-  const layer = stack.find(layer => layer.route.path === '/sail')
+  const stack = shipRouter.stack as unknown as RouteLayer[]
+  const layer = findRoute(stack, '/sail')
   expect(layer).toBeTruthy()
   expect(layer.route.methods.post).toBeTruthy()
   expect(layer.route.stack.length).toEqual(1)
@@ -33,8 +47,8 @@ test('contains route /sail', () => {
 })
 
 test('contains route /load-cargo', () => {
-  const stack: any[] = shipRouter.stack
-  const layer = stack.find(layer => layer.route.path === '/load-cargo')
+  const stack = shipRouter.stack as unknown as RouteLayer[]
+  const layer = findRoute(stack, '/load-cargo')
   expect(layer).toBeTruthy()
   expect(layer.route.methods.post).toBeTruthy()
   expect(layer.route.stack.length).toEqual(1)
@@ -42,8 +56,8 @@ test('contains route /load-cargo', () => {
 })
 
 test('contains route /unload-cargo', () => {
-  const stack: any[] = shipRouter.stack
-  const layer = stack.find(layer => layer.route.path === '/unload-cargo')
+  const stack = shipRouter.stack as unknown as RouteLayer[]
+  const layer = findRoute(stack, '/unload-cargo')
   expect(layer).toBeTruthy()
   expect(layer.route.methods.post).toBeTruthy()
   expect(layer.route.stack.length).toEqual(1)

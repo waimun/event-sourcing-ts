@@ -1,8 +1,8 @@
-import { test, expect } from '@jest/globals'
-import { CreateShip } from './create-ship'
-import { Name, NameNotAllowed } from '../../shared/domain/name'
-import { Id, IdNotAllowed } from '../../shared/domain/id'
+import { expect, test } from '@jest/globals'
 import { IsRequired } from '../../shared/domain/errors/is-required'
+import { Id, IdNotAllowed } from '../../shared/domain/id'
+import { Name, NameNotAllowed } from '../../shared/domain/name'
+import { CreateShip } from './create-ship'
 
 test('empty name', () => {
   expect(() => new CreateShip(new Name(''), new Id('123'))).toThrow(IsRequired)
@@ -45,8 +45,9 @@ test('name < 3 chars', () => {
 })
 
 test('name > 50 chars', () => {
-  expect(() =>
-    new CreateShip(new Name('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy'), new Id('123'))
+  expect(
+    () =>
+      new CreateShip(new Name('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy'), new Id('123'))
   ).toThrow(NameNotAllowed)
 })
 
@@ -66,8 +67,8 @@ test('id = 1 char', () => {
 })
 
 test('id > 36 chars', () => {
-  expect(() =>
-    new CreateShip(new Name('king-roy'), new Id('XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox'))
+  expect(
+    () => new CreateShip(new Name('king-roy'), new Id('XA9Kd2nIpBc2LhoWpIjRAQf9OWrgNoaPIJrox'))
   ).toThrow(IdNotAllowed)
 })
 

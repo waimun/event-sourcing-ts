@@ -1,27 +1,28 @@
 import { expect, test } from '@jest/globals'
-import { Ship } from './ship'
-import { CreateShip } from './commands/create-ship'
-import { ShipCreated } from './events/ship-created'
-import { SailShip } from './commands/sail-ship'
-import { DockShip } from './commands/dock-ship'
-import { Port } from './port'
-import { LoadCargo } from './commands/load-cargo'
+import { Id } from '../shared/domain/id'
+import { Name } from '../shared/domain/name'
 import { Cargo } from './cargo'
+import { CreateShip } from './commands/create-ship'
+import { DockShip } from './commands/dock-ship'
+import { LoadCargo } from './commands/load-cargo'
+import { SailShip } from './commands/sail-ship'
 import { UnloadCargo } from './commands/unload-cargo'
-import { ShipDeparted } from './events/ship-departed'
-import { UnitTestCreated } from './events/unit-test-created'
-import { ShipArrived } from './events/ship-arrived'
+import { Country } from './country'
 import {
-  CargoAlreadyLoaded, CargoNotFound,
+  CargoAlreadyLoaded,
+  CargoNotFound,
   IdsMismatch,
   InvalidPortForDeparture,
   ShipMustBeCreatedFirst,
   UninitializedShipRequiredToCreate
 } from './errors/ship'
-import { Country } from './country'
-import { Name } from '../shared/domain/name'
-import { Id } from '../shared/domain/id'
+import { ShipArrived } from './events/ship-arrived'
+import { ShipCreated } from './events/ship-created'
+import { ShipDeparted } from './events/ship-departed'
+import { UnitTestCreated } from './events/unit-test-created'
+import { Port } from './port'
 import { PortName } from './port-name'
+import { Ship } from './ship'
 
 test('create command', () => {
   const command = new CreateShip(new Name('King Roy'), new Id('123'))
@@ -46,7 +47,10 @@ test('create command with a Ship object that is not uninitialized', () => {
 
 test('depart command', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  const ship2 = Ship.apply(ship, new ShipArrived('123', new Port(new PortName('Henderson'), new Country('US'))))
+  const ship2 = Ship.apply(
+    ship,
+    new ShipArrived('123', new Port(new PortName('Henderson'), new Country('US')))
+  )
 
   const event = Ship.depart(new SailShip(new Id('123')), ship2)
 
@@ -78,7 +82,10 @@ test('depart command with a missing port', () => {
 
 test('depart command with a Ship that is at sea (already departed)', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  const ship2 = Ship.apply(ship, new ShipArrived('123', new Port(new PortName('Henderson'), new Country('US'))))
+  const ship2 = Ship.apply(
+    ship,
+    new ShipArrived('123', new Port(new PortName('Henderson'), new Country('US')))
+  )
 
   const event = Ship.depart(new SailShip(new Id('123')), ship2)
   const ship3 = Ship.apply(ship2, event)
@@ -90,7 +97,10 @@ test('depart command with a Ship that is at sea (already departed)', () => {
 
 test('arrive in USA', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  const dockShip = new DockShip(new Id('123'), new Port(new PortName('New York'), new Country('US')))
+  const dockShip = new DockShip(
+    new Id('123'),
+    new Port(new PortName('New York'), new Country('US'))
+  )
   const event = Ship.arrive(dockShip, ship)
 
   expect(event.type).toBe('ShipArrived')
@@ -98,7 +108,10 @@ test('arrive in USA', () => {
 })
 
 test('arrive command with a Ship object is not created yet', () => {
-  const dockShip = new DockShip(new Id('123'), new Port(new PortName('New York'), new Country('US')))
+  const dockShip = new DockShip(
+    new Id('123'),
+    new Port(new PortName('New York'), new Country('US'))
+  )
 
   expect(() => {
     Ship.arrive(dockShip, Ship.uninitialized())
@@ -109,14 +122,20 @@ test('arrive command with a Ship object that has a different aggregate ID', () =
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
 
   expect(() => {
-    Ship.arrive(new DockShip(new Id('456'), new Port(new PortName('New York'), new Country('US'))), ship)
+    Ship.arrive(
+      new DockShip(new Id('456'), new Port(new PortName('New York'), new Country('US'))),
+      ship
+    )
   }).toThrow(IdsMismatch)
 })
 
 test('load cargo', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
 
-  const event = Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), ship)
+  const event = Ship.loadCargo(
+    new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+    ship
+  )
 
   expect(event.type).toBe('CargoLoaded')
   expect(event.aggregateId).toBe('123')
@@ -127,7 +146,10 @@ test('load cargo', () => {
 
 test('load cargo requires a Ship be created first', () => {
   expect(() => {
-    Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), Ship.uninitialized())
+    Ship.loadCargo(
+      new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+      Ship.uninitialized()
+    )
   }).toThrow(ShipMustBeCreatedFirst)
 })
 
@@ -141,7 +163,10 @@ test('load cargo command with a Ship object that has a different aggregate ID', 
 
 test('load cargo with a cargo that is already loaded', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  const cargoLoaded = Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), ship)
+  const cargoLoaded = Ship.loadCargo(
+    new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+    ship
+  )
   const ship2 = Ship.apply(ship, cargoLoaded)
 
   expect(() => {
@@ -152,11 +177,17 @@ test('load cargo with a cargo that is already loaded', () => {
 test('unload cargo', () => {
   const ship = Ship.apply(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
 
-  const cargoLoaded = Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), ship)
+  const cargoLoaded = Ship.loadCargo(
+    new LoadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+    ship
+  )
   const ship2 = Ship.replay(ship, [cargoLoaded])
   expect(ship2.cargo.length).toEqual(1)
 
-  const cargoUnloaded = Ship.unloadCargo(new UnloadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), ship2)
+  const cargoUnloaded = Ship.unloadCargo(
+    new UnloadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+    ship2
+  )
 
   expect(cargoUnloaded.type).toBe('CargoUnloaded')
   expect(cargoUnloaded.aggregateId).toBe('123')
@@ -166,7 +197,10 @@ test('unload cargo', () => {
 
 test('unload cargo requires a Ship be created first', () => {
   expect(() => {
-    Ship.unloadCargo(new UnloadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))), Ship.uninitialized())
+    Ship.unloadCargo(
+      new UnloadCargo(new Id('123'), new Cargo(new Name('Refactoring Book'))),
+      Ship.uninitialized()
+    )
   }).toThrow(ShipMustBeCreatedFirst)
 })
 
@@ -187,13 +221,25 @@ test('unload cargo with a cargo that is not found on the Ship', () => {
 })
 
 test('cargo has been in Canada', () => {
-  const shipCreated = Ship.create(new CreateShip(new Name('King Roy'), new Id('123')), Ship.uninitialized())
+  const shipCreated = Ship.create(
+    new CreateShip(new Name('King Roy'), new Id('123')),
+    Ship.uninitialized()
+  )
   const ship = Ship.apply(Ship.uninitialized(), shipCreated)
-  const cargoLoaded = Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('Microservices Architecture'))), ship)
-  const shipArrived1 = Ship.arrive(new DockShip(new Id('123'), new Port(new PortName('Hudson'), new Country('US'))), ship)
+  const cargoLoaded = Ship.loadCargo(
+    new LoadCargo(new Id('123'), new Cargo(new Name('Microservices Architecture'))),
+    ship
+  )
+  const shipArrived1 = Ship.arrive(
+    new DockShip(new Id('123'), new Port(new PortName('Hudson'), new Country('US'))),
+    ship
+  )
   const ship2 = Ship.replay(ship, [cargoLoaded, shipArrived1])
   const shipDeparted = Ship.depart(new SailShip(new Id('123')), ship2)
-  const shipArrived2 = Ship.arrive(new DockShip(new Id('123'), new Port(new PortName('Belmont'), new Country('CA'))), ship2)
+  const shipArrived2 = Ship.arrive(
+    new DockShip(new Id('123'), new Port(new PortName('Belmont'), new Country('CA'))),
+    ship2
+  )
   const finalShip: Ship = Ship.replay(ship, [cargoLoaded, shipArrived1, shipDeparted, shipArrived2])
   expect(finalShip.cargo.length).toBe(1)
   expect(finalShip.cargo[0].hasBeenInCanada).toBeTruthy()

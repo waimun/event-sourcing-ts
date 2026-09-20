@@ -1,7 +1,7 @@
 import { expect, test } from '@jest/globals'
+import { IsRequired } from '../shared/domain/errors/is-required'
 import { Country, EnumCountry } from './country'
 import { InvalidCountry } from './errors/dock-ship'
-import { IsRequired } from '../shared/domain/errors/is-required'
 
 test('valid country', () => {
   const country = new Country('US')

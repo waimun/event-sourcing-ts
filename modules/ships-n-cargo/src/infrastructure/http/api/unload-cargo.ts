@@ -1,4 +1,4 @@
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
 import { controller } from '../../../application/use-cases/unload-cargo'
 import { trim } from '../../../shared/utils/text'
 

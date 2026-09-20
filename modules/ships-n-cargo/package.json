@@ -3,15 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "devDependencies": {
+    "@biomejs/biome": "2.5.10",
     "@types/express": "^4.17.15",
     "jest": "^29.3.1",
     "ts-jest": "^29.1.5",
     "ts-node": "^10.9.1",
-    "ts-standard": "^12.0.2",
     "typescript": "^5.5.3"
   },
   "scripts": {
-    "lint": "ts-standard",
+    "lint": "biome ci --error-on-warnings",
+    "format": "biome check --write",
     "compile": "tsc",
     "test": "jest",
     "build": "npm run lint && npm run compile && npm test"

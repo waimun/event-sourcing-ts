@@ -1,18 +1,18 @@
 import { expect, jest, test } from '@jest/globals'
-import { SailShipUseCase } from './use-case'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { Name } from '../../../shared/domain/name'
-import { SailShipController } from './controller'
-import { CreateShipUseCase } from '../create-ship/use-case'
-import { CreateShipController } from '../create-ship/controller'
-import { CreateShipDto } from '../create-ship/create-ship-dto'
-import { DockShipUseCase } from '../dock-ship/use-case'
-import { DockShipController } from '../dock-ship/controller'
-import { IdNotAllowed } from '../../../shared/domain/id'
-import { InvalidDate } from '../../../shared/domain/date'
-import { ShipNotFound } from './error'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
+import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
+import { InvalidDate } from '../../../shared/domain/date'
+import { IdNotAllowed } from '../../../shared/domain/id'
+import { Name } from '../../../shared/domain/name'
 import { ApplicationError } from '../../../shared/error'
+import { CreateShipController } from '../create-ship/controller'
+import type { CreateShipDto } from '../create-ship/create-ship-dto'
+import { CreateShipUseCase } from '../create-ship/use-case'
+import { DockShipController } from '../dock-ship/controller'
+import { DockShipUseCase } from '../dock-ship/use-case'
+import { SailShipController } from './controller'
+import { ShipNotFound } from './error'
+import { SailShipUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new SailShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -30,7 +30,10 @@ test('sail with valid request', async () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({
+    id: 'abc',
+    port: { name: 'Henderson', country: 'US' }
+  })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)
@@ -50,7 +53,10 @@ test('invalid id', async () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({
+    id: 'abc',
+    port: { name: 'Henderson', country: 'US' }
+  })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)
@@ -71,7 +77,10 @@ test('invalid date', async () => {
 
   const useCase2 = new DockShipUseCase(journal)
   const controller2 = new DockShipController(useCase2)
-  const response2 = await controller2.dock({ id: 'abc', port: { name: 'Henderson', country: 'US' } })
+  const response2 = await controller2.dock({
+    id: 'abc',
+    port: { name: 'Henderson', country: 'US' }
+  })
   expect(response2.status).toEqual(200)
 
   const useCase3 = new SailShipUseCase(journal)

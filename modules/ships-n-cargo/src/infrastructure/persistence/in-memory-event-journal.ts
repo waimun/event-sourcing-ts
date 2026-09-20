@@ -1,20 +1,20 @@
-import { EventJournal } from '../../domain/events/event-journal'
-import { DomainEvent } from '../../domain/events/domain-event'
-import { Name } from '../../shared/domain/name'
+import type { DomainEvent } from '../../domain/events/domain-event'
+import type { EventJournal } from '../../domain/events/event-journal'
+import type { Name } from '../../shared/domain/name'
 
 export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   readonly name: string
   readonly entries: Map<string, DomainEvent[]>
 
-  constructor (name: Name) {
+  constructor(name: Name) {
     this.name = name.value
     this.entries = new Map<string, DomainEvent[]>()
   }
 
-  async append (...events: DomainEvent[]): Promise<void> {
+  async append(...events: DomainEvent[]): Promise<void> {
     if (events.length === 0) throw new EventIsRequired()
 
-    events.forEach(event => {
+    events.forEach((event) => {
       if (this.entries.has(event.aggregateId)) {
         this.entries.get(event.aggregateId)?.push(event)
       } else {
@@ -23,13 +23,13 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
     })
   }
 
-  async eventsByAggregate (id: string): Promise<DomainEvent[]> {
+  async eventsByAggregate(id: string): Promise<DomainEvent[]> {
     return this.entries.get(id) ?? []
   }
 }
 
 export class EventIsRequired extends Error {
-  constructor () {
+  constructor() {
     super('At least one event is required to create a new entry or append to an existing entry')
   }
 }

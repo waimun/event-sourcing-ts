@@ -1,8 +1,8 @@
-import express, { RequestHandler } from 'express'
+import express, { type RequestHandler } from 'express'
 import { createShip } from '../create-ship'
 import { dockShip } from '../dock-ship'
-import { sailShip } from '../sail-ship'
 import { loadCargo } from '../load-cargo'
+import { sailShip } from '../sail-ship'
 import { unloadCargo } from '../unload-cargo'
 
 const shipRouter = express.Router()

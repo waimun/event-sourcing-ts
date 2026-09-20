@@ -1,14 +1,14 @@
 import { beforeEach, expect, jest, test } from '@jest/globals'
-import { Request, Response, Send } from 'express'
-import { loadCargo } from './load-cargo'
+import type { Request, Response, Send } from 'express'
+import { ShipNotFound } from '../../../application/use-cases/unload-cargo/error'
+import { CargoNotFound } from '../../../domain/errors/ship'
+import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { NameNotAllowed } from '../../../shared/domain/name'
-import { InvalidDate } from '../../../shared/domain/date'
-import { ShipNotFound } from '../../../application/use-cases/unload-cargo/error'
 import { createShip } from './create-ship'
+import { loadCargo } from './load-cargo'
 import { unloadCargo } from './unload-cargo'
-import { CargoNotFound } from '../../../domain/errors/ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}

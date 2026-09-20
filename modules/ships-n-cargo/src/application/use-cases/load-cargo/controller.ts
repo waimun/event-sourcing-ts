@@ -1,19 +1,19 @@
-import { LoadCargoUseCase } from './use-case'
-import { LoadCargoDto } from './load-cargo-dto'
-import { Response } from '../response'
-import { Id } from '../../../shared/domain/id'
 import { ISODate } from '../../../shared/domain/date'
+import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
+import type { Response } from '../response'
+import type { LoadCargoDto } from './load-cargo-dto'
+import type { LoadCargoUseCase } from './use-case'
 
 export class LoadCargoController {
   useCase: LoadCargoUseCase
 
-  constructor (useCase: LoadCargoUseCase) {
+  constructor(useCase: LoadCargoUseCase) {
     this.useCase = useCase
   }
 
-  async loadCargo (request: LoadCargoDto): Promise<Response> {
+  async loadCargo(request: LoadCargoDto): Promise<Response> {
     try {
       const id = new Id(request.id)
       const cargoName = new Name(request.cargoName, 'Cargo name')

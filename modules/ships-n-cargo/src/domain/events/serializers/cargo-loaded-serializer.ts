@@ -1,15 +1,15 @@
-import { EventSerializable } from './event-serializable'
+import { Name } from '../../../shared/domain/name'
 import { Cargo } from '../../cargo'
 import { CargoLoaded } from '../cargo-loaded'
-import { Name } from '../../../shared/domain/name'
+import type { EventSerializable } from './event-serializable'
 
 export class CargoLoadedSerializer implements EventSerializable<CargoLoaded> {
-  eventFromJson (json: string): CargoLoaded {
+  eventFromJson(json: string): CargoLoaded {
     const { aggregateId, cargo, occurredAt } = JSON.parse(json)
     return new CargoLoaded(aggregateId, new Cargo(new Name(cargo)), new Date(occurredAt))
   }
 
-  eventToJson (event: CargoLoaded): string {
+  eventToJson(event: CargoLoaded): string {
     const payload = JSON.parse(event.asJson())
     payload.cargo = event.cargo.name
 

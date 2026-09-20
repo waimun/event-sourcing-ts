@@ -1,7 +1,7 @@
-import { Request, Response } from 'express'
+import type { Request, Response } from 'express'
+import { controller } from '../../../application/use-cases/create-ship'
 import { trim } from '../../../shared/utils/text'
 import { Guid } from '../../guid/unique-identifier'
-import { controller } from '../../../application/use-cases/create-ship'
 
 export const createShip = async (req: Request, res: Response): Promise<void> => {
   let id = trim(req.body.id)

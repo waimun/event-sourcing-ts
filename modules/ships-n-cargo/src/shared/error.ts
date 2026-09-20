@@ -1,5 +1,5 @@
 export class ApplicationError extends Error {
-  constructor () {
+  constructor() {
     super('An unknown error has occurred in the application; please retry')
   }
 }

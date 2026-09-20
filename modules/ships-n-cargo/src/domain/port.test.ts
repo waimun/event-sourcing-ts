@@ -1,9 +1,9 @@
 import { expect, test } from '@jest/globals'
-import { Port } from './port'
-import { Country, EnumCountry } from './country'
-import { PortName } from './port-name'
 import { IsRequired } from '../shared/domain/errors/is-required'
 import { NameNotAllowed } from '../shared/domain/name'
+import { Country, EnumCountry } from './country'
+import { Port } from './port'
+import { PortName } from './port-name'
 
 test('empty name', () => {
   expect(() => new Port(new PortName(''), new Country('US'))).toThrow(IsRequired)
@@ -46,7 +46,11 @@ test('name < 3 chars', () => {
 })
 
 test('name > 50 chars', () => {
-  expect(() =>
-    new Port(new PortName('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy'), new Country('US'))
+  expect(
+    () =>
+      new Port(
+        new PortName('Vl8PlucvE0g6PtFbejhqQ8TFmlqXtsAPzJER6LOIuFAoyNTGaxy'),
+        new Country('US')
+      )
   ).toThrow(NameNotAllowed)
 })

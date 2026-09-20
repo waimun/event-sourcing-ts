@@ -1,13 +1,13 @@
-import { expect, test, jest } from '@jest/globals'
-import { CreateShipUseCase } from './use-case'
+import { expect, jest, test } from '@jest/globals'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
-import { CreateShipController } from './controller'
-import { ApplicationError } from '../../../shared/error'
-import { Response } from '../response'
-import { CreateShipDto } from './create-ship-dto'
-import { Name, NameNotAllowed } from '../../../shared/domain/name'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
+import { Name, NameNotAllowed } from '../../../shared/domain/name'
+import { ApplicationError } from '../../../shared/error'
+import type { Response } from '../response'
+import { CreateShipController } from './controller'
+import type { CreateShipDto } from './create-ship-dto'
+import { CreateShipUseCase } from './use-case'
 
 test('construct class object', () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))

@@ -1,23 +1,23 @@
-import { DockShipUseCase } from './use-case'
-import { DockShipDto } from './dock-ship-dto'
-import { Response } from '../response'
-import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
-import { Id } from '../../../shared/domain/id'
-import { Port } from '../../../domain/port'
 import { Country } from '../../../domain/country'
-import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { ISODate } from '../../../shared/domain/date'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { Id } from '../../../shared/domain/id'
+import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
 import { isNotObject } from '../../../shared/utils/object'
+import type { Response } from '../response'
+import type { DockShipDto } from './dock-ship-dto'
+import type { DockShipUseCase } from './use-case'
 
 export class DockShipController {
   useCase: DockShipUseCase
 
-  constructor (useCase: DockShipUseCase) {
+  constructor(useCase: DockShipUseCase) {
     this.useCase = useCase
   }
 
-  async dock (request: DockShipDto): Promise<Response> {
+  async dock(request: DockShipDto): Promise<Response> {
     try {
       const id = new Id(request.id)
       if (isNotObject(request.port)) throw new IsRequired('Port')

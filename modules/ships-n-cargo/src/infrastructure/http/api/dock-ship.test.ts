@@ -1,12 +1,12 @@
 import { beforeEach, expect, jest, test } from '@jest/globals'
-import { Request, Response, Send } from 'express'
-import { dockShip } from './dock-ship'
+import type { Request, Response, Send } from 'express'
+import { InvalidCountry } from '../../../domain/errors/dock-ship'
+import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { NameNotAllowed } from '../../../shared/domain/name'
-import { InvalidCountry } from '../../../domain/errors/dock-ship'
-import { InvalidDate } from '../../../shared/domain/date'
 import { createShip } from './create-ship'
+import { dockShip } from './dock-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
@@ -108,7 +108,11 @@ test('port country is invalid', async () => {
 })
 
 test('dateTime is invalid', async () => {
-  req.body = { id: 'abc', port: { name: 'Henderson', country: 'us' }, dateTime: 'invalid-date-format' }
+  req.body = {
+    id: 'abc',
+    port: { name: 'Henderson', country: 'us' },
+    dateTime: 'invalid-date-format'
+  }
 
   await dockShip(req as Request, res as Response)
 

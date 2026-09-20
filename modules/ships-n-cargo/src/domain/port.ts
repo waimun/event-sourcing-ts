@@ -5,16 +5,16 @@ export class Port {
   readonly name: string
   readonly country: EnumCountry
 
-  constructor (name: PortName, country: Country) {
+  constructor(name: PortName, country: Country) {
     this.name = name.value
     this.country = country.value
   }
 
-  static atSea (): Port {
+  static atSea(): Port {
     return new AtSea()
   }
 
-  static none (): Port {
+  static none(): Port {
     return new MissingPort()
   }
 }
@@ -22,11 +22,11 @@ export class Port {
 export class AtSea extends Port {
   private static readonly _name: PortName = new PortName('AT_SEA')
 
-  constructor () {
+  constructor() {
     super(AtSea._name, new Country('NO_COUNTRY'))
   }
 
-  static equals (port: Port): boolean {
+  static equals(port: Port): boolean {
     return AtSea._name.value === port?.name && EnumCountry.NO_COUNTRY === port?.country
   }
 }
@@ -34,11 +34,11 @@ export class AtSea extends Port {
 export class MissingPort extends Port {
   private static readonly _name: PortName = new PortName('MISSING_PORT')
 
-  constructor () {
+  constructor() {
     super(MissingPort._name, new Country('NO_COUNTRY'))
   }
 
-  static equals (port: Port): boolean {
+  static equals(port: Port): boolean {
     return MissingPort._name.value === port?.name && EnumCountry.NO_COUNTRY === port?.country
   }
 }

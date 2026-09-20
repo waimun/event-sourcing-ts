@@ -1,6 +1,6 @@
 import { expect, test } from '@jest/globals'
-import { InvalidDate, ISODate } from './date'
 import { isDate } from '../utils/date'
+import { InvalidDate, ISODate } from './date'
 
 test('empty string', () => {
   expect(() => new ISODate('')).toThrow(InvalidDate)

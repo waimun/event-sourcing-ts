@@ -1,6 +1,6 @@
 import { expect, test } from '@jest/globals'
-import { ShipDepartedSerializer } from './ship-departed-serializer'
 import { ShipDeparted } from '../ship-departed'
+import { ShipDepartedSerializer } from './ship-departed-serializer'
 
 test('return event object from json string', () => {
   const payload = {
