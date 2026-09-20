@@ -1,4 +1,4 @@
-import { expect, jest, test } from '@jest/globals'
+import { expect, test, vi } from 'vitest'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { InvalidDate } from '../../../shared/domain/date'
@@ -122,8 +122,8 @@ test('throws an unexpected application error', async () => {
   const controller = new SailShipController(useCase)
   const request = { id: 'xyz' }
 
-  jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const useCaseMock = jest.spyOn(SailShipUseCase.prototype, 'sail').mockImplementation(() => {
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  const useCaseMock = vi.spyOn(SailShipUseCase.prototype, 'sail').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 

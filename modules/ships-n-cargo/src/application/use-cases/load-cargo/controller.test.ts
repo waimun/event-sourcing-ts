@@ -1,4 +1,4 @@
-import { expect, jest, test } from '@jest/globals'
+import { expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -106,8 +106,8 @@ test('create throws an unexpected application error', async () => {
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   const loadCargoController = new LoadCargoController(loadCargoUseCase)
   const request = { id: 'abc', cargoName: 'Enterprise Architecture' }
-  jest.spyOn(console, 'error').mockImplementation(jest.fn())
-  const useCaseMock = jest.spyOn(LoadCargoUseCase.prototype, 'load').mockImplementation(() => {
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  const useCaseMock = vi.spyOn(LoadCargoUseCase.prototype, 'load').mockImplementation(() => {
     throw new Error('Some error that is not an instance of InvalidArgumentError')
   })
 

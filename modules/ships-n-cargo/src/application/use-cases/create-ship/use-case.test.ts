@@ -1,4 +1,4 @@
-import { expect, jest, test } from '@jest/globals'
+import { expect, test, vi } from 'vitest'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { EventJournal } from '../../../domain/events/event-journal'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
@@ -41,7 +41,7 @@ test('throws an unknown error', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
 
-  const eventJournalMock = jest
+  const eventJournalMock = vi
     .spyOn(InMemoryEventJournal.prototype, 'append')
     .mockImplementation(() => {
       throw new Error('Some error that is not an instance of EntryAlreadyExists')

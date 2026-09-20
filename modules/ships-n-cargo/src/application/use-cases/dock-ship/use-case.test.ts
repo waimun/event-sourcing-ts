@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { Country } from '../../../domain/country'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { EventJournal } from '../../../domain/events/event-journal'

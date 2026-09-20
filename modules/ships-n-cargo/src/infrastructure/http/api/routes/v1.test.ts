@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { v1Router } from './v1'
 
 type RouteLayer = {

@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { ShipDeparted } from '../ship-departed'
 import { ShipDepartedSerializer } from './ship-departed-serializer'
 

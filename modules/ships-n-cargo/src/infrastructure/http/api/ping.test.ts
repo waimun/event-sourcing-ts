@@ -1,11 +1,11 @@
-import { expect, jest, test } from '@jest/globals'
 import type { Request, Response, Send } from 'express'
+import { expect, test, vi } from 'vitest'
 import { ping } from './ping'
 
 test('ping', () => {
   const req: Partial<Request> = {}
   const res: Partial<Response> = {}
-  res.json = jest.fn<Send>().mockReturnValue(res as Response)
+  res.json = vi.fn<Send>().mockReturnValue(res as Response)
 
   ping(req as Request, res as Response)
 

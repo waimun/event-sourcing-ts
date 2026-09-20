@@ -1,13 +1,13 @@
-import { beforeEach, expect, jest, test } from '@jest/globals'
 import type { Request, Response, Send } from 'express'
+import { beforeEach, expect, test, vi } from 'vitest'
 import { createShip } from './create-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 
 beforeEach(() => {
-  res.status = jest.fn<Send>().mockReturnValue(res as Response)
-  res.json = jest.fn<Send>().mockReturnValue(res as Response)
+  res.status = vi.fn<Send>().mockReturnValue(res as Response)
+  res.json = vi.fn<Send>().mockReturnValue(res as Response)
 })
 
 test('id provided to create ship aggregate', async () => {

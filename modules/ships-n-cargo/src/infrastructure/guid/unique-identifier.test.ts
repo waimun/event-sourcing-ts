@@ -1,4 +1,4 @@
-import { expect, test } from '@jest/globals'
+import { expect, test } from 'vitest'
 import { Guid } from './unique-identifier'
 
 test('construct class object without any param', () => {
