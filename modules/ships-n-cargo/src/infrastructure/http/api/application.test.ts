@@ -1,46 +1,95 @@
-import { expect, test, vi } from 'vitest'
-import { ping } from './ping'
-import { v1Router } from './routes/v1'
-
-const { application, get, json, jsonMiddleware, listen, mockPing, mockV1Router, use } = vi.hoisted(
-  () => {
-    const get = vi.fn()
-    const listen = vi.fn()
-    const use = vi.fn()
-
-    return {
-      application: { get, listen, use },
-      get,
-      json: vi.fn(),
-      jsonMiddleware: vi.fn(),
-      listen,
-      mockPing: vi.fn(),
-      mockV1Router: vi.fn(),
-      use
-    }
-  }
-)
-
-vi.mock('express', () => ({
-  default: Object.assign(
-    vi.fn(() => application),
-    {
-      json: json.mockReturnValue(jsonMiddleware)
-    }
-  )
-}))
-
-vi.mock('./ping', () => ({ ping: mockPing }))
-vi.mock('./routes/v1', () => ({ v1Router: mockV1Router }))
-
+import { once } from 'node:events'
+import { request, type Server } from 'node:http'
+import type { AddressInfo } from 'node:net'
+import { afterAll, beforeAll, expect, test } from 'vitest'
 import { createApplication } from './application'
 
-test('creates the wired application without listening', () => {
-  expect(createApplication()).toBe(application)
+type HttpResponse = {
+  body: unknown
+  status: number | undefined
+}
 
-  expect(json).toHaveBeenCalledOnce()
-  expect(use).toHaveBeenNthCalledWith(1, jsonMiddleware)
-  expect(get).toHaveBeenCalledWith('/', ping)
-  expect(use).toHaveBeenNthCalledWith(2, '/api/v1', v1Router)
-  expect(listen).not.toHaveBeenCalled()
+let port: number
+let server: Server
+
+beforeAll(async () => {
+  server = createApplication().listen(0, '127.0.0.1')
+  await once(server, 'listening')
+  port = (server.address() as AddressInfo).port
 })
+
+afterAll(
+  () =>
+    new Promise<void>((resolve, reject) => {
+      server.close((error) => {
+        if (error === undefined) resolve()
+        else reject(error)
+      })
+    })
+)
+
+const send = (method: 'GET' | 'POST', path: string, body?: object): Promise<HttpResponse> =>
+  new Promise((resolve, reject) => {
+    const payload = body === undefined ? undefined : JSON.stringify(body)
+    const req = request(
+      {
+        agent: false,
+        headers:
+          payload === undefined
+            ? undefined
+            : {
+                'Content-Length': Buffer.byteLength(payload),
+                'Content-Type': 'application/json'
+              },
+        host: '127.0.0.1',
+        method,
+        path,
+        port
+      },
+      (response) => {
+        response.setEncoding('utf8')
+        let responseBody = ''
+
+        response.on('data', (chunk: string) => {
+          responseBody += chunk
+        })
+        response.on('end', () => {
+          resolve({
+            body: JSON.parse(responseBody),
+            status: response.statusCode
+          })
+        })
+      }
+    )
+
+    req.on('error', reject)
+    req.end(payload)
+  })
+
+test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
+  const response = await send('GET', path)
+
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      status: 200
+    },
+    status: 200
+  })
+})
+
+test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+  'POST /api/v1/ships%s reaches the ship handler',
+  async (path) => {
+    const response = await send('POST', `/api/v1/ships${path}`, {})
+
+    expect(response).toEqual({
+      body: {
+        dateTime: expect.any(String),
+        error: expect.any(String),
+        status: 400
+      },
+      status: 400
+    })
+  }
+)
