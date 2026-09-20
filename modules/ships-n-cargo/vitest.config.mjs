@@ -4,7 +4,6 @@ export default defineConfig({
   test: {
     dir: 'src',
     coverage: {
-      enabled: true,
       include: ['src/**/*.ts']
     }
   }
