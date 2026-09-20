@@ -13,9 +13,9 @@
   "scripts": {
     "lint": "biome ci --error-on-warnings",
     "format": "biome check --write",
-    "compile": "tsc",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
-    "build": "npm run lint && npm run compile && npm test"
+    "build": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
     "express": "^4.22.3",
