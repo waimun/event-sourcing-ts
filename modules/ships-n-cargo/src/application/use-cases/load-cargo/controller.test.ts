@@ -1,4 +1,4 @@
-import { expect, test, vi } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -10,6 +10,10 @@ import { CreateShipUseCase } from '../create-ship/use-case'
 import type { Response } from '../response'
 import { LoadCargoController } from './controller'
 import { LoadCargoUseCase } from './use-case'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 test('construct class object', () => {
   const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
