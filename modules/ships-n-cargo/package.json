@@ -14,7 +14,7 @@
     "lint": "biome ci --error-on-warnings",
     "format": "biome check --write",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run",
+    "test": "vitest run --coverage",
     "build": "npm run lint && npm run typecheck && npm test"
   },
   "dependencies": {
