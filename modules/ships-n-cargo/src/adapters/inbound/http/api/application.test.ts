@@ -37,7 +37,8 @@ const send = (
   method: 'GET' | 'POST',
   path: string,
   body?: object | string,
-  contentType = 'application/json'
+  contentType = 'application/json',
+  parseJsonResponse = true
 ): Promise<HttpResponse> =>
   new Promise((resolve, reject) => {
     const payload =
@@ -67,7 +68,7 @@ const send = (
         response.on('end', () => {
           try {
             resolve({
-              body: JSON.parse(responseBody),
+              body: parseJsonResponse ? JSON.parse(responseBody) : responseBody,
               status: response.statusCode
             })
           } catch (error) {
@@ -149,6 +150,19 @@ test('malformed JSON request bodies receive a JSON validation error', async () =
     },
     status: 400
   })
+})
+
+test('oversized JSON request bodies retain the parser error response', async () => {
+  const response = await send(
+    'POST',
+    '/api/v1/ships/create',
+    { name: 'x'.repeat(1024 * 100) },
+    'application/json',
+    false
+  )
+
+  expect(response.status).toBe(413)
+  expect(response.body).toEqual(expect.stringContaining('PayloadTooLargeError'))
 })
 
 test('injected dependencies support a deterministic create and dock workflow', async () => {
