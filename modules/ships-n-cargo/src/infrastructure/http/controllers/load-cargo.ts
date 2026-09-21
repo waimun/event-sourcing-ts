@@ -1,10 +1,10 @@
+import type { LoadCargoDto } from '../../../application/use-cases/load-cargo/load-cargo-dto'
+import type { LoadCargoUseCase } from '../../../application/use-cases/load-cargo/use-case'
 import { ISODate } from '../../../shared/domain/date'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { errorResponse } from '../error-response'
-import type { Response } from '../response'
-import type { LoadCargoDto } from './load-cargo-dto'
-import type { LoadCargoUseCase } from './use-case'
+import { errorResponse } from './error-response'
+import type { Response } from './response'
 
 export class LoadCargoController {
   useCase: LoadCargoUseCase

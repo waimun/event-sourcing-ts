@@ -1,4 +1,4 @@
-import { BaseError, DomainError, type ErrorKind } from '../../shared/error'
+import { BaseError, type ErrorKind, ExpectedError } from '../../../shared/error'
 import type { Response } from './response'
 
 export const opaqueApplicationErrorMessage =
@@ -13,7 +13,7 @@ const statusByKind: Record<ErrorKind, number> = {
 }
 
 export const errorResponse = (error: unknown, context: unknown): Response => {
-  if (error instanceof DomainError) {
+  if (error instanceof ExpectedError) {
     return {
       status: statusByKind[error.kind],
       error: error.message,

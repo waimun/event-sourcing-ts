@@ -1,15 +1,15 @@
 import { afterEach, expect, test, vi } from 'vitest'
+import { ShipNotFound } from '../../../application/errors/ship-not-found'
+import type { CreateShipDto } from '../../../application/use-cases/create-ship/create-ship-dto'
+import { CreateShipUseCase } from '../../../application/use-cases/create-ship/use-case'
+import { DockShipUseCase } from '../../../application/use-cases/dock-ship/use-case'
 import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/errors/dock-ship'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { Name } from '../../../shared/domain/name'
-import { CreateShipController } from '../create-ship/controller'
-import type { CreateShipDto } from '../create-ship/create-ship-dto'
-import { CreateShipUseCase } from '../create-ship/use-case'
-import { ShipNotFound } from '../error'
-import { opaqueApplicationErrorMessage } from '../error-response'
-import { DockShipController } from './controller'
-import { DockShipUseCase } from './use-case'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
+import { CreateShipController } from './create-ship'
+import { DockShipController } from './dock-ship'
+import { opaqueApplicationErrorMessage } from './error-response'
 
 afterEach(() => {
   vi.restoreAllMocks()

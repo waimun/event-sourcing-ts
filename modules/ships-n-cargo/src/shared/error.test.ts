@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
-import { IdAlreadyExists } from '../application/use-cases/create-ship/error'
-import { ShipNotFound } from '../application/use-cases/error'
+import { IdAlreadyExists } from '../application/errors/id-already-exists'
+import { ShipNotFound } from '../application/errors/ship-not-found'
 import {
   CannotDockShipAtSea,
   CannotDockWithoutPort,
@@ -24,7 +24,14 @@ import { InvalidDate } from './domain/date'
 import { IsRequired } from './domain/errors/is-required'
 import { IdNotAllowed } from './domain/id'
 import { NameNotAllowed } from './domain/name'
-import { BaseError, DomainError, EventJournalUnavailable, InfrastructureError } from './error'
+import {
+  ApplicationError,
+  BaseError,
+  DomainError,
+  EventJournalUnavailable,
+  ExpectedError,
+  InfrastructureError
+} from './error'
 
 class ExampleDomainError extends DomainError {
   constructor() {
@@ -36,6 +43,8 @@ test('domain errors expose stable classification and immutable metadata', () => 
   const error = new ExampleDomainError()
 
   expect(error).toBeInstanceOf(BaseError)
+  expect(error).toBeInstanceOf(ExpectedError)
+  expect(error).toBeInstanceOf(DomainError)
   expect(error).toBeInstanceOf(Error)
   expect(error).toMatchObject({
     name: 'ExampleDomainError',
@@ -48,11 +57,21 @@ test('domain errors expose stable classification and immutable metadata', () => 
   expect(Object.isFrozen(error.meta)).toBe(true)
 })
 
+test.each([new ShipNotFound('ship-1'), new IdAlreadyExists('ship-1')])(
+  'application error %s is expected and distinct from domain errors',
+  (error) => {
+    expect(error).toBeInstanceOf(ApplicationError)
+    expect(error).toBeInstanceOf(ExpectedError)
+    expect(error).not.toBeInstanceOf(DomainError)
+  }
+)
+
 test('event journal failures retain operation and cause', () => {
   const cause = new Error('connection refused')
   const error = new EventJournalUnavailable('append', cause)
 
   expect(error).toBeInstanceOf(InfrastructureError)
+  expect(error).not.toBeInstanceOf(ExpectedError)
   expect(error).toMatchObject({
     domain: 'ships-n-cargo',
     code: 'EVENT_JOURNAL_UNAVAILABLE',

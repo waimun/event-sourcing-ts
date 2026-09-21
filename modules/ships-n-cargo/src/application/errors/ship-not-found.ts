@@ -1,6 +1,6 @@
-import { DomainError } from '../../shared/error'
+import { ApplicationError } from '../../shared/error'
 
-export class ShipNotFound extends DomainError {
+export class ShipNotFound extends ApplicationError {
   constructor(id: string) {
     super({
       code: 'SHIP_NOT_FOUND',

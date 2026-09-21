@@ -1,6 +1,6 @@
-import { DomainError } from '../../../shared/error'
+import { ApplicationError } from '../../shared/error'
 
-export class IdAlreadyExists extends DomainError {
+export class IdAlreadyExists extends ApplicationError {
   constructor(id: string) {
     super({
       code: 'SHIP_ALREADY_EXISTS',

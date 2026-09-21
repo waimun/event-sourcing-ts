@@ -6,7 +6,7 @@ import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
-import { ShipNotFound } from '../error'
+import { ShipNotFound } from '../../errors/ship-not-found'
 
 export class LoadCargoUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

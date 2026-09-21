@@ -4,7 +4,7 @@ import type { EventJournal } from '../../../domain/events/event-journal'
 import { Ship } from '../../../domain/ship'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
-import { IdAlreadyExists } from './error'
+import { IdAlreadyExists } from '../../errors/id-already-exists'
 
 export class CreateShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

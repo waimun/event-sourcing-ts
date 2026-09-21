@@ -1,8 +1,8 @@
 export type ErrorDomain = 'ships-n-cargo'
-export type DomainErrorKind = 'validation' | 'not-found' | 'conflict'
+export type ExpectedErrorKind = 'validation' | 'not-found' | 'conflict'
 export type InfrastructureErrorKind = 'fatal'
 export type InvariantErrorKind = 'invariant'
-export type ErrorKind = DomainErrorKind | InfrastructureErrorKind | InvariantErrorKind
+export type ErrorKind = ExpectedErrorKind | InfrastructureErrorKind | InvariantErrorKind
 export type ErrorMeta = Readonly<Record<string, unknown>>
 
 interface BaseErrorOptions {
@@ -28,11 +28,15 @@ export abstract class BaseError extends Error {
   }
 }
 
-export abstract class DomainError extends BaseError {
-  protected constructor(options: Omit<BaseErrorOptions, 'kind'> & { kind: DomainErrorKind }) {
+export abstract class ExpectedError extends BaseError {
+  protected constructor(options: Omit<BaseErrorOptions, 'kind'> & { kind: ExpectedErrorKind }) {
     super(options)
   }
 }
+
+export abstract class DomainError extends ExpectedError {}
+
+export abstract class ApplicationError extends ExpectedError {}
 
 export abstract class InfrastructureError extends BaseError {
   protected constructor(options: Omit<BaseErrorOptions, 'kind'>) {

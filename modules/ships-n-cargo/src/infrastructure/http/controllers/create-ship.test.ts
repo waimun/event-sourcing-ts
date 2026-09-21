@@ -1,16 +1,16 @@
 import { afterEach, expect, test, vi } from 'vitest'
+import type { CreateShipDto } from '../../../application/use-cases/create-ship/create-ship-dto'
+import { CreateShipUseCase } from '../../../application/use-cases/create-ship/use-case'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { EventJournal } from '../../../domain/events/event-journal'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../shared/domain/name'
 import { EventJournalUnavailable } from '../../../shared/error'
-import { opaqueApplicationErrorMessage } from '../error-response'
-import type { Response } from '../response'
-import { CreateShipController } from './controller'
-import type { CreateShipDto } from './create-ship-dto'
-import { CreateShipUseCase } from './use-case'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
+import { CreateShipController } from './create-ship'
+import { opaqueApplicationErrorMessage } from './error-response'
+import type { Response } from './response'
 
 afterEach(() => {
   vi.restoreAllMocks()

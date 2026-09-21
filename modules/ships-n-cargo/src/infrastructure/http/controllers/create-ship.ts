@@ -1,9 +1,9 @@
+import type { CreateShipDto } from '../../../application/use-cases/create-ship/create-ship-dto'
+import type { CreateShipUseCase } from '../../../application/use-cases/create-ship/use-case'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { errorResponse } from '../error-response'
-import type { Response } from '../response'
-import type { CreateShipDto } from './create-ship-dto'
-import type { CreateShipUseCase } from './use-case'
+import { errorResponse } from './error-response'
+import type { Response } from './response'
 
 export class CreateShipController {
   useCase: CreateShipUseCase
