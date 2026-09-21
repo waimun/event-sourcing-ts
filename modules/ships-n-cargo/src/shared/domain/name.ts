@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '../error'
+import { DomainError } from '../error'
 import { isEmptyString, trim } from '../utils/text'
 import { IsRequired } from './errors/is-required'
 
@@ -15,10 +15,13 @@ export class Name {
   }
 }
 
-export class NameNotAllowed extends InvalidArgumentError {
+export class NameNotAllowed extends DomainError {
   constructor(value: string, kind: string = 'Name') {
-    super(
-      `${kind} '${value}' is invalid: only 3-50 characters, alphanumeric, underscores, dashes, spaces are allowed`
-    )
+    super({
+      code: 'INVALID_NAME',
+      kind: 'validation',
+      message: `${kind} '${value}' is invalid: only 3-50 characters, alphanumeric, underscores, dashes, spaces are allowed`,
+      meta: { field: kind, value }
+    })
   }
 }

@@ -1,6 +1,6 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { ShipNotFound } from '../../../application/use-cases/sail-ship/error'
+import { ShipNotFound } from '../../../application/use-cases/error'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -60,9 +60,9 @@ test('id not found', async () => {
   req.body = { id: 'abc' }
   await sailShip(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
+    status: 404,
     error: new ShipNotFound(req.body.id).message,
     dateTime: expect.any(Date)
   })
@@ -77,9 +77,9 @@ test('cannot depart from a missing port', async () => {
   req.body = { id: 'abc' }
   await sailShip(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(409)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
+    status: 409,
     error: new InvalidPortForDeparture().message,
     dateTime: expect.any(Date)
   })

@@ -4,7 +4,7 @@ import type { EventJournal } from '../../../domain/events/event-journal'
 import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
-import { ShipNotFound } from './error'
+import { ShipNotFound } from '../error'
 
 export class SailShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

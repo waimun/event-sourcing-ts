@@ -4,14 +4,14 @@ import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-mem
 import { InvalidDate } from '../../../shared/domain/date'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { ApplicationError } from '../../../shared/error'
 import { CreateShipController } from '../create-ship/controller'
 import type { CreateShipDto } from '../create-ship/create-ship-dto'
 import { CreateShipUseCase } from '../create-ship/use-case'
 import { DockShipController } from '../dock-ship/controller'
 import { DockShipUseCase } from '../dock-ship/use-case'
+import { ShipNotFound } from '../error'
+import { opaqueApplicationErrorMessage } from '../error-response'
 import { SailShipController } from './controller'
-import { ShipNotFound } from './error'
 import { SailShipUseCase } from './use-case'
 
 afterEach(() => {
@@ -100,7 +100,7 @@ test('ship does not exist', async () => {
   const useCase = new SailShipUseCase(journal)
   const controller = new SailShipController(useCase)
   const response = await controller.sail({ id: 'abc' })
-  expect(response.status).toEqual(400)
+  expect(response.status).toEqual(404)
   expect(response.error).toEqual(new ShipNotFound('abc').message)
 })
 
@@ -116,7 +116,7 @@ test('cannot depart from a missing port', async () => {
   const useCase2 = new SailShipUseCase(journal)
   const controller2 = new SailShipController(useCase2)
   const response2 = await controller2.sail({ id: 'abc' })
-  expect(response2.status).toEqual(400)
+  expect(response2.status).toEqual(409)
   expect(response2.error).toEqual(new InvalidPortForDeparture().message)
 })
 
@@ -128,7 +128,7 @@ test('throws an unexpected application error', async () => {
 
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
   const useCaseMock = vi.spyOn(SailShipUseCase.prototype, 'sail').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of InvalidArgumentError')
+    throw new Error('unexpected failure')
   })
 
   const response = await controller.sail(request)
@@ -137,5 +137,5 @@ test('throws an unexpected application error', async () => {
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
-  expect(response.error).toEqual(new ApplicationError().message)
+  expect(response.error).toEqual(opaqueApplicationErrorMessage)
 })

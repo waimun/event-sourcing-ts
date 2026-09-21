@@ -1,27 +1,40 @@
-import { InvalidArgumentError } from '../../shared/error'
+import { DomainError } from '../../shared/error'
 import { EnumCountry } from '../country'
 
-export class CannotDockShipAtSea extends InvalidArgumentError {
+export class CannotDockShipAtSea extends DomainError {
   constructor() {
-    super('Cannot dock ship at sea')
+    super({ code: 'CANNOT_DOCK_AT_SEA', kind: 'validation', message: 'Cannot dock ship at sea' })
   }
 }
 
-export class CannotDockWithoutPort extends InvalidArgumentError {
+export class CannotDockWithoutPort extends DomainError {
   constructor() {
-    super('Cannot dock ship without a port')
+    super({
+      code: 'CANNOT_DOCK_WITHOUT_PORT',
+      kind: 'validation',
+      message: 'Cannot dock ship without a port'
+    })
   }
 }
 
-export class NoCountrySpecifiedForPort extends InvalidArgumentError {
+export class NoCountrySpecifiedForPort extends DomainError {
   constructor() {
-    super('Cannot dock ship with no country specified for port')
+    super({
+      code: 'PORT_COUNTRY_REQUIRED',
+      kind: 'validation',
+      message: 'Cannot dock ship with no country specified for port'
+    })
   }
 }
 
-export class InvalidCountry extends InvalidArgumentError {
+export class InvalidCountry extends DomainError {
   constructor(country: string) {
     const countries = Object.entries(EnumCountry).map((e) => `${e[0]}(${e[1]})`)
-    super(`Country '${country}' is not in the list of ${countries.join(',')}`)
+    super({
+      code: 'INVALID_COUNTRY',
+      kind: 'validation',
+      message: `Country '${country}' is not in the list of ${countries.join(',')}`,
+      meta: { country }
+    })
   }
 }

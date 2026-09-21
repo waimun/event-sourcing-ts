@@ -4,9 +4,9 @@ import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../shared/domain/name'
-import { ApplicationError } from '../../../shared/error'
 import { CreateShipController } from '../create-ship/controller'
 import { CreateShipUseCase } from '../create-ship/use-case'
+import { opaqueApplicationErrorMessage } from '../error-response'
 import type { Response } from '../response'
 import { LoadCargoController } from './controller'
 import { LoadCargoUseCase } from './use-case'
@@ -86,7 +86,7 @@ test('cannot load the same cargo (name as identifier) twice', async () => {
 
   // load the same cargo twice
   const response3 = await loadCargoController.loadCargo(request)
-  expect(response3.status).toEqual(400)
+  expect(response3.status).toEqual(409)
 })
 
 test('valid request', async () => {
@@ -112,7 +112,7 @@ test('create throws an unexpected application error', async () => {
   const request = { id: 'abc', cargoName: 'Enterprise Architecture' }
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
   const useCaseMock = vi.spyOn(LoadCargoUseCase.prototype, 'load').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of InvalidArgumentError')
+    throw new Error('unexpected failure')
   })
 
   const response: Response = await loadCargoController.loadCargo(request)
@@ -121,5 +121,5 @@ test('create throws an unexpected application error', async () => {
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
-  expect(response.error).toEqual(new ApplicationError().message)
+  expect(response.error).toEqual(opaqueApplicationErrorMessage)
 })

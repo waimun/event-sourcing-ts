@@ -1,6 +1,6 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { ShipNotFound } from '../../../application/use-cases/load-cargo/error'
+import { ShipNotFound } from '../../../application/use-cases/error'
 import { CargoAlreadyLoaded } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -100,9 +100,9 @@ test('id not found', async () => {
 
   await loadCargo(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
+    status: 404,
     error: new ShipNotFound(req.body.id).message,
     dateTime: expect.any(Date)
   })
@@ -119,9 +119,9 @@ test('cannot load same cargo twice', async () => {
 
   // cannot load same cargo twice
   await loadCargo(req as Request, res as Response)
-  expect(res.status).toHaveBeenNthCalledWith(3, 400)
+  expect(res.status).toHaveBeenNthCalledWith(3, 409)
   expect(res.json).toHaveBeenNthCalledWith(3, {
-    status: 400,
+    status: 409,
     error: new CargoAlreadyLoaded(req.body.cargoName).message,
     dateTime: expect.any(Date)
   })

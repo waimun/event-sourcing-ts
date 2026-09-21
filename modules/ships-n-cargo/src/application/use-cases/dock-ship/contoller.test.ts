@@ -3,12 +3,12 @@ import { InvalidCountry, NoCountrySpecifiedForPort } from '../../../domain/error
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { Name } from '../../../shared/domain/name'
-import { ApplicationError } from '../../../shared/error'
 import { CreateShipController } from '../create-ship/controller'
 import type { CreateShipDto } from '../create-ship/create-ship-dto'
 import { CreateShipUseCase } from '../create-ship/use-case'
+import { ShipNotFound } from '../error'
+import { opaqueApplicationErrorMessage } from '../error-response'
 import { DockShipController } from './controller'
-import { ShipNotFound } from './error'
 import { DockShipUseCase } from './use-case'
 
 afterEach(() => {
@@ -121,7 +121,7 @@ test('ship does not exist to dock', async () => {
   const request2 = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
   const response2 = await controller2.dock(request2)
 
-  expect(response2.status).toEqual(400)
+  expect(response2.status).toEqual(404)
   expect(response2.error).toEqual(new ShipNotFound(request2.id).message)
 })
 
@@ -133,7 +133,7 @@ test('throws an unexpected application error', async () => {
 
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
   const useCaseMock = vi.spyOn(DockShipUseCase.prototype, 'dock').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of InvalidArgumentError')
+    throw new Error('unexpected failure')
   })
 
   const response = await controller.dock(request)
@@ -142,5 +142,5 @@ test('throws an unexpected application error', async () => {
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
-  expect(response.error).toEqual(new ApplicationError().message)
+  expect(response.error).toEqual(opaqueApplicationErrorMessage)
 })

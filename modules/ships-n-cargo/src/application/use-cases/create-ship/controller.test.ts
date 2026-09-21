@@ -1,9 +1,12 @@
 import { afterEach, expect, test, vi } from 'vitest'
+import type { DomainEvent } from '../../../domain/events/domain-event'
+import type { EventJournal } from '../../../domain/events/event-journal'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../shared/domain/name'
-import { ApplicationError } from '../../../shared/error'
+import { EventJournalUnavailable } from '../../../shared/error'
+import { opaqueApplicationErrorMessage } from '../error-response'
 import type { Response } from '../response'
 import { CreateShipController } from './controller'
 import type { CreateShipDto } from './create-ship-dto'
@@ -108,7 +111,7 @@ test('create throws an unexpected application error', async () => {
   const request: CreateShipDto = { id: 'abc', name: 'testing' }
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
   const useCaseMock = vi.spyOn(CreateShipUseCase.prototype, 'create').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of InvalidArgumentError')
+    throw new Error('unexpected failure')
   })
 
   const response: Response = await controller.create(request)
@@ -117,5 +120,22 @@ test('create throws an unexpected application error', async () => {
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
-  expect(response.error).toEqual(new ApplicationError().message)
+  expect(response.error).toEqual(opaqueApplicationErrorMessage)
+})
+
+test('hides an event journal infrastructure failure', async () => {
+  const request: CreateShipDto = { id: 'abc', name: 'testing' }
+  const cause = new Error('database detail')
+  const failure = new EventJournalUnavailable('eventsByAggregate', cause)
+  const journal: EventJournal<string, DomainEvent> = {
+    append: vi.fn(),
+    eventsByAggregate: vi.fn().mockRejectedValue(failure)
+  }
+  const controller = new CreateShipController(new CreateShipUseCase(journal))
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+
+  const response = await controller.create(request)
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+  expect(response.error).not.toContain(cause.message)
 })

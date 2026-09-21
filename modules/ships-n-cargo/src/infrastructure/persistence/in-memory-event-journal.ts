@@ -1,6 +1,7 @@
 import type { DomainEvent } from '../../domain/events/domain-event'
 import type { EventJournal } from '../../domain/events/event-journal'
 import type { Name } from '../../shared/domain/name'
+import { InvariantError } from '../../shared/error'
 
 export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   readonly name: string
@@ -28,8 +29,11 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   }
 }
 
-export class EventIsRequired extends Error {
+export class EventIsRequired extends InvariantError {
   constructor() {
-    super('At least one event is required to create a new entry or append to an existing entry')
+    super({
+      code: 'EVENT_REQUIRED',
+      message: 'At least one event is required to create a new entry or append to an existing entry'
+    })
   }
 }
