@@ -1,9 +1,14 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { createShip } from './create-ship'
+import { Name } from '../../../shared/domain/name'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
+import { createControllers } from '../controllers'
+import { createShipHandler } from './create-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
+const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
+const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
 
 beforeEach(() => {
   res.status = vi.fn<Send>().mockReturnValue(res as Response)
@@ -31,6 +36,6 @@ test('missing id to create ship aggregate', async () => {
   expect(res.json).toHaveBeenCalledWith({
     status: 201,
     dateTime: expect.any(Date),
-    body: { id: expect.any(String) }
+    body: { id: 'generated-id' }
   })
 })

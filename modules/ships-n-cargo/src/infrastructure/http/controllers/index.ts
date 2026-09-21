@@ -5,22 +5,16 @@ import { SailShipUseCase } from '../../../application/use-cases/sail-ship/use-ca
 import { UnloadCargoUseCase } from '../../../application/use-cases/unload-cargo/use-case'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { EventJournal } from '../../../domain/events/event-journal'
-import { Name } from '../../../shared/domain/name'
-import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
 import { CreateShipController } from './create-ship'
 import { DockShipController } from './dock-ship'
 import { LoadCargoController } from './load-cargo'
 import { SailShipController } from './sail-ship'
 import { UnloadCargoController } from './unload-cargo'
 
-const eventDataStore: EventJournal<string, DomainEvent> = new InMemoryEventJournal(
-  new Name('ships-n-cargo')
-)
-
-export const createShipController = new CreateShipController(new CreateShipUseCase(eventDataStore))
-export const dockShipController = new DockShipController(new DockShipUseCase(eventDataStore))
-export const loadCargoController = new LoadCargoController(new LoadCargoUseCase(eventDataStore))
-export const sailShipController = new SailShipController(new SailShipUseCase(eventDataStore))
-export const unloadCargoController = new UnloadCargoController(
-  new UnloadCargoUseCase(eventDataStore)
-)
+export const createControllers = (eventJournal: EventJournal<string, DomainEvent>) => ({
+  createShip: new CreateShipController(new CreateShipUseCase(eventJournal)),
+  dockShip: new DockShipController(new DockShipUseCase(eventJournal)),
+  loadCargo: new LoadCargoController(new LoadCargoUseCase(eventJournal)),
+  sailShip: new SailShipController(new SailShipUseCase(eventJournal)),
+  unloadCargo: new UnloadCargoController(new UnloadCargoUseCase(eventJournal))
+})

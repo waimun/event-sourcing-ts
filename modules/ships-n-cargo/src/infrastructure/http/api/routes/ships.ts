@@ -1,16 +1,21 @@
 import express, { type RequestHandler } from 'express'
-import { createShip } from '../create-ship'
-import { dockShip } from '../dock-ship'
-import { loadCargo } from '../load-cargo'
-import { sailShip } from '../sail-ship'
-import { unloadCargo } from '../unload-cargo'
 
-const shipRouter = express.Router()
+export type ShipHandlers = {
+  createShip: RequestHandler
+  dockShip: RequestHandler
+  loadCargo: RequestHandler
+  sailShip: RequestHandler
+  unloadCargo: RequestHandler
+}
 
-shipRouter.post('/create', createShip as RequestHandler)
-shipRouter.post('/dock', dockShip as RequestHandler)
-shipRouter.post('/sail', sailShip as RequestHandler)
-shipRouter.post('/load-cargo', loadCargo as RequestHandler)
-shipRouter.post('/unload-cargo', unloadCargo as RequestHandler)
+export const createShipRouter = (handlers: ShipHandlers) => {
+  const router = express.Router()
 
-export { shipRouter }
+  router.post('/create', handlers.createShip)
+  router.post('/dock', handlers.dockShip)
+  router.post('/sail', handlers.sailShip)
+  router.post('/load-cargo', handlers.loadCargo)
+  router.post('/unload-cargo', handlers.unloadCargo)
+
+  return router
+}

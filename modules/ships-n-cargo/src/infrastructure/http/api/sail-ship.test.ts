@@ -5,12 +5,19 @@ import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
-import { createShip } from './create-ship'
-import { dockShip } from './dock-ship'
-import { sailShip } from './sail-ship'
+import { Name } from '../../../shared/domain/name'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
+import { createControllers } from '../controllers'
+import { createShipHandler } from './create-ship'
+import { dockShipHandler } from './dock-ship'
+import { sailShipHandler } from './sail-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
+const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
+const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
+const dockShip = dockShipHandler(controllers.dockShip)
+const sailShip = sailShipHandler(controllers.sailShip)
 
 beforeEach(() => {
   res.status = vi.fn<Send>().mockReturnValue(res as Response)

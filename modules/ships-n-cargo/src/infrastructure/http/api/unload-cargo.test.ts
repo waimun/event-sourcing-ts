@@ -5,13 +5,19 @@ import { CargoNotFound } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
-import { NameNotAllowed } from '../../../shared/domain/name'
-import { createShip } from './create-ship'
-import { loadCargo } from './load-cargo'
-import { unloadCargo } from './unload-cargo'
+import { Name, NameNotAllowed } from '../../../shared/domain/name'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
+import { createControllers } from '../controllers'
+import { createShipHandler } from './create-ship'
+import { loadCargoHandler } from './load-cargo'
+import { unloadCargoHandler } from './unload-cargo'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
+const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
+const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
+const loadCargo = loadCargoHandler(controllers.loadCargo)
+const unloadCargo = unloadCargoHandler(controllers.unloadCargo)
 
 beforeEach(() => {
   res.status = vi.fn<Send>().mockReturnValue(res as Response)
