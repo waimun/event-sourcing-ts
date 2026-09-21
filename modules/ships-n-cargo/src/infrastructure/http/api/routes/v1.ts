@@ -1,10 +1,12 @@
 import express from 'express'
 import { ping } from '../ping'
-import { shipRouter } from './ships'
+import { createShipRouter, type ShipHandlers } from './ships'
 
-const v1Router = express.Router()
+export const createV1Router = (handlers: ShipHandlers) => {
+  const router = express.Router()
 
-v1Router.get('/', ping)
-v1Router.use('/ships', shipRouter)
+  router.get('/', ping)
+  router.use('/ships', createShipRouter(handlers))
 
-export { v1Router }
+  return router
+}

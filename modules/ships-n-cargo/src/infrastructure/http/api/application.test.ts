@@ -2,6 +2,8 @@ import { once } from 'node:events'
 import { request, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, expect, test } from 'vitest'
+import { Name } from '../../../shared/domain/name'
+import { InMemoryEventJournal } from '../../persistence/in-memory-event-journal'
 import { createApplication } from './application'
 
 type HttpResponse = {
@@ -13,7 +15,10 @@ let port: number
 let server: Server
 
 beforeAll(async () => {
-  server = createApplication().listen(0, '127.0.0.1')
+  server = createApplication({
+    eventJournal: new InMemoryEventJournal(new Name('http-workflow-test')),
+    generateId: () => 'generated-ship-id'
+  }).listen(0, '127.0.0.1')
   await once(server, 'listening')
   port = (server.address() as AddressInfo).port
 })
@@ -66,6 +71,10 @@ const send = (method: 'GET' | 'POST', path: string, body?: object): Promise<Http
     req.end(payload)
   })
 
+test('creates an application with production dependencies by default', () => {
+  expect(createApplication()).toBeDefined()
+})
+
 test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   const response = await send('GET', path)
 
@@ -93,3 +102,29 @@ test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
     })
   }
 )
+
+test('injected dependencies support a deterministic create and dock workflow', async () => {
+  const created = await send('POST', '/api/v1/ships/create', { name: 'King Roy' })
+
+  expect(created).toEqual({
+    body: {
+      body: { id: 'generated-ship-id' },
+      dateTime: expect.any(String),
+      status: 201
+    },
+    status: 201
+  })
+
+  const docked = await send('POST', '/api/v1/ships/dock', {
+    id: 'generated-ship-id',
+    port: { country: 'us', name: 'Henderson' }
+  })
+
+  expect(docked).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      status: 200
+    },
+    status: 200
+  })
+})
