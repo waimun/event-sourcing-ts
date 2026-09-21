@@ -6,7 +6,7 @@ import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-mem
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { CreateShipUseCase } from '../create-ship/use-case'
-import { ShipNotFound } from './error'
+import { ShipNotFound } from '../error'
 import { LoadCargoUseCase } from './use-case'
 
 test('construct class object', () => {

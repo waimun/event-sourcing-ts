@@ -1,6 +1,6 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { ShipNotFound } from '../../../application/use-cases/unload-cargo/error'
+import { ShipNotFound } from '../../../application/use-cases/error'
 import { CargoNotFound } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -101,9 +101,9 @@ test('id not found', async () => {
 
   await unloadCargo(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
+    status: 404,
     error: new ShipNotFound(req.body.id).message,
     dateTime: expect.any(Date)
   })
@@ -117,9 +117,9 @@ test('cannot find cargo to unload', async () => {
   req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
 
   await unloadCargo(req as Request, res as Response)
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
+    status: 404,
     error: new CargoNotFound(req.body.cargoName).message,
     dateTime: expect.any(Date)
   })

@@ -1,7 +1,7 @@
 import { ISODate } from '../../../shared/domain/date'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
+import { errorResponse } from '../error-response'
 import type { Response } from '../response'
 import type { UnloadCargoDto } from './unload-cargo-dto'
 import type { UnloadCargoUseCase } from './use-case'
@@ -21,12 +21,7 @@ export class UnloadCargoController {
       await this.useCase.unload(id, cargoName, dateTime)
       return { status: 200, dateTime: new Date() }
     } catch (e) {
-      if (e instanceof InvalidArgumentError) {
-        return { status: 400, error: e.message, dateTime: new Date() }
-      }
-
-      console.error('%s\n', JSON.stringify(request), e)
-      return { status: 500, error: new ApplicationError().message, dateTime: new Date() }
+      return errorResponse(e, request)
     }
   }
 }

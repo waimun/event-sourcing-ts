@@ -1,7 +1,12 @@
-import { InvalidArgumentError } from '../../../shared/error'
+import { DomainError } from '../../../shared/error'
 
-export class IdAlreadyExists extends InvalidArgumentError {
+export class IdAlreadyExists extends DomainError {
   constructor(id: string) {
-    super(`Id '${id}' already exists`)
+    super({
+      code: 'SHIP_ALREADY_EXISTS',
+      kind: 'conflict',
+      message: `Id '${id}' already exists`,
+      meta: { shipId: id }
+    })
   }
 }

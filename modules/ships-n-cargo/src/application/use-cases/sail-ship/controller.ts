@@ -1,6 +1,6 @@
 import { ISODate } from '../../../shared/domain/date'
 import { Id } from '../../../shared/domain/id'
-import { ApplicationError, InvalidArgumentError } from '../../../shared/error'
+import { errorResponse } from '../error-response'
 import type { Response } from '../response'
 import type { SailShipDto } from './sail-ship-dto'
 import type { SailShipUseCase } from './use-case'
@@ -19,12 +19,7 @@ export class SailShipController {
       await this.useCase.sail(id, dateTime)
       return { status: 200, dateTime: new Date() }
     } catch (e) {
-      if (e instanceof InvalidArgumentError) {
-        return { status: 400, error: e.message, dateTime: new Date() }
-      }
-
-      console.error('%s\n', JSON.stringify(request), e)
-      return { status: 500, error: new ApplicationError().message, dateTime: new Date() }
+      return errorResponse(e, request)
     }
   }
 }

@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '../error'
+import { DomainError } from '../error'
 import { isEmptyString, trim } from '../utils/text'
 import { IsRequired } from './errors/is-required'
 
@@ -15,8 +15,13 @@ export class Id {
   }
 }
 
-export class IdNotAllowed extends InvalidArgumentError {
+export class IdNotAllowed extends DomainError {
   constructor(value: string) {
-    super(`Id ${value} is invalid: only 1-36 characters, alphanumeric, dashes are allowed`)
+    super({
+      code: 'INVALID_IDENTIFIER',
+      kind: 'validation',
+      message: `Id ${value} is invalid: only 1-36 characters, alphanumeric, dashes are allowed`,
+      meta: { value }
+    })
   }
 }

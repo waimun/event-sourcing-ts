@@ -5,9 +5,9 @@ import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../shared/domain/name'
-import { ApplicationError } from '../../../shared/error'
 import { CreateShipController } from '../create-ship/controller'
 import { CreateShipUseCase } from '../create-ship/use-case'
+import { opaqueApplicationErrorMessage } from '../error-response'
 import { LoadCargoController } from '../load-cargo/controller'
 import { LoadCargoUseCase } from '../load-cargo/use-case'
 import type { Response } from '../response'
@@ -86,7 +86,7 @@ test('cannot find cargo to unload', async () => {
 
   const request = { id: 'abc', cargoName: 'Enterprise Architecture' }
   const response = await unloadCargoController.unloadCargo(request)
-  expect(response.status).toEqual(400)
+  expect(response.status).toEqual(404)
   expect(response.error).toEqual(new CargoNotFound(request.cargoName).message)
 })
 
@@ -118,7 +118,7 @@ test('create throws an unexpected application error', async () => {
   const request = { id: 'abc', cargoName: 'Enterprise Architecture' }
   vi.spyOn(console, 'error').mockImplementation(vi.fn())
   const useCaseMock = vi.spyOn(UnloadCargoUseCase.prototype, 'unload').mockImplementation(() => {
-    throw new Error('Some error that is not an instance of InvalidArgumentError')
+    throw new Error('unexpected failure')
   })
 
   const response: Response = await unloadCargoController.unloadCargo(request)
@@ -127,5 +127,5 @@ test('create throws an unexpected application error', async () => {
   expect(response.status).toEqual(500)
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
-  expect(response.error).toEqual(new ApplicationError().message)
+  expect(response.error).toEqual(opaqueApplicationErrorMessage)
 })

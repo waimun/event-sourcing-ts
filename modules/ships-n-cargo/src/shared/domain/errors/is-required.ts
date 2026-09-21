@@ -1,7 +1,12 @@
-import { InvalidArgumentError } from '../../error'
+import { DomainError } from '../../error'
 
-export class IsRequired extends InvalidArgumentError {
+export class IsRequired extends DomainError {
   constructor(what: string) {
-    super(`${what} is required`)
+    super({
+      code: 'REQUIRED_VALUE',
+      kind: 'validation',
+      message: `${what} is required`,
+      meta: { field: what }
+    })
   }
 }

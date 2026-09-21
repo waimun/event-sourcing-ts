@@ -1,4 +1,4 @@
-import { InvalidArgumentError } from '../error'
+import { DomainError } from '../error'
 import { isDate } from '../utils/date'
 
 export class ISODate {
@@ -10,8 +10,8 @@ export class ISODate {
   }
 }
 
-export class InvalidDate extends InvalidArgumentError {
+export class InvalidDate extends DomainError {
   constructor() {
-    super('Invalid date')
+    super({ code: 'INVALID_DATE', kind: 'validation', message: 'Invalid date' })
   }
 }
