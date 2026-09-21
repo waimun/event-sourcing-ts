@@ -23,6 +23,10 @@ export const createApplication = ({
   const application = express()
 
   application.use(express.json())
+  application.use((req, _res, next) => {
+    req.body ??= {}
+    next()
+  })
   application.get('/', ping)
   application.use(
     '/api/v1',
