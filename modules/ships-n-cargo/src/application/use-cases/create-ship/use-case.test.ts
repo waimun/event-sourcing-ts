@@ -4,7 +4,7 @@ import type { EventJournal } from '../../../domain/events/event-journal'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { IdAlreadyExists } from './error'
+import { IdAlreadyExists } from '../../errors/id-already-exists'
 import { CreateShipUseCase } from './use-case'
 
 afterEach(() => {

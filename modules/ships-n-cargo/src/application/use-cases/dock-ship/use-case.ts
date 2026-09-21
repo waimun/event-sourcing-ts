@@ -5,7 +5,7 @@ import type { Port } from '../../../domain/port'
 import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
-import { ShipNotFound } from '../error'
+import { ShipNotFound } from '../../errors/ship-not-found'
 
 export class DockShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

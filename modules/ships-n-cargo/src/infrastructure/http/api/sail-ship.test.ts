@@ -1,6 +1,6 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
-import { ShipNotFound } from '../../../application/use-cases/error'
+import { ShipNotFound } from '../../../application/errors/ship-not-found'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import { InvalidDate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'

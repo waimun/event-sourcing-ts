@@ -1,10 +1,10 @@
+import type { UnloadCargoDto } from '../../../application/use-cases/unload-cargo/unload-cargo-dto'
+import type { UnloadCargoUseCase } from '../../../application/use-cases/unload-cargo/use-case'
 import { ISODate } from '../../../shared/domain/date'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { errorResponse } from '../error-response'
-import type { Response } from '../response'
-import type { UnloadCargoDto } from './unload-cargo-dto'
-import type { UnloadCargoUseCase } from './use-case'
+import { errorResponse } from './error-response'
+import type { Response } from './response'
 
 export class UnloadCargoController {
   useCase: UnloadCargoUseCase

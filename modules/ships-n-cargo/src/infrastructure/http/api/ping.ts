@@ -1,5 +1,5 @@
 import type { Request, Response } from 'express'
-import type { Response as R } from '../../../application/use-cases/response'
+import type { Response as R } from '../controllers/response'
 
 export const ping = (_req: Request, res: Response): void => {
   const pong: R = {

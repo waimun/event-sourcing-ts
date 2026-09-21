@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express'
-import { controller } from '../../../application/use-cases/dock-ship'
 import { trim } from '../../../shared/utils/text'
+import { dockShipController } from '../controllers'
 
 export const dockShip = async (req: Request, res: Response): Promise<void> => {
-  const response = await controller.dock({
+  const response = await dockShipController.dock({
     id: trim(req.body.id),
     port: req.body.port,
     dateTime: req.body.dateTime

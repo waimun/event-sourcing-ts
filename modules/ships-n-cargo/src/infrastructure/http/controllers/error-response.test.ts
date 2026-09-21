@@ -1,6 +1,7 @@
 import { expect, test, vi } from 'vitest'
-import { EventJournalUnavailable, InvariantError } from '../../shared/error'
-import { ShipNotFound } from './error'
+import { ShipNotFound } from '../../../application/errors/ship-not-found'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { EventJournalUnavailable, InvariantError } from '../../../shared/error'
 import { errorResponse, opaqueApplicationErrorMessage } from './error-response'
 
 class ImpossibleState extends InvariantError {
@@ -9,12 +10,15 @@ class ImpossibleState extends InvariantError {
   }
 }
 
-test('maps expected domain outcomes to their semantic status and safe message', () => {
-  expect(errorResponse(new ShipNotFound('abc'), {})).toMatchObject({
-    status: 404,
-    error: "Ship 'abc' does not exist"
-  })
-})
+test.each([
+  [new IsRequired('Id'), 400, 'Id is required'],
+  [new ShipNotFound('abc'), 404, "Ship 'abc' does not exist"]
+] as const)(
+  'maps expected outcomes to their semantic status and safe message',
+  (error, status, message) => {
+    expect(errorResponse(error, {})).toMatchObject({ status, error: message })
+  }
+)
 
 test.each([
   new EventJournalUnavailable('append', new Error('driver detail')),

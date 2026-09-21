@@ -1,7 +1,7 @@
 import type { Request, Response } from 'express'
-import { controller } from '../../../application/use-cases/create-ship'
 import { trim } from '../../../shared/utils/text'
 import { Guid } from '../../guid/unique-identifier'
+import { createShipController } from '../controllers'
 
 export const createShip = async (req: Request, res: Response): Promise<void> => {
   let id = trim(req.body.id)
@@ -11,7 +11,7 @@ export const createShip = async (req: Request, res: Response): Promise<void> => 
     id = new Guid().toString()
   }
 
-  const response = await controller.create({ id, name: req.body.name })
+  const response = await createShipController.create({ id, name: req.body.name })
 
   if (response.status === 201 && idNotSpecified) {
     response.body = { id }

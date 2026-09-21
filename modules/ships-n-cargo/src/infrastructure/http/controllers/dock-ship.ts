@@ -1,3 +1,5 @@
+import type { DockShipDto } from '../../../application/use-cases/dock-ship/dock-ship-dto'
+import type { DockShipUseCase } from '../../../application/use-cases/dock-ship/use-case'
 import { Country } from '../../../domain/country'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
@@ -5,10 +7,8 @@ import { ISODate } from '../../../shared/domain/date'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { Id } from '../../../shared/domain/id'
 import { isNotObject } from '../../../shared/utils/object'
-import { errorResponse } from '../error-response'
-import type { Response } from '../response'
-import type { DockShipDto } from './dock-ship-dto'
-import type { DockShipUseCase } from './use-case'
+import { errorResponse } from './error-response'
+import type { Response } from './response'
 
 export class DockShipController {
   useCase: DockShipUseCase

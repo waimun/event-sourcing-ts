@@ -7,8 +7,8 @@ import { PortName } from '../../../domain/port-name'
 import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { ShipNotFound } from '../../errors/ship-not-found'
 import { CreateShipUseCase } from '../create-ship/use-case'
-import { ShipNotFound } from '../error'
 import { DockShipUseCase } from './use-case'
 
 test('construct class object', () => {

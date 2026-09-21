@@ -1,9 +1,9 @@
+import type { SailShipDto } from '../../../application/use-cases/sail-ship/sail-ship-dto'
+import type { SailShipUseCase } from '../../../application/use-cases/sail-ship/use-case'
 import { ISODate } from '../../../shared/domain/date'
 import { Id } from '../../../shared/domain/id'
-import { errorResponse } from '../error-response'
-import type { Response } from '../response'
-import type { SailShipDto } from './sail-ship-dto'
-import type { SailShipUseCase } from './use-case'
+import { errorResponse } from './error-response'
+import type { Response } from './response'
 
 export class SailShipController {
   useCase: SailShipUseCase
