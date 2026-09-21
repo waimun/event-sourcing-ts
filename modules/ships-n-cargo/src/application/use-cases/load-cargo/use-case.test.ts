@@ -1,13 +1,18 @@
-import { expect, test, vi } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { CargoAlreadyLoaded } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
+import { Ship } from '../../../domain/ship'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
 import { LoadCargoUseCase } from './use-case'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 test('construct class object', () => {
   const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -80,4 +85,20 @@ test('does not turn an exceptional journal failure into a result', async () => {
   await expect(new LoadCargoUseCase(journal).load(id, new Name('Refactoring Book'))).rejects.toBe(
     failure
   )
+})
+
+test('does not turn an unexpected domain failure into a result', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  const failure = new Error('unexpected domain failure')
+  vi.spyOn(Ship, 'loadCargo').mockImplementation(() => {
+    throw failure
+  })
+  const append = vi.spyOn(journal, 'append')
+
+  await expect(new LoadCargoUseCase(journal).load(id, new Name('Refactoring Book'))).rejects.toBe(
+    failure
+  )
+  expect(append).not.toHaveBeenCalled()
 })

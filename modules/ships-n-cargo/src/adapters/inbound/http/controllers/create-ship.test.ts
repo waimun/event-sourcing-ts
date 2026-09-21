@@ -1,4 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
+import { IdAlreadyExists } from '../../../../application/errors/id-already-exists'
 import type { EventJournal } from '../../../../application/ports/event-journal'
 import type { CreateShipDto } from '../../../../application/use-cases/create-ship/create-ship-dto'
 import { CreateShipUseCase } from '../../../../application/use-cases/create-ship/use-case'
@@ -31,6 +32,20 @@ test('create with valid request', async () => {
   expect(response.dateTime).toBeTruthy()
   expect(response.body).toBeUndefined()
   expect(response.error).toBeUndefined()
+})
+
+test('create with an id that already exists', async () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  const controller = new CreateShipController(new CreateShipUseCase(journal))
+  const request: CreateShipDto = { id: 'abc', name: 'testing' }
+
+  expect((await controller.create(request)).status).toEqual(201)
+
+  const response = await controller.create(request)
+  expect(response.status).toEqual(409)
+  expect(response.error).toEqual(new IdAlreadyExists(request.id).message)
+  expect(response.dateTime).toBeTruthy()
+  expect(response.body).toBeUndefined()
 })
 
 test('create with an empty id', async () => {
