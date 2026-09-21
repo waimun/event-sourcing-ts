@@ -33,9 +33,15 @@ afterAll(
     })
 )
 
-const send = (method: 'GET' | 'POST', path: string, body?: object): Promise<HttpResponse> =>
+const send = (
+  method: 'GET' | 'POST',
+  path: string,
+  body?: object | string,
+  contentType = 'application/json'
+): Promise<HttpResponse> =>
   new Promise((resolve, reject) => {
-    const payload = body === undefined ? undefined : JSON.stringify(body)
+    const payload =
+      body === undefined ? undefined : typeof body === 'string' ? body : JSON.stringify(body)
     const req = request(
       {
         agent: false,
@@ -44,7 +50,7 @@ const send = (method: 'GET' | 'POST', path: string, body?: object): Promise<Http
             ? undefined
             : {
                 'Content-Length': Buffer.byteLength(payload),
-                'Content-Type': 'application/json'
+                'Content-Type': contentType
               },
         host: '127.0.0.1',
         method,
@@ -98,6 +104,35 @@ test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
     })
   }
 )
+
+test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+  'POST /api/v1/ships%s without a body returns a JSON validation error',
+  async (path) => {
+    const response = await send('POST', `/api/v1/ships${path}`)
+
+    expect(response).toEqual({
+      body: {
+        dateTime: expect.any(String),
+        error: expect.any(String),
+        status: 400
+      },
+      status: 400
+    })
+  }
+)
+
+test('POST with an unsupported body type returns a JSON validation error', async () => {
+  const response = await send('POST', '/api/v1/ships/create', 'hello', 'text/plain')
+
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: expect.any(String),
+      status: 400
+    },
+    status: 400
+  })
+})
 
 test('injected dependencies support a deterministic create and dock workflow', async () => {
   const created = await send('POST', '/api/v1/ships/create', { name: 'King Roy' })
