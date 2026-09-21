@@ -12,7 +12,8 @@
     "vitest": "5.0.1"
   },
   "scripts": {
-    "lint": "biome ci --error-on-warnings",
+    "lint": "biome ci --error-on-warnings && npm run lint:error-architecture",
+    "lint:error-architecture": "node --import tsx scripts/check-error-architecture.ts",
     "format": "biome check --write",
     "typecheck": "tsc --noEmit",
     "test": "vitest run --coverage",
