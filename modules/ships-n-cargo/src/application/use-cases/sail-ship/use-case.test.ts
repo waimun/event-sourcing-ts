@@ -34,7 +34,8 @@ test('sail ship request', async () => {
   expect(events2.length).toEqual(2)
 
   const useCase = new SailShipUseCase(journal)
-  await useCase.sail(id)
+  const result = await useCase.sail(id)
+  expect(result).toEqual({ ok: true, value: undefined })
   const events3 = await journal.eventsByAggregate(id.value)
   expect(events3.length).toEqual(3)
 })
@@ -44,7 +45,7 @@ test('ship id not found', async () => {
 
   const useCase = new SailShipUseCase(journal)
   const id = new Id('abc')
-  await expect(useCase.sail(id)).rejects.toThrow(new ShipNotFound(id.value))
+  expect(await useCase.sail(id)).toMatchObject({ ok: false, error: new ShipNotFound(id.value) })
 })
 
 test('cannot depart from a missing port', async () => {
@@ -58,5 +59,7 @@ test('cannot depart from a missing port', async () => {
   // after ship is created, it has a missing port by default.
 
   const useCase = new SailShipUseCase(journal)
-  await expect(useCase.sail(id)).rejects.toThrow(InvalidPortForDeparture)
+  const result = await useCase.sail(id)
+  expect(result.ok).toBe(false)
+  if (!result.ok) expect(result.error).toBeInstanceOf(InvalidPortForDeparture)
 })

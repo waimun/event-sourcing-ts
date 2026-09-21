@@ -1,6 +1,11 @@
 import { expect, test } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
+import {
+  CannotDockShipAtSea,
+  CannotDockWithoutPort,
+  NoCountrySpecifiedForPort
+} from '../../../domain/errors/dock-ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
@@ -27,7 +32,8 @@ test('dock ship request', async () => {
 
   const useCase = new DockShipUseCase(journal)
   const port = new Port(new PortName('Tennessee'), new Country('US'))
-  await useCase.dock(id, port)
+  const result = await useCase.dock(id, port)
+  expect(result).toEqual({ ok: true, value: undefined })
   const events2 = await journal.eventsByAggregate(id.value)
   expect(events2.length).toEqual(2)
 })
@@ -38,5 +44,19 @@ test('ship id not found', async () => {
   const useCase = new DockShipUseCase(journal)
   const id = new Id('abc')
   const port = new Port(new PortName('Tennessee'), new Country('US'))
-  await expect(useCase.dock(id, port)).rejects.toThrow(new ShipNotFound(id.value))
+  expect(await useCase.dock(id, port)).toMatchObject({
+    ok: false,
+    error: new ShipNotFound(id.value)
+  })
+})
+
+test.each([
+  [Port.atSea(), CannotDockShipAtSea],
+  [Port.none(), CannotDockWithoutPort],
+  [new Port(new PortName('Tennessee'), new Country('NO_COUNTRY')), NoCountrySpecifiedForPort]
+])('returns an invalid dock command as a failed result', async (port, errorType) => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const result = await new DockShipUseCase(journal).dock(new Id('abc'), port)
+  expect(result.ok).toBe(false)
+  if (!result.ok) expect(result.error).toBeInstanceOf(errorType)
 })
