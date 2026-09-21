@@ -2,7 +2,11 @@ import { expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { EventJournalUnavailable, InvariantError } from '../../../../shared/error'
-import { errorResponse, opaqueApplicationErrorMessage } from './error-response'
+import {
+  errorResponse,
+  expectedErrorResponse,
+  opaqueApplicationErrorMessage
+} from './error-response'
 
 class ImpossibleState extends InvariantError {
   constructor() {
@@ -16,7 +20,7 @@ test.each([
 ] as const)(
   'maps expected outcomes to their semantic status and safe message',
   (error, status, message) => {
-    expect(errorResponse(error, {})).toMatchObject({ status, error: message })
+    expect(expectedErrorResponse(error)).toMatchObject({ status, error: message })
   }
 )
 

@@ -6,7 +6,7 @@ import {
   checkErrorArchitecture,
   errorArchitectureRules,
   formatErrorArchitectureDiagnostic
-} from '../../scripts/error-architecture'
+} from './error-architecture'
 
 const fixtureRoot = join(tmpdir(), `ships-n-cargo-error-architecture-${process.pid}`)
 const sourceRoot = join(fixtureRoot, 'src')
@@ -42,6 +42,14 @@ beforeAll(() => {
     'src/invalid-throw.ts',
     `const failure: Error = new Error('unexpected')
     throw failure`
+  )
+  writeFixture(
+    'src/rethrow.ts',
+    `try {
+      void 0
+    } catch (error) {
+      throw error
+    }`
   )
   writeFixture(
     'src/error-shaped.ts',

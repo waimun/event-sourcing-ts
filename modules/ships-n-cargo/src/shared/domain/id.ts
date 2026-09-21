@@ -16,6 +16,7 @@ export class Id {
 }
 
 export class IdNotAllowed extends DomainError {
+  declare readonly code: 'INVALID_IDENTIFIER'
   constructor(value: string) {
     super({
       code: 'INVALID_IDENTIFIER',

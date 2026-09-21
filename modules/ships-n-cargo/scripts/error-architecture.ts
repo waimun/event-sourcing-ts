@@ -1,7 +1,9 @@
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import {
   type ClassDeclaration,
+  isCatchClause,
   isClassDeclaration,
+  isIdentifier,
   isThrowStatement,
   type Node,
   type SourceFile
@@ -140,7 +142,18 @@ const analyzeProgram = (
     const visit = (node: Node): undefined => {
       if (isThrowStatement(node)) {
         const thrownType = checker.getTypeAtLocation(node.expression)
-        if (thrownType === undefined || !checker.isTypeAssignableTo(thrownType, baseErrorType)) {
+        const catchClause = node.parent?.parent
+        const rethrowsCaughtValue =
+          catchClause !== undefined &&
+          isCatchClause(catchClause) &&
+          catchClause.variableDeclaration !== undefined &&
+          isIdentifier(node.expression) &&
+          isIdentifier(catchClause.variableDeclaration.name) &&
+          node.expression.text === catchClause.variableDeclaration.name.text
+        if (
+          !rethrowsCaughtValue &&
+          (thrownType === undefined || !checker.isTypeAssignableTo(thrownType, baseErrorType))
+        ) {
           const typeName = thrownType === undefined ? 'unknown' : checker.typeToString(thrownType)
           addDiagnostic(
             diagnostics,

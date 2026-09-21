@@ -11,6 +11,7 @@ export class ISODate {
 }
 
 export class InvalidDate extends DomainError {
+  declare readonly code: 'INVALID_DATE'
   constructor() {
     super({ code: 'INVALID_DATE', kind: 'validation', message: 'Invalid date' })
   }

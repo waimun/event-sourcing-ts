@@ -21,9 +21,10 @@ test('ship id not found', async () => {
   const useCase = new UnloadCargoUseCase(journal)
   const id = new Id('abc')
 
-  await expect(useCase.unload(id, new Name('Refactoring Book'))).rejects.toThrow(
-    new ShipNotFound(id.value)
-  )
+  expect(await useCase.unload(id, new Name('Refactoring Book'))).toMatchObject({
+    ok: false,
+    error: new ShipNotFound(id.value)
+  })
 })
 
 test('cannot find cargo to unload', async () => {
@@ -37,9 +38,10 @@ test('cannot find cargo to unload', async () => {
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
   const cargoName = new Name('Cloud Architecture')
-  await expect(unloadCargoUseCase.unload(id, cargoName)).rejects.toThrow(
-    new CargoNotFound(cargoName.value)
-  )
+  expect(await unloadCargoUseCase.unload(id, cargoName)).toMatchObject({
+    ok: false,
+    error: new CargoNotFound(cargoName.value)
+  })
 })
 
 test('valid request', async () => {
@@ -58,7 +60,8 @@ test('valid request', async () => {
   expect(events2.length).toEqual(2)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
-  await unloadCargoUseCase.unload(id, cargoName)
+  const result = await unloadCargoUseCase.unload(id, cargoName)
+  expect(result).toEqual({ ok: true, value: undefined })
   const events3 = await journal.eventsByAggregate(id.value)
   expect(events3.length).toEqual(3)
 })

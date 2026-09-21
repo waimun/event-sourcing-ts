@@ -16,6 +16,7 @@ export class Name {
 }
 
 export class NameNotAllowed extends DomainError {
+  declare readonly code: 'INVALID_NAME'
   constructor(value: string, kind: string = 'Name') {
     super({
       code: 'INVALID_NAME',

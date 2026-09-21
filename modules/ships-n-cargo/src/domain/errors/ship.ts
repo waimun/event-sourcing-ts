@@ -25,6 +25,7 @@ export class IdsMismatch extends InvariantError {
 }
 
 export class InvalidPortForDeparture extends DomainError {
+  declare readonly code: 'INVALID_PORT_FOR_DEPARTURE'
   constructor() {
     super({
       code: 'INVALID_PORT_FOR_DEPARTURE',
@@ -35,6 +36,7 @@ export class InvalidPortForDeparture extends DomainError {
 }
 
 export class CargoAlreadyLoaded extends DomainError {
+  declare readonly code: 'CARGO_ALREADY_LOADED'
   constructor(cargoName: string) {
     super({
       code: 'CARGO_ALREADY_LOADED',
@@ -46,6 +48,7 @@ export class CargoAlreadyLoaded extends DomainError {
 }
 
 export class CargoNotFound extends DomainError {
+  declare readonly code: 'CARGO_NOT_FOUND'
   constructor(cargoName: string) {
     super({
       code: 'CARGO_NOT_FOUND',

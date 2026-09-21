@@ -1,6 +1,7 @@
 import { DomainError } from '../../error'
 
 export class IsRequired extends DomainError {
+  declare readonly code: 'REQUIRED_VALUE'
   constructor(what: string) {
     super({
       code: 'REQUIRED_VALUE',

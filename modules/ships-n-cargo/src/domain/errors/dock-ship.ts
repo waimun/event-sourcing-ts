@@ -2,12 +2,14 @@ import { DomainError } from '../../shared/error'
 import { EnumCountry } from '../country'
 
 export class CannotDockShipAtSea extends DomainError {
+  declare readonly code: 'CANNOT_DOCK_AT_SEA'
   constructor() {
     super({ code: 'CANNOT_DOCK_AT_SEA', kind: 'validation', message: 'Cannot dock ship at sea' })
   }
 }
 
 export class CannotDockWithoutPort extends DomainError {
+  declare readonly code: 'CANNOT_DOCK_WITHOUT_PORT'
   constructor() {
     super({
       code: 'CANNOT_DOCK_WITHOUT_PORT',
@@ -18,6 +20,7 @@ export class CannotDockWithoutPort extends DomainError {
 }
 
 export class NoCountrySpecifiedForPort extends DomainError {
+  declare readonly code: 'PORT_COUNTRY_REQUIRED'
   constructor() {
     super({
       code: 'PORT_COUNTRY_REQUIRED',
@@ -28,6 +31,7 @@ export class NoCountrySpecifiedForPort extends DomainError {
 }
 
 export class InvalidCountry extends DomainError {
+  declare readonly code: 'INVALID_COUNTRY'
   constructor(country: string) {
     const countries = Object.entries(EnumCountry).map((e) => `${e[0]}(${e[1]})`)
     super({
