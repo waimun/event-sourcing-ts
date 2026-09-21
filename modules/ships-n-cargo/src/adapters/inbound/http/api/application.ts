@@ -1,4 +1,4 @@
-import express, { type Application } from 'express'
+import express, { type Application, type ErrorRequestHandler } from 'express'
 import type { EventJournal } from '../../../../application/ports/event-journal'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
@@ -15,6 +15,29 @@ export type ApplicationDependencies = {
   generateId: () => string
 }
 
+const malformedJsonErrorHandler: ErrorRequestHandler = (
+  error: unknown,
+  _request,
+  response,
+  next
+) => {
+  if (
+    typeof error === 'object' &&
+    error !== null &&
+    'type' in error &&
+    error.type === 'entity.parse.failed'
+  ) {
+    response.status(400).json({
+      status: 400,
+      error: 'Malformed JSON request body',
+      dateTime: new Date()
+    })
+    return
+  }
+
+  next(error)
+}
+
 export const createApplication = ({
   eventJournal,
   generateId
@@ -23,6 +46,7 @@ export const createApplication = ({
   const application = express()
 
   application.use(express.json())
+  application.use(malformedJsonErrorHandler)
   application.use((req, _res, next) => {
     req.body ??= {}
     next()

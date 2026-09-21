@@ -65,10 +65,14 @@ const send = (
           responseBody += chunk
         })
         response.on('end', () => {
-          resolve({
-            body: JSON.parse(responseBody),
-            status: response.statusCode
-          })
+          try {
+            resolve({
+              body: JSON.parse(responseBody),
+              status: response.statusCode
+            })
+          } catch (error) {
+            reject(error)
+          }
         })
       }
     )
@@ -128,6 +132,19 @@ test('POST with an unsupported body type returns a JSON validation error', async
     body: {
       dateTime: expect.any(String),
       error: expect.any(String),
+      status: 400
+    },
+    status: 400
+  })
+})
+
+test('malformed JSON request bodies receive a JSON validation error', async () => {
+  const response = await send('POST', '/api/v1/ships/create', '{"name":')
+
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: 'Malformed JSON request body',
       status: 400
     },
     status: 400
