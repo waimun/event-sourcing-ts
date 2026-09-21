@@ -1,0 +1,72 @@
+import { expect, test } from 'vitest'
+import { Country } from '../../../domain/country'
+import { ShipArrived } from '../../../domain/events/ship-arrived'
+import { ShipCreated } from '../../../domain/events/ship-created'
+import { Port } from '../../../domain/port'
+import { PortName } from '../../../domain/port-name'
+import { IsRequired } from '../../../shared/domain/errors/is-required'
+import { Name } from '../../../shared/domain/name'
+import { EventIsRequired, InMemoryEventJournal } from './in-memory-event-journal'
+
+test('creation of the journal object', () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  expect(journal).toBeTruthy()
+  expect(journal.name).toEqual('Test Journal')
+  expect(journal.entries.size).toEqual(0)
+})
+
+test('create journal with empty name', () => {
+  expect(() => new InMemoryEventJournal(new Name(''))).toThrow(IsRequired)
+})
+
+test('create journal with three white spaces', () => {
+  expect(() => new InMemoryEventJournal(new Name('   '))).toThrow(IsRequired)
+})
+
+test('get events by aggregate id', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  const events = await journal.eventsByAggregate('123')
+  expect(events.length).toEqual(1)
+})
+
+test('get events by aggregate id that does not exist', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  const events = await journal.eventsByAggregate('123')
+  expect(events.length).toEqual(0)
+})
+
+test('append one event for the aggregate', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  const events = await journal.eventsByAggregate('123')
+  expect(events.length).toEqual(1)
+})
+
+test('append two events for the same aggregate', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+
+  const events = [
+    new ShipCreated('123', 'King Roy'),
+    new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
+  ]
+
+  await journal.append(...events)
+  const result = await journal.eventsByAggregate('123')
+  expect(result.length).toEqual(2)
+})
+
+test('append without any event specified', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  await expect(journal.append()).rejects.toThrow(EventIsRequired)
+})
+
+test('appendEvents called twice', async () => {
+  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+  await journal.append(new ShipCreated('123', 'King Roy'))
+  await journal.append(
+    new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
+  )
+  const events = await journal.eventsByAggregate('123')
+  expect(events.length).toEqual(2)
+})

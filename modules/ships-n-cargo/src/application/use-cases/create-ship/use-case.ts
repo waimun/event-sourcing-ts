@@ -1,10 +1,10 @@
 import { CreateShip } from '../../../domain/commands/create-ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
-import type { EventJournal } from '../../../domain/events/event-journal'
 import { Ship } from '../../../domain/ship'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
+import type { EventJournal } from '../../ports/event-journal'
 
 export class CreateShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

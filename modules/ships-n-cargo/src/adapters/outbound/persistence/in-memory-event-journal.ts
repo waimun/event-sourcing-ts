@@ -1,0 +1,39 @@
+import type { EventJournal } from '../../../application/ports/event-journal'
+import type { DomainEvent } from '../../../domain/events/domain-event'
+import type { Name } from '../../../shared/domain/name'
+import { InvariantError } from '../../../shared/error'
+
+export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
+  readonly name: string
+  readonly entries: Map<string, DomainEvent[]>
+
+  constructor(name: Name) {
+    this.name = name.value
+    this.entries = new Map<string, DomainEvent[]>()
+  }
+
+  async append(...events: DomainEvent[]): Promise<void> {
+    if (events.length === 0) throw new EventIsRequired()
+
+    events.forEach((event) => {
+      if (this.entries.has(event.aggregateId)) {
+        this.entries.get(event.aggregateId)?.push(event)
+      } else {
+        this.entries.set(event.aggregateId, [event])
+      }
+    })
+  }
+
+  async eventsByAggregate(id: string): Promise<DomainEvent[]> {
+    return this.entries.get(id) ?? []
+  }
+}
+
+export class EventIsRequired extends InvariantError {
+  constructor() {
+    super({
+      code: 'EVENT_REQUIRED',
+      message: 'At least one event is required to create a new entry or append to an existing entry'
+    })
+  }
+}
