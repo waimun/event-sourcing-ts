@@ -1,10 +1,10 @@
 import { SailShip } from '../../../domain/commands/sail-ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
-import type { EventJournal } from '../../../domain/events/event-journal'
 import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import { ShipNotFound } from '../../errors/ship-not-found'
+import type { EventJournal } from '../../ports/event-journal'
 
 export class SailShipUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

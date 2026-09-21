@@ -1,12 +1,12 @@
 import { Cargo } from '../../../domain/cargo'
 import { UnloadCargo } from '../../../domain/commands/unload-cargo'
 import type { DomainEvent } from '../../../domain/events/domain-event'
-import type { EventJournal } from '../../../domain/events/event-journal'
 import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
 import { ShipNotFound } from '../../errors/ship-not-found'
+import type { EventJournal } from '../../ports/event-journal'
 
 export class UnloadCargoUseCase {
   private readonly journal: EventJournal<string, DomainEvent>

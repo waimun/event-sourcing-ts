@@ -1,10 +1,10 @@
 import { afterEach, expect, test, vi } from 'vitest'
+import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import type { DomainEvent } from '../../../domain/events/domain-event'
-import type { EventJournal } from '../../../domain/events/event-journal'
-import { InMemoryEventJournal } from '../../../infrastructure/persistence/in-memory-event-journal'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
+import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from './use-case'
 
 afterEach(() => {

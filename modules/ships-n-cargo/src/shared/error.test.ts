@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { EventIsRequired } from '../adapters/outbound/persistence/in-memory-event-journal'
 import { IdAlreadyExists } from '../application/errors/id-already-exists'
 import { ShipNotFound } from '../application/errors/ship-not-found'
 import {
@@ -19,7 +20,6 @@ import {
   ShipMustBeCreatedFirst,
   UninitializedShipRequiredToCreate
 } from '../domain/errors/ship'
-import { EventIsRequired } from '../infrastructure/persistence/in-memory-event-journal'
 import { InvalidDate } from './domain/date'
 import { IsRequired } from './domain/errors/is-required'
 import { IdNotAllowed } from './domain/id'
