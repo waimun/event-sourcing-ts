@@ -35,6 +35,7 @@ export class DockShipController {
           case 'CANNOT_DOCK_AT_SEA':
           case 'CANNOT_DOCK_WITHOUT_PORT':
           case 'PORT_COUNTRY_REQUIRED':
+          case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
             const unexpected: never = result.error

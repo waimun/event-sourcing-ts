@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
@@ -7,6 +7,7 @@ import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
@@ -62,4 +63,25 @@ test('cannot depart from a missing port', async () => {
   const result = await useCase.sail(id)
   expect(result.ok).toBe(false)
   if (!result.ok) expect(result.error).toBeInstanceOf(InvalidPortForDeparture)
+})
+
+test('rechecks the port after a concurrent sail wins', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new CreateShipUseCase(journal).create(new Name('King Roy'), id)
+  await new DockShipUseCase(journal).dock(
+    id,
+    new Port(new PortName('Henderson'), new Country('US'))
+  )
+  const append = journal.append.bind(journal)
+  vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
+    await append(aggregateId, version, events)
+    throw new JournalVersionConflict(aggregateId, version, version + events.length)
+  })
+
+  const result = await new SailShipUseCase(journal).sail(id)
+
+  expect(result.ok).toBe(false)
+  if (!result.ok) expect(result.error).toBeInstanceOf(InvalidPortForDeparture)
+  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(3)
 })

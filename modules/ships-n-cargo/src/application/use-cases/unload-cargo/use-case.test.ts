@@ -1,9 +1,10 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { CargoNotFound } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
@@ -64,4 +65,23 @@ test('valid request', async () => {
   expect(result).toEqual({ ok: true, value: undefined })
   const events3 = (await journal.eventsByAggregate(id.value)).events
   expect(events3.length).toEqual(3)
+})
+
+test('rechecks cargo after a concurrent unload wins', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  const cargoName = new Name('Cloud Architecture')
+  await new CreateShipUseCase(journal).create(new Name('Thomas Jefferson'), id)
+  await new LoadCargoUseCase(journal).load(id, cargoName)
+  const append = journal.append.bind(journal)
+  vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
+    await append(aggregateId, version, events)
+    throw new JournalVersionConflict(aggregateId, version, version + events.length)
+  })
+
+  expect(await new UnloadCargoUseCase(journal).unload(id, cargoName)).toMatchObject({
+    ok: false,
+    error: new CargoNotFound(cargoName.value)
+  })
+  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(3)
 })

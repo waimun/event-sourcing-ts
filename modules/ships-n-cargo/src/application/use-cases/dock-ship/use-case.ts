@@ -9,8 +9,10 @@ import type { Port } from '../../../domain/port'
 import { Ship } from '../../../domain/ship'
 import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
+import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
+import { rerunConcurrentCommand } from '../../rerun-concurrent-command'
 import { failure, type Result, success } from '../../result'
 
 export class DockShipUseCase {
@@ -27,7 +29,11 @@ export class DockShipUseCase {
   ): Promise<
     Result<
       void,
-      ShipNotFound | CannotDockShipAtSea | CannotDockWithoutPort | NoCountrySpecifiedForPort
+      | ShipNotFound
+      | CannotDockShipAtSea
+      | CannotDockWithoutPort
+      | NoCountrySpecifiedForPort
+      | ConcurrentCommandConflict
     >
   > {
     let command: DockShip
@@ -42,13 +48,15 @@ export class DockShipUseCase {
         return failure(error)
       throw error
     }
-    const { events, version } = await this.journal.eventsByAggregate(id.value)
+    return rerunConcurrentCommand<void, ShipNotFound>(id.value, async () => {
+      const { events, version } = await this.journal.eventsByAggregate(id.value)
 
-    if (events.length === 0) return failure(new ShipNotFound(id.value))
+      if (events.length === 0) return failure(new ShipNotFound(id.value))
 
-    const ship = Ship.replay(Ship.uninitialized(), events)
-    const shipArrived = Ship.arrive(command, ship)
-    await this.journal.append(id.value, version, [shipArrived])
-    return success()
+      const ship = Ship.replay(Ship.uninitialized(), events)
+      const shipArrived = Ship.arrive(command, ship)
+      await this.journal.append(id.value, version, [shipArrived])
+      return success()
+    })
   }
 }

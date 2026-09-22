@@ -1,4 +1,5 @@
 import { expect, test, vi } from 'vitest'
+import { ConcurrentCommandConflict } from '../../../../application/errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { EventJournalUnavailable, InvariantError } from '../../../../shared/error'
@@ -16,7 +17,12 @@ class ImpossibleState extends InvariantError {
 
 test.each([
   [new IsRequired('Id'), 400, 'Id is required'],
-  [new ShipNotFound('abc'), 404, "Ship 'abc' does not exist"]
+  [new ShipNotFound('abc'), 404, "Ship 'abc' does not exist"],
+  [
+    new ConcurrentCommandConflict('abc', 3),
+    409,
+    "Aggregate 'abc' changed concurrently; please retry the command"
+  ]
 ] as const)(
   'maps expected outcomes to their semantic status and safe message',
   (error, status, message) => {

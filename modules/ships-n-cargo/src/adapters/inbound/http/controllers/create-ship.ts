@@ -27,10 +27,11 @@ export class CreateShipController {
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_ALREADY_EXISTS':
+          case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
-            const unexpectedCode: never = result.error.code
-            return errorResponse(unexpectedCode, request)
+            const unexpected: never = result.error
+            return errorResponse(unexpected, request)
           }
         }
       }

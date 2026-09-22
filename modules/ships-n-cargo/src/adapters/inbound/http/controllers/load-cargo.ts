@@ -29,6 +29,7 @@ export class LoadCargoController {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
           case 'CARGO_ALREADY_LOADED':
+          case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
             const unexpected: never = result.error
