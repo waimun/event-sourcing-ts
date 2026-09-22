@@ -73,6 +73,16 @@ test('invalid date', async () => {
   expect(response.error).toEqual(new InvalidDate().message)
 })
 
+test('hides an unexpected request parsing error', async () => {
+  const useCase = new UnloadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new UnloadCargoController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+
+  const response = await controller.unloadCargo(null as never)
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
 test('cannot find cargo to unload', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
@@ -108,6 +118,23 @@ test('valid request', async () => {
   const unloadCargoController = new UnloadCargoController(unloadCargoUseCase)
   const response3 = await unloadCargoController.unloadCargo(request)
   expect(response3.status).toEqual(200)
+})
+
+test('hides an unexpected application result', async () => {
+  const useCase = new UnloadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new UnloadCargoController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  vi.spyOn(useCase, 'unload').mockResolvedValue({
+    ok: false,
+    error: new Error('unexpected result')
+  } as never)
+
+  const response = await controller.unloadCargo({
+    id: 'abc',
+    cargoName: 'Enterprise Architecture'
+  })
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
 })
 
 test('create throws an unexpected application error', async () => {

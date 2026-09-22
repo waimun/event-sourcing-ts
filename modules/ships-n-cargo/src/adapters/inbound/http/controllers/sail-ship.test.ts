@@ -94,6 +94,16 @@ test('invalid date', async () => {
   expect(response3.error).toEqual(new InvalidDate().message)
 })
 
+test('hides an unexpected request parsing error', async () => {
+  const useCase = new SailShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new SailShipController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+
+  const response = await controller.sail(null as never)
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
 test('ship does not exist', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
@@ -118,6 +128,20 @@ test('cannot depart from a missing port', async () => {
   const response2 = await controller2.sail({ id: 'abc' })
   expect(response2.status).toEqual(409)
   expect(response2.error).toEqual(new InvalidPortForDeparture().message)
+})
+
+test('hides an unexpected application result', async () => {
+  const useCase = new SailShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new SailShipController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  vi.spyOn(useCase, 'sail').mockResolvedValue({
+    ok: false,
+    error: new Error('unexpected result')
+  } as never)
+
+  const response = await controller.sail({ id: 'abc' })
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
 })
 
 test('throws an unexpected application error', async () => {
