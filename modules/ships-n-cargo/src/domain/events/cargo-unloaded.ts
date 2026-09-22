@@ -7,8 +7,8 @@ export class CargoUnloaded extends BaseDomainEvent<typeof EVENT_TYPE> {
   static readonly eventType = EVENT_TYPE
   cargo: Cargo
 
-  constructor(aggregateId: string, cargo: Cargo, dateTime?: Date) {
-    super(CargoUnloaded.eventType, aggregateId, dateTime)
+  constructor(aggregateId: string, cargo: Cargo, dateTime?: Date, recordedAt?: Date) {
+    super(CargoUnloaded.eventType, aggregateId, dateTime, recordedAt)
     this.cargo = cargo
   }
 }

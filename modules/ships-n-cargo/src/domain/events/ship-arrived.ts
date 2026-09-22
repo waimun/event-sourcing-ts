@@ -7,8 +7,8 @@ export class ShipArrived extends BaseDomainEvent<typeof EVENT_TYPE> {
   static readonly eventType = EVENT_TYPE
   port: Port
 
-  constructor(aggregateId: string, port: Port, dateTime?: Date) {
-    super(ShipArrived.eventType, aggregateId, dateTime)
+  constructor(aggregateId: string, port: Port, dateTime?: Date, recordedAt?: Date) {
+    super(ShipArrived.eventType, aggregateId, dateTime, recordedAt)
     this.port = port
   }
 }
