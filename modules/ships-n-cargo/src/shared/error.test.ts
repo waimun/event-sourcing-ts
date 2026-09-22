@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest'
-import { EventIsRequired } from '../adapters/outbound/persistence/in-memory-event-journal'
+import { EventIsRequired } from '../adapters/outbound/persistence/errors/event-journal'
 import { IdAlreadyExists } from '../application/errors/id-already-exists'
 import { ShipNotFound } from '../application/errors/ship-not-found'
 import {

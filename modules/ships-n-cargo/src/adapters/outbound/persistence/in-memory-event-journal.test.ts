@@ -10,9 +10,9 @@ import { Name } from '../../../shared/domain/name'
 import {
   AggregateIdMismatch,
   EventIsRequired,
-  InMemoryEventJournal,
   InvalidExpectedVersion
-} from './in-memory-event-journal'
+} from './errors/event-journal'
+import { InMemoryEventJournal } from './in-memory-event-journal'
 
 const makeJournal = () => new InMemoryEventJournal(new Name('Test Journal'))
 const arrival = (id: string) =>
