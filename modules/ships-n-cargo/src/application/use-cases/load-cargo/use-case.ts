@@ -23,7 +23,7 @@ export class LoadCargoUseCase {
     dateTime: ISODate = new ISODate()
   ): Promise<Result<void, ShipNotFound | CargoAlreadyLoaded>> {
     const command = new LoadCargo(id, new Cargo(cargoName), dateTime.value)
-    const events = await this.journal.eventsByAggregate(id.value)
+    const { events, version } = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) return failure(new ShipNotFound(id.value))
 
@@ -35,7 +35,7 @@ export class LoadCargoUseCase {
       if (error instanceof CargoAlreadyLoaded) return failure(error)
       throw error
     }
-    await this.journal.append(cargoLoaded)
+    await this.journal.append(id.value, version, [cargoLoaded])
     return success()
   }
 }
