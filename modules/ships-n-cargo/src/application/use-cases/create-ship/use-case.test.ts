@@ -4,6 +4,7 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
+import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from './use-case'
 
@@ -41,6 +42,23 @@ test('create with an id that already exists in the journal', async () => {
     ok: false,
     error: new IdAlreadyExists(id.value)
   })
+})
+
+test('rechecks existence after a concurrent create wins', async () => {
+  const name = new Name('testing')
+  const id = new Id('abc')
+  const journal = new InMemoryEventJournal(name)
+  const append = journal.append.bind(journal)
+  vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
+    await append(aggregateId, version, events)
+    throw new JournalVersionConflict(aggregateId, version, version + events.length)
+  })
+
+  expect(await new CreateShipUseCase(journal).create(name, id)).toMatchObject({
+    ok: false,
+    error: new IdAlreadyExists(id.value)
+  })
+  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(1)
 })
 
 test('throws an unknown error', async () => {

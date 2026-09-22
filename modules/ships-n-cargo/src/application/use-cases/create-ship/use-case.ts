@@ -3,8 +3,10 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
+import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
 import type { EventJournal } from '../../ports/event-journal'
+import { rerunConcurrentCommand } from '../../rerun-concurrent-command'
 import { failure, type Result, success } from '../../result'
 
 export class CreateShipUseCase {
@@ -14,14 +16,19 @@ export class CreateShipUseCase {
     this.journal = journal
   }
 
-  async create(name: Name, id: Id): Promise<Result<void, IdAlreadyExists>> {
+  async create(
+    name: Name,
+    id: Id
+  ): Promise<Result<void, IdAlreadyExists | ConcurrentCommandConflict>> {
     const command = new CreateShip(name, id)
 
-    const { events, version } = await this.journal.eventsByAggregate(id.value)
-    if (events.length !== 0) return failure(new IdAlreadyExists(id.value))
+    return rerunConcurrentCommand<void, IdAlreadyExists>(id.value, async () => {
+      const { events, version } = await this.journal.eventsByAggregate(id.value)
+      if (events.length !== 0) return failure(new IdAlreadyExists(id.value))
 
-    const shipCreated = Ship.create(command, Ship.uninitialized())
-    await this.journal.append(id.value, version, [shipCreated])
-    return success()
+      const shipCreated = Ship.create(command, Ship.uninitialized())
+      await this.journal.append(id.value, version, [shipCreated])
+      return success()
+    })
   }
 }

@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
 import {
@@ -11,6 +11,7 @@ import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
@@ -48,6 +49,22 @@ test('ship id not found', async () => {
     ok: false,
     error: new ShipNotFound(id.value)
   })
+})
+
+test('rereads the ship before retrying a concurrent dock', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  const reads = vi.spyOn(journal, 'eventsByAggregate')
+  vi.spyOn(journal, 'append').mockRejectedValueOnce(new JournalVersionConflict(id.value, 1, 2))
+
+  const result = await new DockShipUseCase(journal).dock(
+    id,
+    new Port(new PortName('Tennessee'), new Country('US'))
+  )
+
+  expect(result).toEqual({ ok: true, value: undefined })
+  expect(reads).toHaveBeenCalledTimes(2)
 })
 
 test.each([

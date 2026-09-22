@@ -5,6 +5,7 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
@@ -73,6 +74,24 @@ test('valid request', async () => {
   expect(result).toEqual({ ok: true, value: undefined })
   const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
+})
+
+test('rechecks cargo after a concurrent load wins', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  const append = journal.append.bind(journal)
+  vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
+    await append(aggregateId, version, events)
+    throw new JournalVersionConflict(aggregateId, version, version + events.length)
+  })
+
+  const cargoName = new Name('Refactoring Book')
+  expect(await new LoadCargoUseCase(journal).load(id, cargoName)).toMatchObject({
+    ok: false,
+    error: new CargoAlreadyLoaded(cargoName.value)
+  })
+  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(2)
 })
 
 test('does not turn an exceptional journal failure into a result', async () => {
