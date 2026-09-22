@@ -1,10 +1,11 @@
-import { expect, test, vi } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
 import { InvalidPortForDeparture } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
+import { Ship } from '../../../domain/ship'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
@@ -13,6 +14,10 @@ import type { EventJournal } from '../../ports/event-journal'
 import { CreateShipUseCase } from '../create-ship/use-case'
 import { DockShipUseCase } from '../dock-ship/use-case'
 import { SailShipUseCase } from './use-case'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
 
 test('construct class object', () => {
   const useCase = new SailShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -84,4 +89,18 @@ test('rechecks the port after a concurrent sail wins', async () => {
   expect(result.ok).toBe(false)
   if (!result.ok) expect(result.error).toBeInstanceOf(InvalidPortForDeparture)
   expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(3)
+})
+
+test('does not turn an unexpected domain failure into a result', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  const failure = new Error('unexpected domain failure')
+  vi.spyOn(Ship, 'depart').mockImplementation(() => {
+    throw failure
+  })
+  const append = vi.spyOn(journal, 'append')
+
+  await expect(new SailShipUseCase(journal).sail(id)).rejects.toBe(failure)
+  expect(append).not.toHaveBeenCalled()
 })

@@ -120,6 +120,30 @@ test('create with an invalid name', async () => {
   expect(response.body).toBeUndefined()
 })
 
+test('hides an unexpected request parsing error', async () => {
+  const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new CreateShipController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+
+  const response = await controller.create(null as never)
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
+test('hides an unexpected application result', async () => {
+  const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new CreateShipController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  vi.spyOn(useCase, 'create').mockResolvedValue({
+    ok: false,
+    error: new Error('unexpected result')
+  } as never)
+
+  const response = await controller.create({ id: 'abc', name: 'testing' })
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
 test('create throws an unexpected application error', async () => {
   const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new CreateShipController(useCase)
