@@ -5,8 +5,8 @@ export class ShipCreatedSerializer implements EventSerializable<ShipCreated> {
   readonly eventType = ShipCreated.eventType
 
   eventFromJson(json: string): ShipCreated {
-    const { aggregateId, name, occurredAt } = JSON.parse(json)
-    return new ShipCreated(aggregateId, name, new Date(occurredAt))
+    const { aggregateId, name, occurredAt, recordedAt } = JSON.parse(json)
+    return new ShipCreated(aggregateId, name, new Date(occurredAt), new Date(recordedAt))
   }
 
   eventToJson(event: ShipCreated): string {

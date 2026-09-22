@@ -12,9 +12,14 @@ export abstract class BaseDomainEvent<TType extends string = string> implements 
   readonly type: TType
   aggregateId: string
 
-  protected constructor(type: TType, aggregateId: string, occurredAt: Date = new Date()) {
+  protected constructor(
+    type: TType,
+    aggregateId: string,
+    occurredAt: Date = new Date(),
+    recordedAt: Date = new Date()
+  ) {
     this.occurredAt = occurredAt
-    this.recordedAt = new Date()
+    this.recordedAt = recordedAt
     this.type = type
     this.aggregateId = aggregateId
   }

@@ -8,11 +8,12 @@ export class ShipArrivedSerializer implements EventSerializable<ShipArrived> {
   readonly eventType = ShipArrived.eventType
 
   eventFromJson(json: string): ShipArrived {
-    const { aggregateId, portName, portCountry, occurredAt } = JSON.parse(json)
+    const { aggregateId, portName, portCountry, occurredAt, recordedAt } = JSON.parse(json)
     return new ShipArrived(
       aggregateId,
       new Port(new PortName(portName), new Country(portCountry)),
-      new Date(occurredAt)
+      new Date(occurredAt),
+      new Date(recordedAt)
     )
   }
 

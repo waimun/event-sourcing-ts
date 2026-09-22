@@ -7,8 +7,13 @@ export class CargoUnloadedSerializer implements EventSerializable<CargoUnloaded>
   readonly eventType = CargoUnloaded.eventType
 
   eventFromJson(json: string): CargoUnloaded {
-    const { aggregateId, cargo, occurredAt } = JSON.parse(json)
-    return new CargoUnloaded(aggregateId, new Cargo(new Name(cargo)), new Date(occurredAt))
+    const { aggregateId, cargo, occurredAt, recordedAt } = JSON.parse(json)
+    return new CargoUnloaded(
+      aggregateId,
+      new Cargo(new Name(cargo)),
+      new Date(occurredAt),
+      new Date(recordedAt)
+    )
   }
 
   eventToJson(event: CargoUnloaded): string {
