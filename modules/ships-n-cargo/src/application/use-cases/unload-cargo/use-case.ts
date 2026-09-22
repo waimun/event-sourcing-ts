@@ -23,7 +23,7 @@ export class UnloadCargoUseCase {
     dateTime: ISODate = new ISODate()
   ): Promise<Result<void, ShipNotFound | CargoNotFound>> {
     const command = new UnloadCargo(id, new Cargo(cargoName), dateTime.value)
-    const events = await this.journal.eventsByAggregate(id.value)
+    const { events, version } = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) return failure(new ShipNotFound(id.value))
 
@@ -35,7 +35,7 @@ export class UnloadCargoUseCase {
       if (error instanceof CargoNotFound) return failure(error)
       throw error
     }
-    await this.journal.append(cargoUnloaded)
+    await this.journal.append(id.value, version, [cargoUnloaded])
     return success()
   }
 }

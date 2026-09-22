@@ -23,7 +23,7 @@ test('create ship request', async () => {
   const useCase = new CreateShipUseCase(journal)
   const result = await useCase.create(name, id)
   expect(result).toEqual({ ok: true, value: undefined })
-  const events = await journal.eventsByAggregate(id.value)
+  const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
 })
 
@@ -33,7 +33,7 @@ test('create with an id that already exists in the journal', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
   const useCase = new CreateShipUseCase(journal)
   await useCase.create(name, id)
-  const events = await journal.eventsByAggregate(id.value)
+  const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
 
   // create with duplicated id

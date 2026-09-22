@@ -42,13 +42,13 @@ export class DockShipUseCase {
         return failure(error)
       throw error
     }
-    const events = await this.journal.eventsByAggregate(id.value)
+    const { events, version } = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) return failure(new ShipNotFound(id.value))
 
     const ship = Ship.replay(Ship.uninitialized(), events)
     const shipArrived = Ship.arrive(command, ship)
-    await this.journal.append(shipArrived)
+    await this.journal.append(id.value, version, [shipArrived])
     return success()
   }
 }

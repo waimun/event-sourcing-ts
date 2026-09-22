@@ -33,7 +33,7 @@ test('cannot find cargo to unload', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('Thomas Jefferson'), id)
-  const events = await journal.eventsByAggregate(id.value)
+  const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
@@ -50,18 +50,18 @@ test('valid request', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('Thomas Jefferson'), id)
-  const events1 = await journal.eventsByAggregate(id.value)
+  const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)
   const cargoName = new Name('Cloud Architecture')
   await loadCargoUseCase.load(id, cargoName)
-  const events2 = await journal.eventsByAggregate(id.value)
+  const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
   const result = await unloadCargoUseCase.unload(id, cargoName)
   expect(result).toEqual({ ok: true, value: undefined })
-  const events3 = await journal.eventsByAggregate(id.value)
+  const events3 = (await journal.eventsByAggregate(id.value)).events
   expect(events3.length).toEqual(3)
 })

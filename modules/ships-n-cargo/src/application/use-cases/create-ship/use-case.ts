@@ -17,11 +17,11 @@ export class CreateShipUseCase {
   async create(name: Name, id: Id): Promise<Result<void, IdAlreadyExists>> {
     const command = new CreateShip(name, id)
 
-    const events = await this.journal.eventsByAggregate(id.value)
+    const { events, version } = await this.journal.eventsByAggregate(id.value)
     if (events.length !== 0) return failure(new IdAlreadyExists(id.value))
 
     const shipCreated = Ship.create(command, Ship.uninitialized())
-    await this.journal.append(shipCreated)
+    await this.journal.append(id.value, version, [shipCreated])
     return success()
   }
 }

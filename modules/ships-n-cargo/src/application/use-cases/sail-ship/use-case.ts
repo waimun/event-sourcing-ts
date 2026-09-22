@@ -20,7 +20,7 @@ export class SailShipUseCase {
     dateTime: ISODate = new ISODate()
   ): Promise<Result<void, ShipNotFound | InvalidPortForDeparture>> {
     const command = new SailShip(id, dateTime.value)
-    const events = await this.journal.eventsByAggregate(id.value)
+    const { events, version } = await this.journal.eventsByAggregate(id.value)
 
     if (events.length === 0) return failure(new ShipNotFound(id.value))
 
@@ -32,7 +32,7 @@ export class SailShipUseCase {
       if (error instanceof InvalidPortForDeparture) return failure(error)
       throw error
     }
-    await this.journal.append(shipDeparted)
+    await this.journal.append(id.value, version, [shipDeparted])
     return success()
   }
 }

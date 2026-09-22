@@ -27,14 +27,14 @@ test('dock ship request', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('Queen Mary'), id)
-  const events1 = await journal.eventsByAggregate(id.value)
+  const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
   const useCase = new DockShipUseCase(journal)
   const port = new Port(new PortName('Tennessee'), new Country('US'))
   const result = await useCase.dock(id, port)
   expect(result).toEqual({ ok: true, value: undefined })
-  const events2 = await journal.eventsByAggregate(id.value)
+  const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
 })
 

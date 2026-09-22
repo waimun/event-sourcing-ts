@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import type { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
 import { Country } from '../../../domain/country'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipCreated } from '../../../domain/events/ship-created'
@@ -6,67 +7,97 @@ import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
 import { Name } from '../../../shared/domain/name'
-import { EventIsRequired, InMemoryEventJournal } from './in-memory-event-journal'
+import {
+  AggregateIdMismatch,
+  EventIsRequired,
+  InMemoryEventJournal,
+  InvalidExpectedVersion
+} from './in-memory-event-journal'
 
-test('creation of the journal object', () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  expect(journal).toBeTruthy()
-  expect(journal.name).toEqual('Test Journal')
-  expect(journal.entries.size).toEqual(0)
+const makeJournal = () => new InMemoryEventJournal(new Name('Test Journal'))
+const arrival = (id: string) =>
+  new ShipArrived(id, new Port(new PortName('Kingston'), new Country('US')))
+
+test('creates a named, empty journal', async () => {
+  const journal = makeJournal()
+  expect(journal.name).toBe('Test Journal')
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: [], version: 0 })
 })
 
-test('create journal with empty name', () => {
+test('requires a journal name', () => {
   expect(() => new InMemoryEventJournal(new Name(''))).toThrow(IsRequired)
-})
-
-test('create journal with three white spaces', () => {
   expect(() => new InMemoryEventJournal(new Name('   '))).toThrow(IsRequired)
 })
 
-test('get events by aggregate id', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.append(new ShipCreated('123', 'King Roy'))
-  const events = await journal.eventsByAggregate('123')
-  expect(events.length).toEqual(1)
+test('missing streams start at version zero', async () => {
+  expect(await makeJournal().eventsByAggregate('123')).toEqual({ events: [], version: 0 })
 })
 
-test('get events by aggregate id that does not exist', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  const events = await journal.eventsByAggregate('123')
-  expect(events.length).toEqual(0)
+test('multi-event append advances one stream by consecutive versions', async () => {
+  const journal = makeJournal()
+  const events = [new ShipCreated('123', 'King Roy'), arrival('123')]
+
+  await journal.append('123', 0, events)
+  expect(await journal.eventsByAggregate('123')).toEqual({ events, version: 2 })
+
+  const next = arrival('123')
+  await journal.append('123', 2, [next])
+  expect(await journal.eventsByAggregate('123')).toEqual({
+    events: [...events, next],
+    version: 3
+  })
 })
 
-test('append one event for the aggregate', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.append(new ShipCreated('123', 'King Roy'))
-  const events = await journal.eventsByAggregate('123')
-  expect(events.length).toEqual(1)
+test('different aggregates have independent versions', async () => {
+  const journal = makeJournal()
+  await journal.append('123', 0, [new ShipCreated('123', 'King Roy')])
+  await journal.append('456', 0, [new ShipCreated('456', 'King Roy')])
+  expect((await journal.eventsByAggregate('123')).version).toBe(1)
+  expect((await journal.eventsByAggregate('456')).version).toBe(1)
 })
 
-test('append two events for the same aggregate', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
+test('stale append rejects with actual version and leaves stream unchanged', async () => {
+  const journal = makeJournal()
+  const first = new ShipCreated('123', 'King Roy')
+  await journal.append('123', 0, [first])
 
-  const events = [
-    new ShipCreated('123', 'King Roy'),
-    new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
-  ]
-
-  await journal.append(...events)
-  const result = await journal.eventsByAggregate('123')
-  expect(result.length).toEqual(2)
+  await expect(journal.append('123', 0, [arrival('123'), arrival('123')])).rejects.toMatchObject({
+    code: 'JOURNAL_VERSION_CONFLICT',
+    meta: { aggregateId: '123', expectedVersion: 0, actualVersion: 1 }
+  } satisfies Partial<JournalVersionConflict>)
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: [first], version: 1 })
 })
 
-test('append without any event specified', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await expect(journal.append()).rejects.toThrow(EventIsRequired)
+test('rejects empty appends without changing the version', async () => {
+  const journal = makeJournal()
+  await expect(journal.append('123', 0, [])).rejects.toThrow(EventIsRequired)
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: [], version: 0 })
 })
 
-test('appendEvents called twice', async () => {
-  const journal = new InMemoryEventJournal(new Name('Test Journal'))
-  await journal.append(new ShipCreated('123', 'King Roy'))
-  await journal.append(
-    new ShipArrived('123', new Port(new PortName('Kingston'), new Country('US')))
+test('rejects mixed aggregate events atomically', async () => {
+  const journal = makeJournal()
+  await expect(
+    journal.append('123', 0, [new ShipCreated('123', 'King Roy'), arrival('456')])
+  ).rejects.toThrow(AggregateIdMismatch)
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: [], version: 0 })
+  expect(await journal.eventsByAggregate('456')).toEqual({ events: [], version: 0 })
+})
+
+test('rejects invalid expected versions', async () => {
+  const journal = makeJournal()
+  await expect(journal.append('123', -1, [new ShipCreated('123', 'King Roy')])).rejects.toThrow(
+    InvalidExpectedVersion
   )
-  const events = await journal.eventsByAggregate('123')
-  expect(events.length).toEqual(2)
+  await expect(journal.append('123', 0.5, [new ShipCreated('123', 'King Roy')])).rejects.toThrow(
+    InvalidExpectedVersion
+  )
+})
+
+test('reads return snapshots that cannot change stored events or versions', async () => {
+  const journal = makeJournal()
+  const first = new ShipCreated('123', 'King Roy')
+  await journal.append('123', 0, [first])
+  const read = await journal.eventsByAggregate('123')
+  read.events.push(arrival('123'))
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: [first], version: 1 })
 })

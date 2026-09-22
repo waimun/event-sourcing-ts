@@ -24,19 +24,19 @@ test('sail ship request', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('King Roy'), id)
-  const events1 = await journal.eventsByAggregate(id.value)
+  const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
   const dockShipUseCase = new DockShipUseCase(journal)
   const port = new Port(new PortName('Henderson'), new Country('US'))
   await dockShipUseCase.dock(id, port)
-  const events2 = await journal.eventsByAggregate(id.value)
+  const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
 
   const useCase = new SailShipUseCase(journal)
   const result = await useCase.sail(id)
   expect(result).toEqual({ ok: true, value: undefined })
-  const events3 = await journal.eventsByAggregate(id.value)
+  const events3 = (await journal.eventsByAggregate(id.value)).events
   expect(events3.length).toEqual(3)
 })
 
@@ -54,7 +54,7 @@ test('cannot depart from a missing port', async () => {
   const createShipUseCase = new CreateShipUseCase(journal)
   const id = new Id('abc')
   await createShipUseCase.create(new Name('King Roy'), id)
-  const events = await journal.eventsByAggregate(id.value)
+  const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
   // after ship is created, it has a missing port by default.
 
