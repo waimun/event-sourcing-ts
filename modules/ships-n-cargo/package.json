@@ -13,16 +13,16 @@
     "vitest": "5.0.1"
   },
   "scripts": {
-    "db:setup": "tsx scripts/setup-database.ts",
+    "format": "biome check --write",
     "lint": "biome ci --error-on-warnings && npm run lint:error-architecture",
     "lint:error-architecture": "node --import tsx scripts/check-error-architecture.ts",
-    "format": "biome check --write",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit",
-    "test:unit": "vitest run --coverage",
-    "test:integration": "vitest run --config vitest.integration.config.js",
-    "start": "tsx src/bootstrap/server.ts",
-    "build": "npm run lint && npm run typecheck && npm run test:unit"
+    "test:unit": "vitest run --project unit --coverage",
+    "test:integration": "vitest run --project integration",
+    "build": "npm run lint && npm run typecheck && npm test",
+    "db:setup": "tsx scripts/setup-database.ts",
+    "start": "tsx src/bootstrap/server.ts"
   },
   "dependencies": {
     "express": "^5.2.1",
