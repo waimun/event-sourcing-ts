@@ -89,9 +89,7 @@ const formatColumnMismatch = (actual: readonly ColumnRow[]): string => {
   const formatColumn = (column: ColumnRow): string => {
     const nullable = column.is_nullable === 'NO' ? 'NOT NULL' : 'NULL'
     const identity =
-      column.is_identity === 'YES'
-        ? ` GENERATED ${column.identity_generation ?? 'BY DEFAULT'} AS IDENTITY`
-        : ''
+      column.is_identity === 'YES' ? ` GENERATED ${column.identity_generation} AS IDENTITY` : ''
     return `  ${column.column_name.padEnd(nameWidth)} ${column.data_type.padEnd(typeWidth)}  ${nullable}${identity}`
   }
 
