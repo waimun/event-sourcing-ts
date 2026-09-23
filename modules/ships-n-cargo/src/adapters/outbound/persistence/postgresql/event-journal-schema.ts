@@ -13,7 +13,7 @@ interface ColumnRow extends QueryResultRow {
   data_type: string
   is_nullable: 'YES' | 'NO'
   is_identity: 'YES' | 'NO'
-  identity_generation: 'ALWAYS' | null
+  identity_generation: 'ALWAYS' | 'BY DEFAULT' | null
 }
 
 interface ConstraintRow extends QueryResultRow {
@@ -82,6 +82,28 @@ const constraintsSql = `
 const sameColumns = (actual: readonly ColumnRow[]): boolean =>
   JSON.stringify(actual) === JSON.stringify(expectedColumns)
 
+const formatColumnMismatch = (actual: readonly ColumnRow[]): string => {
+  const columns = [...expectedColumns, ...actual]
+  const nameWidth = Math.max(...columns.map(({ column_name }) => column_name.length))
+  const typeWidth = Math.max(...columns.map(({ data_type }) => data_type.length))
+  const formatColumn = (column: ColumnRow): string => {
+    const nullable = column.is_nullable === 'NO' ? 'NOT NULL' : 'NULL'
+    const identity =
+      column.is_identity === 'YES'
+        ? ` GENERATED ${column.identity_generation ?? 'BY DEFAULT'} AS IDENTITY`
+        : ''
+    return `  ${column.column_name.padEnd(nameWidth)} ${column.data_type.padEnd(typeWidth)}  ${nullable}${identity}`
+  }
+
+  return [
+    'Expected columns:',
+    ...expectedColumns.map(formatColumn),
+    '',
+    'Received columns:',
+    ...(actual.length === 0 ? ['  none'] : actual.map(formatColumn))
+  ].join('\n')
+}
+
 const hasConstraint = (
   constraints: readonly ConstraintRow[],
   name: string,
@@ -115,9 +137,7 @@ export const verifyEventJournalSchema = async (pool: Pool): Promise<void> => {
   ])
 
   if (!sameColumns(columnsResult.rows)) {
-    throw new EventJournalSchemaIncompatible(
-      `expected columns ${JSON.stringify(expectedColumns)}, received ${JSON.stringify(columnsResult.rows)}`
-    )
+    throw new EventJournalSchemaIncompatible(formatColumnMismatch(columnsResult.rows))
   }
 
   if (

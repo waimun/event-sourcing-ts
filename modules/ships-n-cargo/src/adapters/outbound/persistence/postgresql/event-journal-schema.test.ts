@@ -69,9 +69,36 @@ test('accepts the checked-in event journal shape and constraints', async () => {
 })
 
 test('reports incompatible columns', async () => {
-  await expect(verifyEventJournalSchema(makePool(columns.slice(0, 2)))).rejects.toThrow(
-    EventJournalSchemaIncompatible
-  )
+  await expect(verifyEventJournalSchema(makePool(columns.slice(0, 2)))).rejects.toMatchObject({
+    message: [
+      'PostgreSQL event journal schema is incompatible.',
+      '',
+      'Expected columns:',
+      '  aggregate_id  text    NOT NULL',
+      '  version       bigint  NOT NULL',
+      '  event_payload text    NOT NULL',
+      '',
+      'Received columns:',
+      '  aggregate_id  text    NOT NULL',
+      '  version       bigint  NOT NULL'
+    ].join('\n')
+  })
+})
+
+test('reports when the event journal has no columns', async () => {
+  await expect(verifyEventJournalSchema(makePool([]))).rejects.toMatchObject({
+    message: [
+      'PostgreSQL event journal schema is incompatible.',
+      '',
+      'Expected columns:',
+      '  aggregate_id  text    NOT NULL',
+      '  version       bigint  NOT NULL',
+      '  event_payload text    NOT NULL',
+      '',
+      'Received columns:',
+      '  none'
+    ].join('\n')
+  })
 })
 
 test('reports a missing stream-position primary key', async () => {

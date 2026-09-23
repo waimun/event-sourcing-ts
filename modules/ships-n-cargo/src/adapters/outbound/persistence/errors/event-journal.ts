@@ -30,9 +30,10 @@ export class EventIsRequired extends InvariantError {
 
 export class EventJournalSchemaIncompatible extends InfrastructureError {
   constructor(details: string) {
+    const separator = details.includes('\n') ? '.\n\n' : ': '
     super({
       code: 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE',
-      message: `PostgreSQL event journal schema is incompatible: ${details}`,
+      message: `PostgreSQL event journal schema is incompatible${separator}${details}`,
       meta: { details }
     })
   }

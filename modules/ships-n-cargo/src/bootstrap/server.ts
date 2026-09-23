@@ -1,5 +1,6 @@
 /* v8 ignore file -- @preserve */
 import { createDefaultApplication } from './composition-root'
+import { formatDatabaseStartupFailure, formatServerListenFailure } from './startup-failure'
 
 const port = 3000
 
@@ -7,7 +8,7 @@ try {
   const runtime = await createDefaultApplication()
   runtime.application.listen(port, async (error) => {
     if (error) {
-      console.error(error)
+      console.error(formatServerListenFailure(error, port))
       process.exitCode = 1
       try {
         await runtime.close()
@@ -19,9 +20,6 @@ try {
     console.log(`API listening at http://localhost:${port}`)
   })
 } catch (error) {
-  const message = error instanceof Error ? error.message : String(error)
-  console.error(
-    `Server startup failed: ${message}. Check SHIPS_N_CARGO_DATABASE_URL and run npm run db:setup before retrying.`
-  )
+  console.error(formatDatabaseStartupFailure(error))
   process.exitCode = 1
 }
