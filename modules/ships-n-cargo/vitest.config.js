@@ -2,8 +2,6 @@ import { defineConfig } from 'vitest/config'
 
 export default defineConfig({
   test: {
-    exclude: ['src/**/*.integration.test.ts'],
-    include: ['src/**/*.test.ts', 'scripts/**/*.test.ts'],
     coverage: {
       include: ['src/**/*.ts'],
       thresholds: {
@@ -12,6 +10,21 @@ export default defineConfig({
         functions: 100,
         lines: 95.89
       }
-    }
+    },
+    projects: [
+      {
+        test: {
+          name: 'unit',
+          exclude: ['src/**/*.integration.test.ts'],
+          include: ['src/**/*.test.ts', 'scripts/**/*.test.ts']
+        }
+      },
+      {
+        test: {
+          name: 'integration',
+          include: ['src/**/*.integration.test.ts']
+        }
+      }
+    ]
   }
 })

@@ -45,12 +45,12 @@ jobs:
           cache-dependency-path: modules/ships-n-cargo/package-lock.json
       - name: Clean install
         run: npm ci
+      - name: Build
+        run: npm run build
       - name: Set up PostgreSQL
         run: npm run db:setup
         env:
           SHIPS_N_CARGO_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ships_n_cargo_test
-      - name: Build
-        run: npm run build
       - name: Run PostgreSQL integration tests
         run: npm run test:integration
       - name: Upload coverage to Codecov
