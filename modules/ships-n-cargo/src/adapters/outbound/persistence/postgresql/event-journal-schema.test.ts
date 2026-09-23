@@ -11,7 +11,15 @@ const result = <TRow extends QueryResultRow>(rows: TRow[]): QueryResult<TRow> =>
   rows
 })
 
-const columns = [
+interface ColumnRow extends QueryResultRow {
+  column_name: string
+  data_type: string
+  is_nullable: 'YES' | 'NO'
+  is_identity: 'YES' | 'NO'
+  identity_generation: 'ALWAYS' | 'BY DEFAULT' | null
+}
+
+const columns: ColumnRow[] = [
   {
     column_name: 'aggregate_id',
     data_type: 'text',
@@ -83,6 +91,19 @@ test('reports incompatible columns', async () => {
       '  version       bigint  NOT NULL'
     ].join('\n')
   })
+})
+
+test('reports an incompatible identity column using its generation mode', async () => {
+  const columnsWithIdentity = columns.map(
+    (column): ColumnRow =>
+      column.column_name === 'version'
+        ? { ...column, is_identity: 'YES', identity_generation: 'ALWAYS' }
+        : column
+  )
+
+  await expect(verifyEventJournalSchema(makePool(columnsWithIdentity))).rejects.toThrow(
+    'version       bigint  NOT NULL GENERATED ALWAYS AS IDENTITY'
+  )
 })
 
 test('reports when the event journal has no columns', async () => {
