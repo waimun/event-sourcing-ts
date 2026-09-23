@@ -1,4 +1,4 @@
-import { InvariantError } from '../../../../shared/error'
+import { InfrastructureError, InvariantError } from '../../../../shared/error'
 
 export class InvalidExpectedVersion extends InvariantError {
   constructor(expectedVersion: number) {
@@ -24,6 +24,16 @@ export class EventIsRequired extends InvariantError {
     super({
       code: 'EVENT_REQUIRED',
       message: 'At least one event is required to create a new entry or append to an existing entry'
+    })
+  }
+}
+
+export class EventJournalSchemaIncompatible extends InfrastructureError {
+  constructor(details: string) {
+    super({
+      code: 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE',
+      message: `PostgreSQL event journal schema is incompatible: ${details}`,
+      meta: { details }
     })
   }
 }

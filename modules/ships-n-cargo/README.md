@@ -12,6 +12,25 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
 2. `npm run build`
 
+### Testing
+
+- `npm run test:unit` runs the unit suite with coverage enforcement.
+- `TEST_DATABASE_URL=<connection-string> npm run test:integration` runs the PostgreSQL integration
+  suite against an existing test database. The integration suite drops and recreates the
+  `ships_n_cargo` schema, so do not point it at a database containing data you need.
+
+## PostgreSQL setup
+
+Provision a PostgreSQL database, then apply and verify the checked-in initial schema:
+
+```sh
+SHIPS_N_CARGO_DATABASE_URL=<connection-string> npm run db:setup
+```
+
+The command is safe to rerun when the schema matches. It reports an error when an existing
+`ships_n_cargo.event_journal` table is incompatible. Journal rows are identified by the composite
+primary key `(aggregate_id, version)`; the table does not assign a separate event identifier.
+
 ## 🚀 Running locally
 
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**

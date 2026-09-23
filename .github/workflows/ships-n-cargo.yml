@@ -13,6 +13,24 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:17.11-bookworm
+        env:
+          POSTGRES_DB: ships_n_cargo_test
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_USER: postgres
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d ships_n_cargo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      TEST_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ships_n_cargo_test
+
     defaults:
       run:
         working-directory: 'modules/ships-n-cargo'
@@ -27,8 +45,14 @@ jobs:
           cache-dependency-path: modules/ships-n-cargo/package-lock.json
       - name: Clean install
         run: npm ci
+      - name: Set up PostgreSQL
+        run: npm run db:setup
+        env:
+          SHIPS_N_CARGO_DATABASE_URL: postgresql://postgres:postgres@localhost:5432/ships_n_cargo_test
       - name: Build
         run: npm run build
+      - name: Run PostgreSQL integration tests
+        run: npm run test:integration
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v7
         with:
