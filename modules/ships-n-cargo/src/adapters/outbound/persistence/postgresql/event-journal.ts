@@ -1,15 +1,15 @@
 import type { Pool, PoolClient, QueryResultRow } from 'pg'
-import { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
-import type { EventJournal, EventStream } from '../../../application/ports/event-journal'
-import { eventPayloadHandler } from '../../../domain/events'
-import type { DomainEvent } from '../../../domain/events/domain-event'
-import { EventJournalUnavailable } from '../../../shared/error'
+import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
+import type { EventJournal, EventStream } from '../../../../application/ports/event-journal'
+import { eventPayloadHandler } from '../../../../domain/events'
+import type { DomainEvent } from '../../../../domain/events/domain-event'
+import { EventJournalUnavailable } from '../../../../shared/error'
 import {
   AggregateIdMismatch,
   EventIsRequired,
   InvalidExpectedVersion
-} from './errors/event-journal'
-import { EVENT_JOURNAL_CONSTRAINTS } from './postgresql-event-journal-schema'
+} from '../errors/event-journal'
+import { EVENT_JOURNAL_CONSTRAINTS } from './event-journal-schema'
 
 interface EventRow extends QueryResultRow {
   event_payload: string

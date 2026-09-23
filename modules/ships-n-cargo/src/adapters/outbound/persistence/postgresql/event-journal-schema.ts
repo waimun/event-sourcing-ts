@@ -1,5 +1,5 @@
 import type { Pool, QueryResultRow } from 'pg'
-import { EventJournalSchemaIncompatible } from './errors/event-journal'
+import { EventJournalSchemaIncompatible } from '../errors/event-journal'
 
 export const EVENT_JOURNAL_SCHEMA = 'ships_n_cargo'
 export const EVENT_JOURNAL_TABLE = 'event_journal'

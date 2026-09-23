@@ -1,7 +1,7 @@
 import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
-import { verifyEventJournalSchema } from '../src/adapters/outbound/persistence/postgresql-event-journal-schema'
+import { verifyEventJournalSchema } from '../../src/adapters/outbound/persistence/postgresql/event-journal-schema'
 
 const connectionString = process.env.SHIPS_N_CARGO_DATABASE_URL
 
@@ -11,7 +11,12 @@ if (connectionString === undefined || connectionString.trim() === '') {
 } else {
   const pool = new Pool({ connectionString })
   try {
-    const sqlPath = fileURLToPath(new URL('../sql/001-event-journal.sql', import.meta.url))
+    const sqlPath = fileURLToPath(
+      new URL(
+        '../../src/adapters/outbound/persistence/postgresql/schema/001-event-journal.sql',
+        import.meta.url
+      )
+    )
     const sql = await readFile(sqlPath, 'utf8')
     await pool.query(sql)
     await verifyEventJournalSchema(pool)

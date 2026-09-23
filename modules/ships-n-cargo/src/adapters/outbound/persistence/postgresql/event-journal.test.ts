@@ -1,20 +1,20 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg'
 import { afterEach, describe, expect, test, vi } from 'vitest'
-import type { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
-import { Country } from '../../../domain/country'
-import { EventSerializerNotFound } from '../../../domain/errors/event-payload-handler'
-import { ShipArrived } from '../../../domain/events/ship-arrived'
-import { ShipCreated } from '../../../domain/events/ship-created'
-import { Port } from '../../../domain/port'
-import { PortName } from '../../../domain/port-name'
-import type { EventJournalUnavailable } from '../../../shared/error'
+import type { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
+import { Country } from '../../../../domain/country'
+import { EventSerializerNotFound } from '../../../../domain/errors/event-payload-handler'
+import { ShipArrived } from '../../../../domain/events/ship-arrived'
+import { ShipCreated } from '../../../../domain/events/ship-created'
+import { Port } from '../../../../domain/port'
+import { PortName } from '../../../../domain/port-name'
+import type { EventJournalUnavailable } from '../../../../shared/error'
 import {
   AggregateIdMismatch,
   EventIsRequired,
   InvalidExpectedVersion
-} from './errors/event-journal'
-import { PostgreSqlEventJournal } from './postgresql-event-journal'
-import { EVENT_JOURNAL_CONSTRAINTS } from './postgresql-event-journal-schema'
+} from '../errors/event-journal'
+import { PostgreSqlEventJournal } from './event-journal'
+import { EVENT_JOURNAL_CONSTRAINTS } from './event-journal-schema'
 
 const result = <TRow extends QueryResultRow>(rows: TRow[] = []): QueryResult<TRow> => ({
   command: '',

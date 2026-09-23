@@ -2,23 +2,20 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
-import { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
-import { Country } from '../../../domain/country'
-import { ShipArrived } from '../../../domain/events/ship-arrived'
-import { ShipCreated } from '../../../domain/events/ship-created'
-import { Port } from '../../../domain/port'
-import { PortName } from '../../../domain/port-name'
-import { EventJournalUnavailable } from '../../../shared/error'
-import { EventJournalSchemaIncompatible } from './errors/event-journal'
-import { PostgreSqlEventJournal } from './postgresql-event-journal'
-import {
-  EVENT_JOURNAL_CONSTRAINTS,
-  verifyEventJournalSchema
-} from './postgresql-event-journal-schema'
+import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
+import { Country } from '../../../../domain/country'
+import { ShipArrived } from '../../../../domain/events/ship-arrived'
+import { ShipCreated } from '../../../../domain/events/ship-created'
+import { Port } from '../../../../domain/port'
+import { PortName } from '../../../../domain/port-name'
+import { EventJournalUnavailable } from '../../../../shared/error'
+import { EventJournalSchemaIncompatible } from '../errors/event-journal'
+import { PostgreSqlEventJournal } from './event-journal'
+import { EVENT_JOURNAL_CONSTRAINTS, verifyEventJournalSchema } from './event-journal-schema'
 
 const connectionString = process.env.TEST_DATABASE_URL
 const databaseDescribe = connectionString === undefined ? describe.skip : describe
-const sqlPath = fileURLToPath(new URL('../../../../sql/001-event-journal.sql', import.meta.url))
+const sqlPath = fileURLToPath(new URL('./schema/001-event-journal.sql', import.meta.url))
 
 databaseDescribe('PostgreSQL event journal', () => {
   let pool: Pool

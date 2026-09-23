@@ -1,10 +1,7 @@
 import { Pool, type QueryResult, type QueryResultRow } from 'pg'
 import { afterEach, expect, test, vi } from 'vitest'
-import { EventJournalSchemaIncompatible } from './errors/event-journal'
-import {
-  EVENT_JOURNAL_CONSTRAINTS,
-  verifyEventJournalSchema
-} from './postgresql-event-journal-schema'
+import { EventJournalSchemaIncompatible } from '../errors/event-journal'
+import { EVENT_JOURNAL_CONSTRAINTS, verifyEventJournalSchema } from './event-journal-schema'
 
 const result = <TRow extends QueryResultRow>(rows: TRow[]): QueryResult<TRow> => ({
   command: '',
