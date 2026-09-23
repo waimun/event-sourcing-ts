@@ -14,27 +14,28 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 
 ### Testing
 
-- `npm run test:unit` runs the unit suite with coverage enforcement.
-- `TEST_DATABASE_URL=<connection-string> npm run test:integration` runs the PostgreSQL integration
-  suite against an existing test database. The integration suite drops and recreates the
-  `ships_n_cargo` schema, so do not point it at a database containing data you need.
+- `npm test` runs the unit suite with coverage enforcement.
+- `TEST_DATABASE_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run test:integration`
+  runs the PostgreSQL integration suite against an existing test database. The integration suite
+  drops and recreates the `ships_n_cargo` schema, so do not point it at a database containing data
+  you need.
 
-## PostgreSQL setup
+## 🐘 PostgreSQL setup
 
 Provision a PostgreSQL database, then apply and verify the checked-in initial schema:
 
 ```sh
-SHIPS_N_CARGO_DATABASE_URL=<connection-string> npm run db:setup
+SHIPS_N_CARGO_DATABASE_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run db:setup
 ```
 
 The command is safe to rerun when the schema matches. It reports an error when an existing
-`ships_n_cargo.event_journal` table is incompatible. Journal rows are identified by the composite
-primary key `(aggregate_id, version)`; the table does not assign a separate event identifier.
+`ships_n_cargo.event_journal` table is incompatible.
 
 ## 🚀 Running locally
 
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
-2. `npm start`
+2. Run `npm start` for an in-memory event journal, or set `SHIPS_N_CARGO_DATABASE_URL` to use the
+   provisioned PostgreSQL database.
 
 The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
 request to `/` to verify that it is running.
