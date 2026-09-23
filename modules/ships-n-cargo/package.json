@@ -21,7 +21,7 @@
     "test:unit": "vitest run --project unit --coverage",
     "test:integration": "vitest run --project integration",
     "build": "npm run lint && npm run typecheck && npm test",
-    "db:setup": "tsx scripts/setup-database.ts",
+    "db:setup": "tsx scripts/postgresql/setup-database.ts",
     "start": "tsx src/bootstrap/server.ts"
   },
   "dependencies": {
