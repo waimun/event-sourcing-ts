@@ -1,4 +1,4 @@
-import { InfrastructureError } from '../shared/error'
+import { InfrastructureError } from '../../shared/error'
 
 export class PostgreSqlConnectionStringInvalid extends InfrastructureError {
   constructor() {

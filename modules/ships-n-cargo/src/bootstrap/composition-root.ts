@@ -6,7 +6,7 @@ import { InMemoryEventJournal } from '../adapters/outbound/persistence/in-memory
 import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgresql/event-journal'
 import { verifyEventJournalSchema } from '../adapters/outbound/persistence/postgresql/event-journal-schema'
 import { Name } from '../shared/domain/name'
-import { PostgreSqlConnectionStringInvalid } from './errors'
+import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
 
 interface RuntimeEnvironment {
   SHIPS_N_CARGO_DATABASE_URL?: string

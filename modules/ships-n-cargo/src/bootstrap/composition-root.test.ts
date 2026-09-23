@@ -3,7 +3,7 @@ import { expect, test, vi } from 'vitest'
 import { EventJournalSchemaIncompatible } from '../adapters/outbound/persistence/errors/event-journal'
 import { EVENT_JOURNAL_CONSTRAINTS } from '../adapters/outbound/persistence/postgresql/event-journal-schema'
 import { createDefaultApplication } from './composition-root'
-import { PostgreSqlConnectionStringInvalid } from './errors'
+import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
 
 const result = <TRow extends QueryResultRow>(rows: TRow[]): QueryResult<TRow> => ({
   command: '',
