@@ -1,6 +1,7 @@
 import express, { type RequestHandler } from 'express'
 
 export type ShipHandlers = {
+  getShipHistory: RequestHandler<{ shipId: string }>
   registerShip: RequestHandler
   dockShip: RequestHandler
   loadContainer: RequestHandler
@@ -11,6 +12,7 @@ export type ShipHandlers = {
 export const registerShipRouter = (handlers: ShipHandlers) => {
   const router = express.Router()
 
+  router.get('/:shipId/history', handlers.getShipHistory)
   router.post('/register', handlers.registerShip)
   router.post('/dock', handlers.dockShip)
   router.post('/sail', handlers.sailShip)

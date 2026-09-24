@@ -1,8 +1,12 @@
 import express, { type Application, type ErrorRequestHandler } from 'express'
 import type { EventJournal } from '../../../../application/ports/event-journal'
+import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
+import { GetShipHistoryQuery } from '../../../../application/queries/get-ship-history/query'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
+import { GetShipHistoryController } from '../controllers/get-ship-history'
 import { dockShipHandler } from './dock-ship'
+import { getShipHistoryHandler } from './get-ship-history'
 import { loadContainerHandler } from './load-container'
 import { ping } from './ping'
 import { registerShipHandler } from './register-ship'
@@ -13,6 +17,7 @@ import { unloadContainerHandler } from './unload-container'
 export type ApplicationDependencies = {
   eventJournal: EventJournal<string, DomainEvent>
   generateId: () => string
+  shipHistoryProjection: ShipHistoryProjection
 }
 
 const malformedJsonErrorHandler: ErrorRequestHandler = (
@@ -40,9 +45,13 @@ const malformedJsonErrorHandler: ErrorRequestHandler = (
 
 export const createApplication = ({
   eventJournal,
-  generateId
+  generateId,
+  shipHistoryProjection
 }: ApplicationDependencies): Application => {
   const controllers = createControllers(eventJournal)
+  const getShipHistory = new GetShipHistoryController(
+    new GetShipHistoryQuery(shipHistoryProjection)
+  )
   const application = express()
 
   application.use(express.json())
@@ -55,6 +64,7 @@ export const createApplication = ({
   application.use(
     '/api/v1',
     createV1Router({
+      getShipHistory: getShipHistoryHandler(getShipHistory),
       registerShip: registerShipHandler(controllers.registerShip, generateId),
       dockShip: dockShipHandler(controllers.dockShip),
       loadContainer: loadContainerHandler(controllers.loadContainer),

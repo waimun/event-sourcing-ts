@@ -5,6 +5,9 @@ import { generateId } from '../adapters/inbound/http/generate-id'
 import { InMemoryEventJournal } from '../adapters/outbound/persistence/in-memory-event-journal'
 import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgresql/event-journal'
 import { verifyEventJournalSchema } from '../adapters/outbound/persistence/postgresql/event-journal-schema'
+import { EventJournalShipHistoryProjection } from '../adapters/outbound/projections/event-journal-ship-history'
+import type { EventJournal } from '../application/ports/event-journal'
+import type { DomainEvent } from '../domain/events/domain-event'
 import { Name } from '../shared/domain/name'
 import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
 
@@ -17,13 +20,20 @@ export interface ApplicationRuntime {
   close: () => Promise<void>
 }
 
-const memoryRuntime = (): ApplicationRuntime => ({
-  application: createApplication({
-    eventJournal: new InMemoryEventJournal(new Name('ships-n-cargo')),
-    generateId
-  }),
-  close: async () => undefined
-})
+const applicationFor = (eventJournal: EventJournal<string, DomainEvent>): Application =>
+  createApplication({
+    eventJournal,
+    generateId,
+    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal)
+  })
+
+const memoryRuntime = (): ApplicationRuntime => {
+  const eventJournal = new InMemoryEventJournal(new Name('ships-n-cargo'))
+  return {
+    application: applicationFor(eventJournal),
+    close: async () => undefined
+  }
+}
 
 export const createDefaultApplication = async (
   environment: RuntimeEnvironment = process.env,
@@ -45,11 +55,9 @@ export const createDefaultApplication = async (
     throw error
   }
 
+  const eventJournal = new PostgreSqlEventJournal(pool)
   return {
-    application: createApplication({
-      eventJournal: new PostgreSqlEventJournal(pool),
-      generateId
-    }),
+    application: applicationFor(eventJournal),
     close: () => pool.end()
   }
 }
