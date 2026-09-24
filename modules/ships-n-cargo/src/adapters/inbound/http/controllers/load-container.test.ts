@@ -25,7 +25,12 @@ test('empty id', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
-  const request = { id: '', containerId: 'container-1', description: 'Enterprise Architecture' }
+  const request = {
+    id: '',
+    containerId: 'container-1',
+    cargoReference: 'cargo-1',
+    description: 'Enterprise Architecture'
+  }
   const response = await controller.loadContainer(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Id').message)
@@ -35,7 +40,12 @@ test('invalid id', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
-  const request = { id: 'a!c', containerId: 'container-1', description: 'Enterprise Architecture' }
+  const request = {
+    id: 'a!c',
+    containerId: 'container-1',
+    cargoReference: 'cargo-1',
+    description: 'Enterprise Architecture'
+  }
   const response = await controller.loadContainer(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IdNotAllowed(request.id).message)
@@ -45,7 +55,12 @@ test('empty container id', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
-  const request = { id: 'abc', containerId: '', description: 'Enterprise Architecture' }
+  const request = {
+    id: 'abc',
+    containerId: '',
+    cargoReference: 'cargo-1',
+    description: 'Enterprise Architecture'
+  }
   const response = await controller.loadContainer(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IsRequired('Container ID').message)
@@ -55,17 +70,59 @@ test('invalid container id', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
-  const request = { id: 'abc', containerId: 'a!b', description: 'Enterprise Architecture' }
+  const request = {
+    id: 'abc',
+    containerId: 'a!b',
+    cargoReference: 'cargo-1',
+    description: 'Enterprise Architecture'
+  }
   const response = await controller.loadContainer(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(new IdNotAllowed(request.containerId, 'Container ID').message)
+})
+
+test('empty cargo reference', async () => {
+  const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new LoadContainerController(useCase)
+
+  const request = {
+    id: 'abc',
+    containerId: 'container-1',
+    cargoReference: '',
+    description: 'Enterprise Architecture'
+  }
+  const response = await controller.loadContainer(request)
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(new IsRequired('Cargo reference').message)
+})
+
+test('invalid cargo reference', async () => {
+  const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new LoadContainerController(useCase)
+
+  const request = {
+    id: 'abc',
+    containerId: 'container-1',
+    cargoReference: 'cargo/reference',
+    description: 'Enterprise Architecture'
+  }
+  const response = await controller.loadContainer(request)
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(
+    new IdNotAllowed(request.cargoReference, 'Cargo reference').message
+  )
 })
 
 test('invalid container description', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
-  const request = { id: 'abc', containerId: 'container-1', description: 'a!b' }
+  const request = {
+    id: 'abc',
+    containerId: 'container-1',
+    cargoReference: 'cargo-1',
+    description: 'a!b'
+  }
   const response = await controller.loadContainer(request)
   expect(response.status).toEqual(400)
   expect(response.error).toEqual(
@@ -80,6 +137,7 @@ test('ignores a caller-supplied event time', async () => {
   const request = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture',
     dateTime: 'not-a-date'
   }
@@ -104,6 +162,7 @@ test('cannot load the same container identity twice', async () => {
   const request = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   }
   const initialLoadResponse = await loadContainerController.loadContainer(request)
@@ -130,6 +189,7 @@ test('loads a container onto a ship at port', async () => {
   const request = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   }
   const loadResponse = await loadContainerController.loadContainer(request)
@@ -152,6 +212,7 @@ test('cannot load a container while the ship is at sea', async () => {
   ).loadContainer({
     id: id.value,
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   })
 
@@ -173,6 +234,7 @@ test('hides an unexpected application result', async () => {
   const response = await controller.loadContainer({
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   })
 
@@ -187,6 +249,7 @@ test('create throws an unexpected application error', async () => {
   const request = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   }
   vi.spyOn(console, 'error').mockImplementation(vi.fn())

@@ -138,6 +138,7 @@ test('valid request', async () => {
   req.body = {
     id: 'xyz',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Microservices Architecture'
   }
   await loadContainer(req as Request, res as Response)

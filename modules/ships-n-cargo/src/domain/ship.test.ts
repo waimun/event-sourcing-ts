@@ -1,6 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
+import { CargoReference } from './cargo-reference'
 import { DockShip } from './commands/dock-ship'
 import { LoadContainer } from './commands/load-container'
 import { RegisterShip } from './commands/register-ship'
@@ -50,7 +51,11 @@ test('normal commands assign both event times from the server clock', () => {
 
   const registration = register()
   const atPort = Ship.apply(undefined, registration)
-  const container = new Container(new Id('container-1'), new Name('Refactoring Book'))
+  const container = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
   const loading = Ship.loadContainer(new LoadContainer(new Id(atPort.id), container), atPort)
   const loaded = Ship.apply(atPort, loading)
   const unloading = Ship.unloadContainer(
@@ -111,7 +116,11 @@ test('arrival requires a matching registered ship', () => {
 
 test('loads and unloads containers by stable identity while at a port', () => {
   const ship = registered()
-  const item = new Container(new Id('container-1'), new Name('Refactoring Book'))
+  const item = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
   const loadedEvent = Ship.loadContainer(new LoadContainer(new Id('123'), item), ship)
   const loaded = Ship.apply(ship, loadedEvent)
 
@@ -120,13 +129,21 @@ test('loads and unloads containers by stable identity while at a port', () => {
     Ship.loadContainer(
       new LoadContainer(
         new Id('123'),
-        new Container(new Id('container-1'), new Name('A changed description'))
+        new Container(
+          new Id('container-1'),
+          new CargoReference('different-cargo'),
+          new Name('A changed description')
+        )
       ),
       loaded
     )
   ).toThrow(new ContainerAlreadyLoaded('container-1'))
 
-  const sameDescription = new Container(new Id('container-2'), new Name('Refactoring Book'))
+  const sameDescription = new Container(
+    new Id('container-2'),
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
   const loadedAgain = Ship.apply(
     loaded,
     Ship.loadContainer(new LoadContainer(new Id('123'), sameDescription), loaded)
@@ -141,9 +158,42 @@ test('loads and unloads containers by stable identity while at a port', () => {
   expect(Ship.apply(loadedAgain, unloadedEvent).containers).toEqual([sameDescription])
 })
 
+test('allows a physical container to carry another cargo reference after unloading', () => {
+  const ship = registered()
+  const firstAssignment = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
+  const loaded = Ship.apply(
+    ship,
+    Ship.loadContainer(new LoadContainer(new Id(ship.id), firstAssignment), ship)
+  )
+  const unloaded = Ship.apply(
+    loaded,
+    Ship.unloadContainer(new UnloadContainer(new Id(ship.id), new Id('container-1')), loaded)
+  )
+  const nextAssignment = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-2'),
+    new Name('Domain Driven Design')
+  )
+
+  const reloaded = Ship.apply(
+    unloaded,
+    Ship.loadContainer(new LoadContainer(new Id(ship.id), nextAssignment), unloaded)
+  )
+
+  expect(reloaded.containers).toEqual([nextAssignment])
+})
+
 test('container operations require a matching registered ship and onboard container', () => {
   const containerId = new Id('container-1')
-  const item = new Container(containerId, new Name('Refactoring Book'))
+  const item = new Container(
+    containerId,
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
   expect(() => Ship.loadContainer(new LoadContainer(new Id('123'), item))).toThrow(
     ShipMustBeRegisteredFirst
   )
@@ -163,7 +213,11 @@ test('container operations require a matching registered ship and onboard contai
 
 test('container operations are rejected while the ship is at sea', () => {
   const initial = registered()
-  const item = new Container(new Id('container-1'), new Name('Microservices Architecture'))
+  const item = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-1'),
+    new Name('Microservices Architecture')
+  )
   const loaded = Ship.apply(
     initial,
     Ship.loadContainer(new LoadContainer(new Id('123'), item), initial)
@@ -174,7 +228,11 @@ test('container operations are rejected while the ship is at sea', () => {
     Ship.loadContainer(
       new LoadContainer(
         new Id('123'),
-        new Container(new Id('container-2'), new Name('Domain Driven Design'))
+        new Container(
+          new Id('container-2'),
+          new CargoReference('cargo-2'),
+          new Name('Domain Driven Design')
+        )
       ),
       atSea
     )

@@ -1,5 +1,6 @@
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
+import { CargoReference } from '../../cargo-reference'
 import { Container } from '../../container'
 import { ContainerLoaded } from '../container-loaded'
 import type { EventSerializable } from './event-serializable'
@@ -13,6 +14,7 @@ export class ContainerLoadedSerializer implements EventSerializable<ContainerLoa
       aggregateId,
       new Container(
         new Id(container.containerId),
+        new CargoReference(container.cargoReference),
         new Name(container.description, 'Container description')
       ),
       new Date(occurredAt),

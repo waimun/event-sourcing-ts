@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
+import { CargoReference } from '../../../domain/cargo-reference'
 import { Country } from '../../../domain/country'
 import { ContainerNotFound, ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
@@ -21,6 +22,7 @@ afterEach(() => {
 })
 
 const initialPort = new Port(new PortName('Kingston'), new Country('US'))
+const cargoReference = new CargoReference('cargo-1')
 
 test('construct class object', () => {
   const useCase = new UnloadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -67,7 +69,7 @@ test('appends a container unload after loading', async () => {
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const containerId = new Id('container-1')
-  await loadContainerUseCase.load(id, containerId, new Name('Cloud Architecture'))
+  await loadContainerUseCase.load(id, containerId, cargoReference, new Name('Cloud Architecture'))
   const eventsAfterLoad = (await journal.eventsByAggregate(id.value)).events
   expect(eventsAfterLoad).toHaveLength(2)
 
@@ -83,7 +85,12 @@ test('rechecks container after a concurrent unload wins', async () => {
   const id = new Id('abc')
   const containerId = new Id('container-1')
   await new RegisterShipUseCase(journal).register(new Name('Thomas Jefferson'), id, initialPort)
-  await new LoadContainerUseCase(journal).load(id, containerId, new Name('Cloud Architecture'))
+  await new LoadContainerUseCase(journal).load(
+    id,
+    containerId,
+    cargoReference,
+    new Name('Cloud Architecture')
+  )
   const append = journal.append.bind(journal)
   vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
     await append(aggregateId, version, events)
@@ -118,7 +125,12 @@ test('rejects unloading while the ship is at sea', async () => {
   const id = new Id('abc')
   const containerId = new Id('container-1')
   await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
-  await new LoadContainerUseCase(journal).load(id, containerId, new Name('Refactoring Book'))
+  await new LoadContainerUseCase(journal).load(
+    id,
+    containerId,
+    cargoReference,
+    new Name('Refactoring Book')
+  )
   await new SailShipUseCase(journal).sail(id)
 
   expect(await new UnloadContainerUseCase(journal).unload(id, containerId)).toMatchObject({

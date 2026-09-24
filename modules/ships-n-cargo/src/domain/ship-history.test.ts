@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
+import { CargoReference } from './cargo-reference'
 import { Container } from './container'
 import { Country } from './country'
 import { InvalidShipHistory } from './errors/ship'
@@ -16,8 +17,11 @@ import { Ship } from './ship'
 import { AtPort, AtSea } from './ship-location'
 
 const port = (name = 'Kingston') => new Port(new PortName(name), new Country('US'))
-const container = (containerId = 'container-1', description = 'Refactoring Book') =>
-  new Container(new Id(containerId), new Name(description))
+const container = (
+  containerId = 'container-1',
+  description = 'Refactoring Book',
+  cargoReference = 'cargo-1'
+) => new Container(new Id(containerId), new CargoReference(cargoReference), new Name(description))
 const registered = (id = '123') => new ShipRegistered(id, 'King Roy', port())
 const replay = (events: readonly DomainEvent[]) => {
   const ship = Ship.replay(events)
@@ -153,15 +157,15 @@ test('rejects container events that violate identity or location rules', () => {
   ).toThrow(InvalidShipHistory)
 })
 
-test('allows distinct container identities to share a description', () => {
+test('allows distinct container identities to share a description and cargo reference', () => {
   const ship = replay([
     registered(),
     new ContainerLoaded('123', container('container-1')),
     new ContainerLoaded('123', container('container-2'))
   ])
 
-  expect(ship.containers.map(({ containerId }) => containerId)).toEqual([
-    'container-1',
-    'container-2'
+  expect(ship.containers).toMatchObject([
+    { containerId: 'container-1', cargoReference: 'cargo-1' },
+    { containerId: 'container-2', cargoReference: 'cargo-1' }
   ])
 })

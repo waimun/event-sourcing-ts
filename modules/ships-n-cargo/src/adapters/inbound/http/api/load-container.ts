@@ -8,6 +8,7 @@ export const loadContainerHandler =
     const response = await controller.loadContainer({
       id: trim(req.body.id),
       containerId: trim(req.body.containerId),
+      cargoReference: trim(req.body.cargoReference),
       description: trim(req.body.description)
     })
 
