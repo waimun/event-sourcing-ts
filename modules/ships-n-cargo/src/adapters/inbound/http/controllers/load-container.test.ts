@@ -92,12 +92,12 @@ test('cannot load the same container identity twice', async () => {
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const registerShipController = new RegisterShipController(registerShipUseCase)
-  const response1 = await registerShipController.register({
+  const registrationResponse = await registerShipController.register({
     id: 'abc',
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   })
-  expect(response1.status).toEqual(201)
+  expect(registrationResponse.status).toEqual(201)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const loadContainerController = new LoadContainerController(loadContainerUseCase)
@@ -106,25 +106,24 @@ test('cannot load the same container identity twice', async () => {
     containerId: 'container-1',
     description: 'Enterprise Architecture'
   }
-  const response2 = await loadContainerController.loadContainer(request)
-  expect(response2.status).toEqual(200)
+  const initialLoadResponse = await loadContainerController.loadContainer(request)
+  expect(initialLoadResponse.status).toEqual(200)
 
-  // load the same container twice
-  const response3 = await loadContainerController.loadContainer(request)
-  expect(response3.status).toEqual(409)
+  const repeatedLoadResponse = await loadContainerController.loadContainer(request)
+  expect(repeatedLoadResponse.status).toEqual(409)
 })
 
-test('valid request', async () => {
+test('loads a container onto a ship at port', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const registerShipController = new RegisterShipController(registerShipUseCase)
-  const response1 = await registerShipController.register({
+  const registrationResponse = await registerShipController.register({
     id: 'abc',
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   })
-  expect(response1.status).toEqual(201)
+  expect(registrationResponse.status).toEqual(201)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const loadContainerController = new LoadContainerController(loadContainerUseCase)
@@ -133,8 +132,8 @@ test('valid request', async () => {
     containerId: 'container-1',
     description: 'Enterprise Architecture'
   }
-  const response2 = await loadContainerController.loadContainer(request)
-  expect(response2.status).toEqual(200)
+  const loadResponse = await loadContainerController.loadContainer(request)
+  expect(loadResponse.status).toEqual(200)
 })
 
 test('cannot load a container while the ship is at sea', async () => {

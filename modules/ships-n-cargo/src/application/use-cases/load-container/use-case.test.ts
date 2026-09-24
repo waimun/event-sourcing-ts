@@ -46,15 +46,15 @@ test('container already loaded', async () => {
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const id = new Id('abc')
   await registerShipUseCase.register(new Name('Queen Mary'), id, initialPort)
-  const events1 = (await journal.eventsByAggregate(id.value)).events
-  expect(events1.length).toEqual(1)
+  const eventsAfterRegistration = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterRegistration).toHaveLength(1)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const containerId = new Id('container-1')
   const description = new Name('Refactoring Book')
   await loadContainerUseCase.load(id, containerId, description)
-  const events2 = (await journal.eventsByAggregate(id.value)).events
-  expect(events2.length).toEqual(2)
+  const eventsAfterInitialLoad = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterInitialLoad).toHaveLength(2)
 
   expect(await loadContainerUseCase.load(id, containerId, description)).toMatchObject({
     ok: false,
@@ -66,14 +66,14 @@ test('container already loaded', async () => {
   ).toEqual({ ok: true, value: undefined })
 })
 
-test('valid request', async () => {
+test('appends a container load after ship registration', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const id = new Id('abc')
   await registerShipUseCase.register(new Name('King Roy'), id, initialPort)
-  const events1 = (await journal.eventsByAggregate(id.value)).events
-  expect(events1.length).toEqual(1)
+  const eventsAfterRegistration = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterRegistration).toHaveLength(1)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const result = await loadContainerUseCase.load(
@@ -82,8 +82,8 @@ test('valid request', async () => {
     new Name('Refactoring Book')
   )
   expect(result).toEqual({ ok: true, value: undefined })
-  const events2 = (await journal.eventsByAggregate(id.value)).events
-  expect(events2.length).toEqual(2)
+  const eventsAfterLoad = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterLoad).toHaveLength(2)
 })
 
 test('rechecks container after a concurrent load wins', async () => {

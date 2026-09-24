@@ -26,27 +26,25 @@ test('construct class object', () => {
   expect(new DockShipController(useCase)).toBeTruthy()
 })
 
-test('dock with valid request', async () => {
+test('docks at a destination after departing its initial port', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
+  const registrationRequest: RegisterShipDto = {
     id: 'abc',
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
+  const registrationResponse = await new RegisterShipController(
+    new RegisterShipUseCase(journal)
+  ).register(registrationRequest)
+  expect(registrationResponse.status).toEqual(201)
   await new SailShipUseCase(journal).sail(new Id('abc'))
 
-  const useCase2 = new DockShipUseCase(journal)
-  const controller2 = new DockShipController(useCase2)
-  const response2 = await controller2.dock({
+  const arrivalResponse = await new DockShipController(new DockShipUseCase(journal)).dock({
     id: 'abc',
     port: { name: 'Henderson', country: 'US' }
   })
-  expect(response2.status).toEqual(200)
+  expect(arrivalResponse.status).toEqual(200)
 })
 
 test('port is undefined', async () => {
@@ -120,24 +118,16 @@ test('invalid name for port', async () => {
 
 test('ship does not exist to dock', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
-
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
-    id: 'abc',
-    name: 'Queen Mary',
-    port: { name: 'Kingston', country: 'US' }
+  const requestForMissingShip = {
+    id: 'xyz',
+    port: { name: 'Henderson', country: 'US' }
   }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
+  const response = await new DockShipController(new DockShipUseCase(journal)).dock(
+    requestForMissingShip
+  )
 
-  const useCase2 = new DockShipUseCase(journal)
-  const controller2 = new DockShipController(useCase2)
-  const request2 = { id: 'xyz', port: { name: 'Henderson', country: 'US' } }
-  const response2 = await controller2.dock(request2)
-
-  expect(response2.status).toEqual(404)
-  expect(response2.error).toEqual(new ShipNotFound(request2.id).message)
+  expect(response.status).toEqual(404)
+  expect(response.error).toEqual(new ShipNotFound(requestForMissingShip.id).message)
 })
 
 test('cannot dock while already at a port', async () => {
