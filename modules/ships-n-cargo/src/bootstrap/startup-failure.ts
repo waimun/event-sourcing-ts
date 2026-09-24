@@ -1,5 +1,12 @@
-const messageFrom = (error: unknown): string =>
-  error instanceof Error ? error.message : String(error)
+const messageFrom = (error: unknown): string => {
+  if (error instanceof AggregateError && error.message.trim() === '') {
+    const nestedMessages = error.errors.map(messageFrom).filter((message) => message.trim() !== '')
+
+    if (nestedMessages.length > 0) return nestedMessages.join('\n')
+  }
+
+  return error instanceof Error ? error.message : String(error)
+}
 
 const indented = (message: string): string =>
   message

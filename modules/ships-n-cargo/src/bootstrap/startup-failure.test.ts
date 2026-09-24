@@ -13,6 +13,24 @@ test('formats database startup failures with a separate hint', () => {
   )
 })
 
+test('shows each refused PostgreSQL connection when an aggregate failure has no message', () => {
+  const error = new AggregateError([
+    new Error('connect ECONNREFUSED ::1:5432'),
+    new Error('connect ECONNREFUSED 127.0.0.1:5432')
+  ])
+
+  expect(formatDatabaseStartupFailure(error)).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  connect ECONNREFUSED ::1:5432',
+      '  connect ECONNREFUSED 127.0.0.1:5432',
+      '',
+      'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
+    ].join('\n')
+  )
+})
+
 test('indents every line in a multi-line database failure', () => {
   expect(
     formatDatabaseStartupFailure(new Error('schema is incompatible\n\nExpected columns:'))
