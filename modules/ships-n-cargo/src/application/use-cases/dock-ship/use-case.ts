@@ -3,7 +3,6 @@ import { ShipNotAtSea } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { Port } from '../../../domain/port'
 import { Ship } from '../../../domain/ship'
-import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
@@ -20,10 +19,9 @@ export class DockShipUseCase {
 
   async dock(
     id: Id,
-    port: Port,
-    dateTime: ISODate = new ISODate()
+    port: Port
   ): Promise<Result<void, ShipNotFound | ShipNotAtSea | ConcurrentCommandConflict>> {
-    const command = new DockShip(id, port, dateTime.value)
+    const command = new DockShip(id, port)
     return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtSea>(id.value, async () => {
       const { events, version } = await this.journal.eventsByAggregate(id.value)
 

@@ -7,8 +7,7 @@ export const dockShipHandler =
   async (req: Request, res: Response): Promise<void> => {
     const response = await controller.dock({
       id: trim(req.body.id),
-      port: req.body.port,
-      dateTime: req.body.dateTime
+      port: req.body.port
     })
 
     res.status(response.status).json(response)

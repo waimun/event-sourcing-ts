@@ -3,7 +3,6 @@ import { Container } from '../../../domain/container'
 import { ContainerAlreadyLoaded, ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
-import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { Name } from '../../../shared/domain/name'
 import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
@@ -22,12 +21,11 @@ export class LoadContainerUseCase {
   async load(
     id: Id,
     containerId: Id,
-    description: Name,
-    dateTime: ISODate = new ISODate()
+    description: Name
   ): Promise<
     Result<void, ShipNotFound | ContainerAlreadyLoaded | ShipNotAtPort | ConcurrentCommandConflict>
   > {
-    const command = new LoadContainer(id, new Container(containerId, description), dateTime.value)
+    const command = new LoadContainer(id, new Container(containerId, description))
     return rerunConcurrentCommand<void, ShipNotFound | ContainerAlreadyLoaded | ShipNotAtPort>(
       id.value,
       async () => {

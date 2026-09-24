@@ -3,7 +3,6 @@ import { LoadContainerUseCase } from '../../../../application/use-cases/load-con
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { ShipNotAtPort } from '../../../../domain/errors/ship'
-import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
@@ -74,7 +73,7 @@ test('invalid container description', async () => {
   )
 })
 
-test('invalid date', async () => {
+test('ignores a caller-supplied event time', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
 
@@ -85,8 +84,7 @@ test('invalid date', async () => {
     dateTime: 'not-a-date'
   }
   const response = await controller.loadContainer(request)
-  expect(response.status).toEqual(400)
-  expect(response.error).toEqual(new InvalidDate().message)
+  expect(response.status).toEqual(404)
 })
 
 test('cannot load the same container identity twice', async () => {
@@ -162,6 +160,24 @@ test('cannot load a container while the ship is at sea', async () => {
     status: 409,
     error: new ShipNotAtPort('load a container').message
   })
+})
+
+test('hides an unexpected application result', async () => {
+  const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new LoadContainerController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  vi.spyOn(useCase, 'load').mockResolvedValue({
+    ok: false,
+    error: new Error('unexpected result')
+  } as never)
+
+  const response = await controller.loadContainer({
+    id: 'abc',
+    containerId: 'container-1',
+    description: 'Enterprise Architecture'
+  })
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
 })
 
 test('create throws an unexpected application error', async () => {

@@ -2,7 +2,6 @@ import { SailShip } from '../../../domain/commands/sail-ship'
 import { ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
-import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
@@ -18,10 +17,9 @@ export class SailShipUseCase {
   }
 
   async sail(
-    id: Id,
-    dateTime: ISODate = new ISODate()
+    id: Id
   ): Promise<Result<void, ShipNotFound | ShipNotAtPort | ConcurrentCommandConflict>> {
-    const command = new SailShip(id, dateTime.value)
+    const command = new SailShip(id)
     return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtPort>(id.value, async () => {
       const { events, version } = await this.journal.eventsByAggregate(id.value)
 

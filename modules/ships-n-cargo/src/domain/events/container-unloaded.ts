@@ -9,8 +9,8 @@ export class ContainerUnloaded extends BaseDomainEvent<typeof EVENT_TYPE> {
   static readonly eventType = EVENT_TYPE
   readonly container: Container
 
-  constructor(aggregateId: string, container: Container, dateTime?: Date, recordedAt?: Date) {
-    super(ContainerUnloaded.eventType, aggregateId, dateTime, recordedAt)
+  constructor(aggregateId: string, container: Container, occurredAt?: Date, recordedAt?: Date) {
+    super(ContainerUnloaded.eventType, aggregateId, occurredAt, recordedAt)
     this.container = new Container(
       new Id(container.containerId),
       new Name(container.description, 'Container description')

@@ -1,6 +1,5 @@
 import type { SailShipDto } from '../../../../application/use-cases/sail-ship/sail-ship-dto'
 import type { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
-import { ISODate } from '../../../../shared/domain/date'
 import { Id } from '../../../../shared/domain/id'
 import { ExpectedError } from '../../../../shared/error'
 import { errorResponse, expectedErrorResponse } from './error-response'
@@ -23,7 +22,7 @@ export class SailShipController {
     }
 
     try {
-      const result = await this.useCase.sail(parsed.id, parsed.dateTime)
+      const result = await this.useCase.sail(parsed.id)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
@@ -44,5 +43,5 @@ export class SailShipController {
 }
 
 const parseRequest = (request: SailShipDto) => {
-  return { id: new Id(request.id), dateTime: new ISODate(request.dateTime) }
+  return { id: new Id(request.id) }
 }

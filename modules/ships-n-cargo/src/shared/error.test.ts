@@ -16,7 +16,6 @@ import {
   ShipNotAtSea,
   UnregisteredShipRequiredToRegister
 } from '../domain/errors/ship'
-import { InvalidDate } from './domain/date'
 import { IsRequired } from './domain/errors/is-required'
 import { IdNotAllowed } from './domain/id'
 import { NameNotAllowed } from './domain/name'
@@ -81,7 +80,6 @@ test.each([
   [new IsRequired('Id'), 'REQUIRED_VALUE', 'validation'],
   [new IdNotAllowed('!'), 'INVALID_IDENTIFIER', 'validation'],
   [new NameNotAllowed('!'), 'INVALID_NAME', 'validation'],
-  [new InvalidDate(), 'INVALID_DATE', 'validation'],
   [new InvalidCountry('ZZ'), 'INVALID_COUNTRY', 'validation'],
   [new ShipNotFound('ship-1'), 'SHIP_NOT_FOUND', 'not-found'],
   [new ContainerNotFound('container'), 'CONTAINER_NOT_FOUND', 'not-found'],

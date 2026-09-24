@@ -2,7 +2,6 @@ import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
 import { ContainerAlreadyLoaded } from '../../../../domain/errors/ship'
-import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
@@ -100,7 +99,7 @@ test('container description is invalid', async () => {
   })
 })
 
-test('dateTime is invalid', async () => {
+test('caller-supplied event time is not part of the command', async () => {
   req.body = {
     id: 'abc',
     containerId: 'container-1',
@@ -110,10 +109,10 @@ test('dateTime is invalid', async () => {
 
   await loadContainer(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
-    status: 400,
-    error: new InvalidDate().message,
+    status: 404,
+    error: new ShipNotFound(req.body.id).message,
     dateTime: expect.any(Date)
   })
 })

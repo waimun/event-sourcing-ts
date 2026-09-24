@@ -3,7 +3,6 @@ import type { DockShipUseCase } from '../../../../application/use-cases/dock-shi
 import { Country } from '../../../../domain/country'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
-import { ISODate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id } from '../../../../shared/domain/id'
 import { ExpectedError } from '../../../../shared/error'
@@ -28,7 +27,7 @@ export class DockShipController {
     }
 
     try {
-      const result = await this.useCase.dock(parsed.id, parsed.port, parsed.dateTime)
+      const result = await this.useCase.dock(parsed.id, parsed.port)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
@@ -52,6 +51,5 @@ const parseRequest = (request: DockShipDto) => {
   const id = new Id(request.id)
   if (isNotObject(request.port)) throw new IsRequired('Port')
   const port = new Port(new PortName(request.port.name), new Country(request.port.country))
-  const dateTime = new ISODate(request.dateTime)
-  return { id, port, dateTime }
+  return { id, port }
 }

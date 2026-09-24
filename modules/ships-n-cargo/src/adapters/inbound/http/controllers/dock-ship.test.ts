@@ -156,6 +156,23 @@ test('cannot dock while already at a port', async () => {
   expect(response.error).toBe(new ShipNotAtSea().message)
 })
 
+test('hides an unexpected application result', async () => {
+  const useCase = new DockShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new DockShipController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+  vi.spyOn(useCase, 'dock').mockResolvedValue({
+    ok: false,
+    error: new Error('unexpected result')
+  } as never)
+
+  const response = await controller.dock({
+    id: 'abc',
+    port: { name: 'Henderson', country: 'US' }
+  })
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
 test('throws an unexpected application error', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
   const useCase = new DockShipUseCase(journal)

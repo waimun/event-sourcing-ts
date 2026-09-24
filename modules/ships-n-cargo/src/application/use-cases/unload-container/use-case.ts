@@ -2,7 +2,6 @@ import { UnloadContainer } from '../../../domain/commands/unload-container'
 import { ContainerNotFound, ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
-import { ISODate } from '../../../shared/domain/date'
 import type { Id } from '../../../shared/domain/id'
 import type { ConcurrentCommandConflict } from '../../errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
@@ -19,12 +18,11 @@ export class UnloadContainerUseCase {
 
   async unload(
     id: Id,
-    containerId: Id,
-    dateTime: ISODate = new ISODate()
+    containerId: Id
   ): Promise<
     Result<void, ShipNotFound | ContainerNotFound | ShipNotAtPort | ConcurrentCommandConflict>
   > {
-    const command = new UnloadContainer(id, containerId, dateTime.value)
+    const command = new UnloadContainer(id, containerId)
     return rerunConcurrentCommand<void, ShipNotFound | ContainerNotFound | ShipNotAtPort>(
       id.value,
       async () => {
