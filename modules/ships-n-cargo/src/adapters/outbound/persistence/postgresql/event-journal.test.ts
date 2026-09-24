@@ -74,6 +74,9 @@ describe('eventsByAggregate', () => {
     const stream = await new PostgreSqlEventJournal(pool).eventsByAggregate('ship-1')
 
     expect(stream).toEqual({ events: [created, arrived], version: 2 })
+    expect(Object.isFrozen(stream)).toBe(true)
+    expect(Object.isFrozen(stream.events)).toBe(true)
+    expect(stream.events.every((event) => Object.isFrozen(event))).toBe(true)
     expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('ORDER BY version ASC'), [
       'ship-1'
     ])

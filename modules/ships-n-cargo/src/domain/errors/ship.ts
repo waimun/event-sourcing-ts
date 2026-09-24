@@ -58,3 +58,13 @@ export class CargoNotFound extends DomainError {
     })
   }
 }
+
+export class InvalidShipHistory extends InvariantError {
+  constructor(eventType: string, aggregateId: string, reason: string) {
+    super({
+      code: 'INVALID_SHIP_HISTORY',
+      message: `Cannot replay '${eventType}' for ship '${aggregateId}': ${reason}`,
+      meta: { eventType, aggregateId, reason }
+    })
+  }
+}

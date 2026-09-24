@@ -1,6 +1,7 @@
 import { expect, test } from 'vitest'
 import type { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
 import { Country } from '../../../domain/country'
+import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipCreated } from '../../../domain/events/ship-created'
 import { Port } from '../../../domain/port'
@@ -93,11 +94,18 @@ test('rejects invalid expected versions', async () => {
   )
 })
 
-test('reads return snapshots that cannot change stored events or versions', async () => {
+test('retains serialized snapshots and returns immutable event views', async () => {
   const journal = makeJournal()
   const first = new ShipCreated('123', 'King Roy')
   await journal.append('123', 0, [first])
   const read = await journal.eventsByAggregate('123')
-  read.events.push(arrival('123'))
-  expect(await journal.eventsByAggregate('123')).toEqual({ events: [first], version: 1 })
+  const secondRead = await journal.eventsByAggregate('123')
+
+  expect(read.events[0]).not.toBe(first)
+  expect(secondRead.events[0]).not.toBe(read.events[0])
+  expect(Object.isFrozen(read)).toBe(true)
+  expect(Object.isFrozen(read.events)).toBe(true)
+  expect(Object.isFrozen(read.events[0])).toBe(true)
+  expect(() => (read.events as DomainEvent[]).push(arrival('123'))).toThrow(TypeError)
+  expect(secondRead).toEqual({ events: [first], version: 1 })
 })

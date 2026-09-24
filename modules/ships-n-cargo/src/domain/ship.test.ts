@@ -13,6 +13,7 @@ import {
   CargoNotFound,
   IdsMismatch,
   InvalidPortForDeparture,
+  InvalidShipHistory,
   ShipMustBeCreatedFirst,
   UninitializedShipRequiredToCreate
 } from './errors/ship'
@@ -268,8 +269,6 @@ test('ShipDeparted event', () => {
 })
 
 test('UnitTestCreated event', () => {
-  // for test coverage; reaching the branch where no logic exists for this event type
   const ship = Ship.handleShipCreated(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  const ship2 = Ship.apply(ship, new UnitTestCreated('123'))
-  expect(ship2.id).toBe('123')
+  expect(() => Ship.apply(ship, new UnitTestCreated('123'))).toThrow(InvalidShipHistory)
 })

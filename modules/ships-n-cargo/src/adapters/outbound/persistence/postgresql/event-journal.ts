@@ -138,8 +138,8 @@ export class PostgreSqlEventJournal implements EventJournal<string, DomainEvent>
       throw new EventJournalUnavailable('eventsByAggregate', error)
     }
 
-    const events = rows.map(({ event_payload }) => deserialize(event_payload))
+    const events = Object.freeze(rows.map(({ event_payload }) => deserialize(event_payload)))
     const version = rows.length === 0 ? 0 : Number(rows[rows.length - 1].version)
-    return { events, version }
+    return Object.freeze({ events, version })
   }
 }

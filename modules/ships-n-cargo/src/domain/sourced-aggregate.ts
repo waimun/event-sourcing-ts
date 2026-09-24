@@ -1,5 +1,5 @@
 export class SourcedAggregate {
-  id: string
+  readonly id: string
 
   constructor(id: string) {
     this.id = id

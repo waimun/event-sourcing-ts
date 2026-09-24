@@ -8,6 +8,7 @@ export class Port {
   constructor(name: PortName, country: Country) {
     this.name = name.value
     this.country = country.value
+    Object.freeze(this)
   }
 
   static atSea(): Port {

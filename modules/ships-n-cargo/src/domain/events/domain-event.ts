@@ -1,16 +1,16 @@
 export interface DomainEvent<TType extends string = string> {
-  occurredAt: Date
-  recordedAt: Date
+  readonly occurredAt: Date
+  readonly recordedAt: Date
   readonly type: TType
-  aggregateId: string
+  readonly aggregateId: string
   asJson: () => string
 }
 
 export abstract class BaseDomainEvent<TType extends string = string> implements DomainEvent<TType> {
-  occurredAt: Date
-  recordedAt: Date
+  readonly #occurredAt: Date
+  readonly #recordedAt: Date
   readonly type: TType
-  aggregateId: string
+  readonly aggregateId: string
 
   protected constructor(
     type: TType,
@@ -18,10 +18,18 @@ export abstract class BaseDomainEvent<TType extends string = string> implements 
     occurredAt: Date = new Date(),
     recordedAt: Date = new Date()
   ) {
-    this.occurredAt = occurredAt
-    this.recordedAt = recordedAt
+    this.#occurredAt = new Date(occurredAt)
+    this.#recordedAt = new Date(recordedAt)
     this.type = type
     this.aggregateId = aggregateId
+  }
+
+  get occurredAt(): Date {
+    return new Date(this.#occurredAt)
+  }
+
+  get recordedAt(): Date {
+    return new Date(this.#recordedAt)
   }
 
   asJson(): string {

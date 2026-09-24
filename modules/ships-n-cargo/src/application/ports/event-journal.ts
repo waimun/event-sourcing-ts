@@ -1,5 +1,5 @@
 export interface EventStream<V> {
-  readonly events: V[]
+  readonly events: readonly V[]
   readonly version: number
 }
 
