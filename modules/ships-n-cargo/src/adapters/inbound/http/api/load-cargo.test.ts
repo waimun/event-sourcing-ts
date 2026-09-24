@@ -8,13 +8,13 @@ import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
-import { createShipHandler } from './create-ship'
 import { loadCargoHandler } from './load-cargo'
+import { registerShipHandler } from './register-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
-const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
+const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
 const loadCargo = loadCargoHandler(controllers.loadCargo)
 
 beforeEach(() => {
@@ -114,8 +114,8 @@ test('id not found', async () => {
 })
 
 test('cannot load same cargo twice', async () => {
-  req.body = { id: 'abc', name: 'Thomas Jefferson' }
-  await createShip(req as Request, res as Response)
+  req.body = { id: 'abc', name: 'Thomas Jefferson', port: { name: 'Kingston', country: 'US' } }
+  await registerShip(req as Request, res as Response)
   expect(res.status).toHaveBeenNthCalledWith(1, 201)
 
   req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
@@ -133,8 +133,8 @@ test('cannot load same cargo twice', async () => {
 })
 
 test('valid request', async () => {
-  req.body = { id: 'xyz', name: 'King Roy' }
-  await createShip(req as Request, res as Response)
+  req.body = { id: 'xyz', name: 'King Roy', port: { name: 'Kingston', country: 'US' } }
+  await registerShip(req as Request, res as Response)
   expect(res.status).toHaveBeenCalledWith(201)
 
   req.body = { id: 'xyz', cargoName: 'Microservices Architecture' }

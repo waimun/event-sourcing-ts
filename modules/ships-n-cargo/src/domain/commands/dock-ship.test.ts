@@ -2,11 +2,6 @@ import { expect, test } from 'vitest'
 import { IsRequired } from '../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../shared/domain/id'
 import { Country, EnumCountry } from '../country'
-import {
-  CannotDockShipAtSea,
-  CannotDockWithoutPort,
-  NoCountrySpecifiedForPort
-} from '../errors/dock-ship'
 import { Port } from '../port'
 import { PortName } from '../port-name'
 import { DockShip } from './dock-ship'
@@ -48,20 +43,6 @@ test('id with underscores', () => {
   expect(
     () => new DockShip(new Id('king_1'), new Port(new PortName('test'), new Country('US')))
   ).toThrow(IdNotAllowed)
-})
-
-test('with Port.atSea()', () => {
-  expect(() => new DockShip(new Id('king-1'), Port.atSea())).toThrow(CannotDockShipAtSea)
-})
-
-test('with Port.none()', () => {
-  expect(() => new DockShip(new Id('king-1'), Port.none())).toThrow(CannotDockWithoutPort)
-})
-
-test('port without country', () => {
-  expect(
-    () => new DockShip(new Id('king-1'), new Port(new PortName('test'), new Country('NO_COUNTRY')))
-  ).toThrow(NoCountrySpecifiedForPort)
 })
 
 test('command created with id', () => {

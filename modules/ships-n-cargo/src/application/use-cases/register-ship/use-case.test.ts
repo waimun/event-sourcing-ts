@@ -1,50 +1,54 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
+import { Country } from '../../../domain/country'
 import type { DomainEvent } from '../../../domain/events/domain-event'
+import { Port } from '../../../domain/port'
+import { PortName } from '../../../domain/port-name'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import type { EventJournal } from '../../ports/event-journal'
-import { CreateShipUseCase } from './use-case'
+import { RegisterShipUseCase } from './use-case'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
 
+const initialPort = new Port(new PortName('Kingston'), new Country('US'))
+
 test('construct class object', () => {
-  const useCase = new CreateShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const useCase = new RegisterShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   expect(useCase).toBeTruthy()
 })
 
-test('create ship request', async () => {
+test('register ship request', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
-  const useCase = new CreateShipUseCase(journal)
-  const result = await useCase.create(name, id)
+  const useCase = new RegisterShipUseCase(journal)
+  const result = await useCase.register(name, id, initialPort)
   expect(result).toEqual({ ok: true, value: undefined })
   const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
 })
 
-test('create with an id that already exists in the journal', async () => {
+test('register with an id that already exists in the journal', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
-  const useCase = new CreateShipUseCase(journal)
-  await useCase.create(name, id)
+  const useCase = new RegisterShipUseCase(journal)
+  await useCase.register(name, id, initialPort)
   const events = (await journal.eventsByAggregate(id.value)).events
   expect(events.length).toEqual(1)
 
-  // create with duplicated id
-  expect(await useCase.create(name, id)).toMatchObject({
+  expect(await useCase.register(name, id, initialPort)).toMatchObject({
     ok: false,
     error: new IdAlreadyExists(id.value)
   })
 })
 
-test('rechecks existence after a concurrent create wins', async () => {
+test('rechecks existence after a concurrent registration wins', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal = new InMemoryEventJournal(name)
@@ -54,7 +58,7 @@ test('rechecks existence after a concurrent create wins', async () => {
     throw new JournalVersionConflict(aggregateId, version, version + events.length)
   })
 
-  expect(await new CreateShipUseCase(journal).create(name, id)).toMatchObject({
+  expect(await new RegisterShipUseCase(journal).register(name, id, initialPort)).toMatchObject({
     ok: false,
     error: new IdAlreadyExists(id.value)
   })
@@ -65,7 +69,7 @@ test('throws an unknown error', async () => {
   const name = new Name('testing')
   const id = new Id('abc')
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(name)
-  const useCase = new CreateShipUseCase(journal)
+  const useCase = new RegisterShipUseCase(journal)
 
   const eventJournalMock = vi
     .spyOn(InMemoryEventJournal.prototype, 'append')
@@ -73,6 +77,6 @@ test('throws an unknown error', async () => {
       throw new Error('Some error that is not an instance of EntryAlreadyExists')
     })
 
-  await expect(useCase.create(name, id)).rejects.toThrow(Error)
+  await expect(useCase.register(name, id, initialPort)).rejects.toThrow(Error)
   expect(eventJournalMock).toHaveBeenCalled()
 })

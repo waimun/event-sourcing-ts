@@ -1,9 +1,5 @@
 import { DockShip } from '../../../domain/commands/dock-ship'
-import {
-  CannotDockShipAtSea,
-  CannotDockWithoutPort,
-  NoCountrySpecifiedForPort
-} from '../../../domain/errors/dock-ship'
+import { ShipNotAtSea } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { Port } from '../../../domain/port'
 import { Ship } from '../../../domain/ship'
@@ -26,35 +22,21 @@ export class DockShipUseCase {
     id: Id,
     port: Port,
     dateTime: ISODate = new ISODate()
-  ): Promise<
-    Result<
-      void,
-      | ShipNotFound
-      | CannotDockShipAtSea
-      | CannotDockWithoutPort
-      | NoCountrySpecifiedForPort
-      | ConcurrentCommandConflict
-    >
-  > {
-    let command: DockShip
-    try {
-      command = new DockShip(id, port, dateTime.value)
-    } catch (error) {
-      if (
-        error instanceof CannotDockShipAtSea ||
-        error instanceof CannotDockWithoutPort ||
-        error instanceof NoCountrySpecifiedForPort
-      )
-        return failure(error)
-      throw error
-    }
-    return rerunConcurrentCommand<void, ShipNotFound>(id.value, async () => {
+  ): Promise<Result<void, ShipNotFound | ShipNotAtSea | ConcurrentCommandConflict>> {
+    const command = new DockShip(id, port, dateTime.value)
+    return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtSea>(id.value, async () => {
       const { events, version } = await this.journal.eventsByAggregate(id.value)
 
       if (events.length === 0) return failure(new ShipNotFound(id.value))
 
-      const ship = Ship.replay(Ship.uninitialized(), events)
-      const shipArrived = Ship.arrive(command, ship)
+      const ship = Ship.replay(events)
+      let shipArrived: ReturnType<typeof Ship.arrive>
+      try {
+        shipArrived = Ship.arrive(command, ship)
+      } catch (error) {
+        if (error instanceof ShipNotAtSea) return failure(error)
+        throw error
+      }
       await this.journal.append(id.value, version, [shipArrived])
       return success()
     })

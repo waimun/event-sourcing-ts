@@ -1,22 +1,20 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
-import { InvalidPortForDeparture } from '../../../../domain/errors/ship'
+import { ShipNotAtPort } from '../../../../domain/errors/ship'
 import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
-import { createShipHandler } from './create-ship'
-import { dockShipHandler } from './dock-ship'
+import { registerShipHandler } from './register-ship'
 import { sailShipHandler } from './sail-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
-const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
-const dockShip = dockShipHandler(controllers.dockShip)
+const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
 const sailShip = sailShipHandler(controllers.sailShip)
 
 beforeEach(() => {
@@ -75,43 +73,36 @@ test('id not found', async () => {
   })
 })
 
-test('cannot depart from a missing port', async () => {
-  req.body = { id: 'abc', name: 'Queen Mary' }
-  await createShip(req as Request, res as Response)
+test('cannot depart twice without arriving', async () => {
+  req.body = { id: 'abc', name: 'Queen Mary', port: { name: 'Kingston', country: 'US' } }
+  await registerShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
 
   req.body = { id: 'abc' }
   await sailShip(req as Request, res as Response)
+  expect(res.status).toHaveBeenCalledWith(200)
+  await sailShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(409)
   expect(res.json).toHaveBeenCalledWith({
     status: 409,
-    error: new InvalidPortForDeparture().message,
+    error: new ShipNotAtPort().message,
     dateTime: expect.any(Date)
   })
 })
 
 test('valid request', async () => {
-  req.body = { id: 'xyz', name: 'King Roy' }
-  await createShip(req as Request, res as Response)
+  req.body = { id: 'xyz', name: 'King Roy', port: { name: 'Kingston', country: 'US' } }
+  await registerShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenNthCalledWith(1, 201)
-
-  req.body = { id: 'xyz', port: { name: 'Tennessee', country: 'us' } }
-  await dockShip(req as Request, res as Response)
-
-  expect(res.status).toHaveBeenNthCalledWith(2, 200)
-  expect(res.json).toHaveBeenNthCalledWith(2, {
-    status: 200,
-    dateTime: expect.any(Date)
-  })
 
   req.body = { id: 'xyz' }
   await sailShip(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenNthCalledWith(3, 200)
-  expect(res.json).toHaveBeenNthCalledWith(3, {
+  expect(res.status).toHaveBeenNthCalledWith(2, 200)
+  expect(res.json).toHaveBeenNthCalledWith(2, {
     status: 200,
     dateTime: expect.any(Date)
   })

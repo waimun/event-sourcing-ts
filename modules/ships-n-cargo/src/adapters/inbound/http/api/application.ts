@@ -2,10 +2,10 @@ import express, { type Application, type ErrorRequestHandler } from 'express'
 import type { EventJournal } from '../../../../application/ports/event-journal'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
-import { createShipHandler } from './create-ship'
 import { dockShipHandler } from './dock-ship'
 import { loadCargoHandler } from './load-cargo'
 import { ping } from './ping'
+import { registerShipHandler } from './register-ship'
 import { createV1Router } from './routes/v1'
 import { sailShipHandler } from './sail-ship'
 import { unloadCargoHandler } from './unload-cargo'
@@ -55,7 +55,7 @@ export const createApplication = ({
   application.use(
     '/api/v1',
     createV1Router({
-      createShip: createShipHandler(controllers.createShip, generateId),
+      registerShip: registerShipHandler(controllers.registerShip, generateId),
       dockShip: dockShipHandler(controllers.dockShip),
       loadCargo: loadCargoHandler(controllers.loadCargo),
       sailShip: sailShipHandler(controllers.sailShip),

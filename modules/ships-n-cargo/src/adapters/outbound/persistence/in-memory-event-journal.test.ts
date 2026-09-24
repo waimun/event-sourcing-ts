@@ -3,7 +3,7 @@ import type { JournalVersionConflict } from '../../../application/errors/journal
 import { Country } from '../../../domain/country'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
-import { ShipCreated } from '../../../domain/events/ship-created'
+import { ShipRegistered } from '../../../domain/events/ship-registered'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { IsRequired } from '../../../shared/domain/errors/is-required'
@@ -18,6 +18,8 @@ import { InMemoryEventJournal } from './in-memory-event-journal'
 const makeJournal = () => new InMemoryEventJournal(new Name('Test Journal'))
 const arrival = (id: string) =>
   new ShipArrived(id, new Port(new PortName('Kingston'), new Country('US')))
+const registration = (id: string, name = 'King Roy') =>
+  new ShipRegistered(id, name, new Port(new PortName('Kingston'), new Country('US')))
 
 test('creates a named, empty journal', async () => {
   const journal = makeJournal()
@@ -36,7 +38,7 @@ test('missing streams start at version zero', async () => {
 
 test('multi-event append advances one stream by consecutive versions', async () => {
   const journal = makeJournal()
-  const events = [new ShipCreated('123', 'King Roy'), arrival('123')]
+  const events = [registration('123'), arrival('123')]
 
   await journal.append('123', 0, events)
   expect(await journal.eventsByAggregate('123')).toEqual({ events, version: 2 })
@@ -51,15 +53,15 @@ test('multi-event append advances one stream by consecutive versions', async () 
 
 test('different aggregates have independent versions', async () => {
   const journal = makeJournal()
-  await journal.append('123', 0, [new ShipCreated('123', 'King Roy')])
-  await journal.append('456', 0, [new ShipCreated('456', 'King Roy')])
+  await journal.append('123', 0, [registration('123')])
+  await journal.append('456', 0, [registration('456')])
   expect((await journal.eventsByAggregate('123')).version).toBe(1)
   expect((await journal.eventsByAggregate('456')).version).toBe(1)
 })
 
 test('stale append rejects with actual version and leaves stream unchanged', async () => {
   const journal = makeJournal()
-  const first = new ShipCreated('123', 'King Roy')
+  const first = registration('123')
   await journal.append('123', 0, [first])
 
   await expect(journal.append('123', 0, [arrival('123'), arrival('123')])).rejects.toMatchObject({
@@ -77,26 +79,26 @@ test('rejects empty appends without changing the version', async () => {
 
 test('rejects mixed aggregate events atomically', async () => {
   const journal = makeJournal()
-  await expect(
-    journal.append('123', 0, [new ShipCreated('123', 'King Roy'), arrival('456')])
-  ).rejects.toThrow(AggregateIdMismatch)
+  await expect(journal.append('123', 0, [registration('123'), arrival('456')])).rejects.toThrow(
+    AggregateIdMismatch
+  )
   expect(await journal.eventsByAggregate('123')).toEqual({ events: [], version: 0 })
   expect(await journal.eventsByAggregate('456')).toEqual({ events: [], version: 0 })
 })
 
 test('rejects invalid expected versions', async () => {
   const journal = makeJournal()
-  await expect(journal.append('123', -1, [new ShipCreated('123', 'King Roy')])).rejects.toThrow(
+  await expect(journal.append('123', -1, [registration('123')])).rejects.toThrow(
     InvalidExpectedVersion
   )
-  await expect(journal.append('123', 0.5, [new ShipCreated('123', 'King Roy')])).rejects.toThrow(
+  await expect(journal.append('123', 0.5, [registration('123')])).rejects.toThrow(
     InvalidExpectedVersion
   )
 })
 
 test('retains serialized snapshots and returns immutable event views', async () => {
   const journal = makeJournal()
-  const first = new ShipCreated('123', 'King Roy')
+  const first = registration('123')
   await journal.append('123', 0, [first])
   const read = await journal.eventsByAggregate('123')
   const secondRead = await journal.eventsByAggregate('123')

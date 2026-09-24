@@ -7,14 +7,16 @@ import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
-import { createShipHandler } from './create-ship'
 import { dockShipHandler } from './dock-ship'
+import { registerShipHandler } from './register-ship'
+import { sailShipHandler } from './sail-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
-const createShip = createShipHandler(controllers.createShip, () => 'generated-id')
+const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
 const dockShip = dockShipHandler(controllers.dockShip)
+const sailShip = sailShipHandler(controllers.sailShip)
 
 beforeEach(() => {
   res.status = vi.fn<Send>().mockReturnValue(res as Response)
@@ -130,10 +132,14 @@ test('dateTime is invalid', async () => {
 })
 
 test('valid request', async () => {
-  req.body = { id: 'abc', name: 'King Roy' }
-  await createShip(req as Request, res as Response)
+  req.body = { id: 'abc', name: 'King Roy', port: { name: 'Kingston', country: 'US' } }
+  await registerShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
+
+  req.body = { id: 'abc' }
+  await sailShip(req as Request, res as Response)
+  expect(res.status).toHaveBeenCalledWith(200)
 
   req.body = { id: 'abc', port: { name: 'Henderson', country: 'us' } }
   await dockShip(req as Request, res as Response)

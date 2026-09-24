@@ -1,6 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { CreateShipUseCase } from '../../../../application/use-cases/create-ship/use-case'
 import { LoadCargoUseCase } from '../../../../application/use-cases/load-cargo/use-case'
+import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { UnloadCargoUseCase } from '../../../../application/use-cases/unload-cargo/use-case'
 import { CargoNotFound } from '../../../../domain/errors/ship'
 import { InvalidDate } from '../../../../shared/domain/date'
@@ -8,9 +8,9 @@ import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
-import { CreateShipController } from './create-ship'
 import { opaqueApplicationErrorMessage } from './error-response'
 import { LoadCargoController } from './load-cargo'
+import { RegisterShipController } from './register-ship'
 import type { Response } from './response'
 import { UnloadCargoController } from './unload-cargo'
 
@@ -86,9 +86,13 @@ test('hides an unexpected request parsing error', async () => {
 test('cannot find cargo to unload', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
-  const createShipUseCase = new CreateShipUseCase(journal)
-  const createShipController = new CreateShipController(createShipUseCase)
-  const response1 = await createShipController.create({ id: 'abc', name: 'King Roy' })
+  const registerShipUseCase = new RegisterShipUseCase(journal)
+  const registerShipController = new RegisterShipController(registerShipUseCase)
+  const response1 = await registerShipController.register({
+    id: 'abc',
+    name: 'King Roy',
+    port: { name: 'Kingston', country: 'US' }
+  })
   expect(response1.status).toEqual(201)
 
   const unloadCargoUseCase = new UnloadCargoUseCase(journal)
@@ -103,9 +107,13 @@ test('cannot find cargo to unload', async () => {
 test('valid request', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
-  const createShipUseCase = new CreateShipUseCase(journal)
-  const createShipController = new CreateShipController(createShipUseCase)
-  const response1 = await createShipController.create({ id: 'abc', name: 'King Roy' })
+  const registerShipUseCase = new RegisterShipUseCase(journal)
+  const registerShipController = new RegisterShipController(registerShipUseCase)
+  const response1 = await registerShipController.register({
+    id: 'abc',
+    name: 'King Roy',
+    port: { name: 'Kingston', country: 'US' }
+  })
   expect(response1.status).toEqual(201)
 
   const loadCargoUseCase = new LoadCargoUseCase(journal)

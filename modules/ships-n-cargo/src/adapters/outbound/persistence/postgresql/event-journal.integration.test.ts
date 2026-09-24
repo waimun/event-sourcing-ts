@@ -5,7 +5,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
 import { Country } from '../../../../domain/country'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
-import { ShipCreated } from '../../../../domain/events/ship-created'
+import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
 import { EventJournalUnavailable } from '../../../../shared/error'
@@ -16,6 +16,8 @@ import { EVENT_JOURNAL_CONSTRAINTS, verifyEventJournalSchema } from './event-jou
 const connectionString = process.env.TEST_DATABASE_URL
 const databaseDescribe = connectionString === undefined ? describe.skip : describe
 const sqlPath = fileURLToPath(new URL('./schema/001-event-journal.sql', import.meta.url))
+const port = () => new Port(new PortName('Kingston'), new Country('US'))
+const registration = (id: string, name = 'King Roy') => new ShipRegistered(id, name, port())
 
 databaseDescribe('PostgreSQL event journal', () => {
   let pool: Pool
@@ -62,16 +64,16 @@ databaseDescribe('PostgreSQL event journal', () => {
   test('replays in version order after the journal and its pool are replaced', async () => {
     const writerPool = new Pool({ connectionString })
     const writer = new PostgreSqlEventJournal(writerPool)
-    const created = new ShipCreated('ship-1', 'King Roy')
-    const arrived = new ShipArrived('ship-1', new Port(new PortName('Kingston'), new Country('US')))
-    await writer.append('ship-1', 0, [created, arrived])
+    const registered = registration('ship-1')
+    const arrived = new ShipArrived('ship-1', port())
+    await writer.append('ship-1', 0, [registered, arrived])
     await writerPool.end()
 
     const readerPool = new Pool({ connectionString })
     const stream = await new PostgreSqlEventJournal(readerPool).eventsByAggregate('ship-1')
     await readerPool.end()
 
-    expect(stream).toEqual({ events: [created, arrived], version: 2 })
+    expect(stream).toEqual({ events: [registered, arrived], version: 2 })
   })
 
   test('rolls back every event when one row in a multi-event append fails', async () => {
@@ -92,10 +94,7 @@ databaseDescribe('PostgreSQL event journal', () => {
     const journal = new PostgreSqlEventJournal(pool)
 
     await expect(
-      journal.append('ship-1', 0, [
-        new ShipCreated('ship-1', 'King Roy'),
-        new ShipArrived('ship-1', new Port(new PortName('Kingston'), new Country('US')))
-      ])
+      journal.append('ship-1', 0, [registration('ship-1'), new ShipArrived('ship-1', port())])
     ).rejects.toThrow(EventJournalUnavailable)
     await expect(journal.eventsByAggregate('ship-1')).resolves.toEqual({
       events: [],
@@ -108,8 +107,8 @@ databaseDescribe('PostgreSQL event journal', () => {
     const second = new PostgreSqlEventJournal(pool)
 
     const attempts = await Promise.allSettled([
-      first.append('ship-1', 0, [new ShipCreated('ship-1', 'First')]),
-      second.append('ship-1', 0, [new ShipCreated('ship-1', 'Second')])
+      first.append('ship-1', 0, [registration('ship-1', 'First')]),
+      second.append('ship-1', 0, [registration('ship-1', 'Second')])
     ])
 
     expect(attempts.filter(({ status }) => status === 'fulfilled')).toHaveLength(1)

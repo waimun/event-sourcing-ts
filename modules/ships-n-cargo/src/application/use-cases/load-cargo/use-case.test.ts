@@ -1,19 +1,24 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
+import { Country } from '../../../domain/country'
 import { CargoAlreadyLoaded } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
+import { Port } from '../../../domain/port'
+import { PortName } from '../../../domain/port-name'
 import { Ship } from '../../../domain/ship'
 import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
-import { CreateShipUseCase } from '../create-ship/use-case'
+import { RegisterShipUseCase } from '../register-ship/use-case'
 import { LoadCargoUseCase } from './use-case'
 
 afterEach(() => {
   vi.restoreAllMocks()
 })
+
+const initialPort = new Port(new PortName('Kingston'), new Country('US'))
 
 test('construct class object', () => {
   const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -35,9 +40,9 @@ test('ship id not found', async () => {
 test('cargo already loaded', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
-  const createShipUseCase = new CreateShipUseCase(journal)
+  const registerShipUseCase = new RegisterShipUseCase(journal)
   const id = new Id('abc')
-  await createShipUseCase.create(new Name('Queen Mary'), id)
+  await registerShipUseCase.register(new Name('Queen Mary'), id, initialPort)
   const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
@@ -63,9 +68,9 @@ test('cargo already loaded', async () => {
 test('valid request', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
-  const createShipUseCase = new CreateShipUseCase(journal)
+  const registerShipUseCase = new RegisterShipUseCase(journal)
   const id = new Id('abc')
-  await createShipUseCase.create(new Name('King Roy'), id)
+  await registerShipUseCase.register(new Name('King Roy'), id, initialPort)
   const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
@@ -79,7 +84,7 @@ test('valid request', async () => {
 test('rechecks cargo after a concurrent load wins', async () => {
   const journal = new InMemoryEventJournal(new Name('testing'))
   const id = new Id('abc')
-  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
   const append = journal.append.bind(journal)
   vi.spyOn(journal, 'append').mockImplementationOnce(async (aggregateId, version, events) => {
     await append(aggregateId, version, events)
@@ -97,7 +102,7 @@ test('rechecks cargo after a concurrent load wins', async () => {
 test('does not turn an exceptional journal failure into a result', async () => {
   const journal = new InMemoryEventJournal(new Name('testing'))
   const id = new Id('abc')
-  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
   const failure = new Error('journal failed')
   vi.spyOn(journal, 'append').mockRejectedValue(failure)
 
@@ -109,7 +114,7 @@ test('does not turn an exceptional journal failure into a result', async () => {
 test('does not turn an unexpected domain failure into a result', async () => {
   const journal = new InMemoryEventJournal(new Name('testing'))
   const id = new Id('abc')
-  await new CreateShipUseCase(journal).create(new Name('Queen Mary'), id)
+  await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
   const failure = new Error('unexpected domain failure')
   vi.spyOn(Ship, 'loadCargo').mockImplementation(() => {
     throw failure

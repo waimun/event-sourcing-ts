@@ -10,11 +10,11 @@ import { eventPayloadHandler } from './index'
 import { CargoLoadedSerializer } from './serializers/cargo-loaded-serializer'
 import { CargoUnloadedSerializer } from './serializers/cargo-unloaded-serializer'
 import { ShipArrivedSerializer } from './serializers/ship-arrived-serializer'
-import { ShipCreatedSerializer } from './serializers/ship-created-serializer'
 import { ShipDepartedSerializer } from './serializers/ship-departed-serializer'
+import { ShipRegisteredSerializer } from './serializers/ship-registered-serializer'
 import { ShipArrived } from './ship-arrived'
-import { ShipCreated } from './ship-created'
 import { ShipDeparted } from './ship-departed'
+import { ShipRegistered } from './ship-registered'
 
 test('imported file should have event serializers registered', () => {
   expect(eventPayloadHandler).toBeTruthy()
@@ -28,7 +28,7 @@ test('imported file should have event serializers registered', () => {
     eventPayloadHandler.byType(ShipArrived.eventType) instanceof ShipArrivedSerializer
   ).toBeTruthy()
   expect(
-    eventPayloadHandler.byType(ShipCreated.eventType) instanceof ShipCreatedSerializer
+    eventPayloadHandler.byType(ShipRegistered.eventType) instanceof ShipRegisteredSerializer
   ).toBeTruthy()
   expect(
     eventPayloadHandler.byType(ShipDeparted.eventType) instanceof ShipDepartedSerializer
@@ -41,7 +41,7 @@ test('every registered serializer preserves event timestamps through a JSON roun
   const cargo = new Cargo(new Name('Refactoring Book'))
   const port = new Port(new PortName('Harrison'), new Country('US'))
   const events = [
-    new ShipCreated('abc', 'King Roy', occurredAt, recordedAt),
+    new ShipRegistered('abc', 'King Roy', port, occurredAt, recordedAt),
     new ShipDeparted('abc', occurredAt, recordedAt),
     new ShipArrived('abc', port, occurredAt, recordedAt),
     new CargoLoaded('abc', cargo, occurredAt, recordedAt),

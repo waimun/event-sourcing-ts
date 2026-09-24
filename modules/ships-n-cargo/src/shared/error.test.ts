@@ -2,12 +2,7 @@ import { expect, test } from 'vitest'
 import { EventIsRequired } from '../adapters/outbound/persistence/errors/event-journal'
 import { IdAlreadyExists } from '../application/errors/id-already-exists'
 import { ShipNotFound } from '../application/errors/ship-not-found'
-import {
-  CannotDockShipAtSea,
-  CannotDockWithoutPort,
-  InvalidCountry,
-  NoCountrySpecifiedForPort
-} from '../domain/errors/dock-ship'
+import { InvalidCountry } from '../domain/errors/dock-ship'
 import {
   EventSerializerNotFound,
   EventSerializerTypeMismatch
@@ -16,9 +11,10 @@ import {
   CargoAlreadyLoaded,
   CargoNotFound,
   IdsMismatch,
-  InvalidPortForDeparture,
-  ShipMustBeCreatedFirst,
-  UninitializedShipRequiredToCreate
+  ShipMustBeRegisteredFirst,
+  ShipNotAtPort,
+  ShipNotAtSea,
+  UnregisteredShipRequiredToRegister
 } from '../domain/errors/ship'
 import { InvalidDate } from './domain/date'
 import { IsRequired } from './domain/errors/is-required'
@@ -87,16 +83,14 @@ test.each([
   [new NameNotAllowed('!'), 'INVALID_NAME', 'validation'],
   [new InvalidDate(), 'INVALID_DATE', 'validation'],
   [new InvalidCountry('ZZ'), 'INVALID_COUNTRY', 'validation'],
-  [new CannotDockShipAtSea(), 'CANNOT_DOCK_AT_SEA', 'validation'],
-  [new CannotDockWithoutPort(), 'CANNOT_DOCK_WITHOUT_PORT', 'validation'],
-  [new NoCountrySpecifiedForPort(), 'PORT_COUNTRY_REQUIRED', 'validation'],
   [new ShipNotFound('ship-1'), 'SHIP_NOT_FOUND', 'not-found'],
   [new CargoNotFound('cargo'), 'CARGO_NOT_FOUND', 'not-found'],
   [new IdAlreadyExists('ship-1'), 'SHIP_ALREADY_EXISTS', 'conflict'],
   [new CargoAlreadyLoaded('cargo'), 'CARGO_ALREADY_LOADED', 'conflict'],
-  [new InvalidPortForDeparture(), 'INVALID_PORT_FOR_DEPARTURE', 'conflict'],
-  [new UninitializedShipRequiredToCreate(), 'SHIP_ALREADY_INITIALIZED', 'invariant'],
-  [new ShipMustBeCreatedFirst(), 'SHIP_NOT_INITIALIZED', 'invariant'],
+  [new ShipNotAtPort(), 'SHIP_NOT_AT_PORT', 'conflict'],
+  [new ShipNotAtSea(), 'SHIP_NOT_AT_SEA', 'conflict'],
+  [new UnregisteredShipRequiredToRegister(), 'SHIP_ALREADY_REGISTERED', 'invariant'],
+  [new ShipMustBeRegisteredFirst(), 'SHIP_NOT_REGISTERED', 'invariant'],
   [new IdsMismatch(), 'AGGREGATE_ID_MISMATCH', 'invariant'],
   [new EventSerializerNotFound('event'), 'EVENT_SERIALIZER_NOT_FOUND', 'invariant'],
   [
