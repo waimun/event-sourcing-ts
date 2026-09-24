@@ -1,3 +1,4 @@
+import type { CargoReference } from '../../../domain/cargo-reference'
 import { LoadContainer } from '../../../domain/commands/load-container'
 import { Container } from '../../../domain/container'
 import { ContainerAlreadyLoaded, ShipNotAtPort } from '../../../domain/errors/ship'
@@ -21,11 +22,12 @@ export class LoadContainerUseCase {
   async load(
     id: Id,
     containerId: Id,
+    cargoReference: CargoReference,
     description: Name
   ): Promise<
     Result<void, ShipNotFound | ContainerAlreadyLoaded | ShipNotAtPort | ConcurrentCommandConflict>
   > {
-    const command = new LoadContainer(id, new Container(containerId, description))
+    const command = new LoadContainer(id, new Container(containerId, cargoReference, description))
     return rerunConcurrentCommand<void, ShipNotFound | ContainerAlreadyLoaded | ShipNotAtPort>(
       id.value,
       async () => {

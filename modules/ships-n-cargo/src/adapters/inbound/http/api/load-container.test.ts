@@ -86,8 +86,48 @@ test('container id is invalid', async () => {
   })
 })
 
+test('cargo reference is required', async () => {
+  req.body = {
+    id: 'abc',
+    containerId: 'container-1',
+    description: 'Microservices Architecture'
+  }
+
+  await loadContainer(req as Request, res as Response)
+
+  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.json).toHaveBeenCalledWith({
+    status: 400,
+    error: new IsRequired('Cargo reference').message,
+    dateTime: expect.any(Date)
+  })
+})
+
+test('cargo reference is invalid', async () => {
+  req.body = {
+    id: 'abc',
+    containerId: 'container-1',
+    cargoReference: 'cargo/reference',
+    description: 'Microservices Architecture'
+  }
+
+  await loadContainer(req as Request, res as Response)
+
+  expect(res.status).toHaveBeenCalledWith(400)
+  expect(res.json).toHaveBeenCalledWith({
+    status: 400,
+    error: new IdNotAllowed(req.body.cargoReference, 'Cargo reference').message,
+    dateTime: expect.any(Date)
+  })
+})
+
 test('container description is invalid', async () => {
-  req.body = { id: 'abc', containerId: 'container-1', description: 'a#*x' }
+  req.body = {
+    id: 'abc',
+    containerId: 'container-1',
+    cargoReference: 'cargo-1',
+    description: 'a#*x'
+  }
 
   await loadContainer(req as Request, res as Response)
 
@@ -103,6 +143,7 @@ test('caller-supplied event time is not part of the command', async () => {
   req.body = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Microservices Architecture',
     dateTime: 'invalid-date-format'
   }
@@ -121,6 +162,7 @@ test('id not found', async () => {
   req.body = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Microservices Architecture'
   }
 
@@ -142,6 +184,7 @@ test('cannot load same container twice', async () => {
   req.body = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Microservices Architecture'
   }
   await loadContainer(req as Request, res as Response)
@@ -165,6 +208,7 @@ test('valid request', async () => {
   req.body = {
     id: 'xyz',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Microservices Architecture'
   }
   await loadContainer(req as Request, res as Response)

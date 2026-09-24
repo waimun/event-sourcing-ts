@@ -1,5 +1,6 @@
 import { Id } from '../../shared/domain/id'
 import { Name } from '../../shared/domain/name'
+import { CargoReference } from '../cargo-reference'
 import { Container } from '../container'
 import { BaseDomainEvent } from './domain-event'
 
@@ -13,6 +14,7 @@ export class ContainerLoaded extends BaseDomainEvent<typeof EVENT_TYPE> {
     super(ContainerLoaded.eventType, aggregateId, occurredAt, recordedAt)
     this.container = new Container(
       new Id(container.containerId),
+      new CargoReference(container.cargoReference),
       new Name(container.description, 'Container description')
     )
     Object.freeze(this)

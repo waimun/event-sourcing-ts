@@ -120,6 +120,7 @@ test('unloads an onboard container from a ship at port', async () => {
   const request = {
     id: 'abc',
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   }
   const loadResponse = await loadContainerController.loadContainer(request)
@@ -143,6 +144,7 @@ test('cannot unload a container while the ship is at sea', async () => {
   await new LoadContainerController(new LoadContainerUseCase(journal)).loadContainer({
     id: id.value,
     containerId: 'container-1',
+    cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   })
   await new SailShipUseCase(journal).sail(id)

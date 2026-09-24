@@ -1,5 +1,6 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
+import { CargoReference } from '../../../domain/cargo-reference'
 import { Country } from '../../../domain/country'
 import { ContainerAlreadyLoaded, ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
@@ -20,6 +21,7 @@ afterEach(() => {
 })
 
 const initialPort = new Port(new PortName('Kingston'), new Country('US'))
+const cargoReference = new CargoReference('cargo-1')
 
 test('construct class object', () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
@@ -32,12 +34,12 @@ test('ship id not found', async () => {
   const useCase = new LoadContainerUseCase(journal)
   const id = new Id('abc')
 
-  expect(await useCase.load(id, new Id('container-1'), new Name('Refactoring Book'))).toMatchObject(
-    {
-      ok: false,
-      error: new ShipNotFound(id.value)
-    }
-  )
+  expect(
+    await useCase.load(id, new Id('container-1'), cargoReference, new Name('Refactoring Book'))
+  ).toMatchObject({
+    ok: false,
+    error: new ShipNotFound(id.value)
+  })
 })
 
 test('container already loaded', async () => {
@@ -52,17 +54,24 @@ test('container already loaded', async () => {
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const containerId = new Id('container-1')
   const description = new Name('Refactoring Book')
-  await loadContainerUseCase.load(id, containerId, description)
+  await loadContainerUseCase.load(id, containerId, cargoReference, description)
   const eventsAfterInitialLoad = (await journal.eventsByAggregate(id.value)).events
   expect(eventsAfterInitialLoad).toHaveLength(2)
 
-  expect(await loadContainerUseCase.load(id, containerId, description)).toMatchObject({
+  expect(
+    await loadContainerUseCase.load(id, containerId, cargoReference, description)
+  ).toMatchObject({
     ok: false,
     error: new ContainerAlreadyLoaded(containerId.value)
   })
 
   expect(
-    await loadContainerUseCase.load(id, new Id('container-2'), new Name('Refactoring Book'))
+    await loadContainerUseCase.load(
+      id,
+      new Id('container-2'),
+      cargoReference,
+      new Name('Refactoring Book')
+    )
   ).toEqual({ ok: true, value: undefined })
 })
 
@@ -79,6 +88,7 @@ test('appends a container load after ship registration', async () => {
   const result = await loadContainerUseCase.load(
     id,
     new Id('container-1'),
+    cargoReference,
     new Name('Refactoring Book')
   )
   expect(result).toEqual({ ok: true, value: undefined })
@@ -98,7 +108,12 @@ test('rechecks container after a concurrent load wins', async () => {
 
   const containerId = new Id('container-1')
   expect(
-    await new LoadContainerUseCase(journal).load(id, containerId, new Name('Refactoring Book'))
+    await new LoadContainerUseCase(journal).load(
+      id,
+      containerId,
+      cargoReference,
+      new Name('Refactoring Book')
+    )
   ).toMatchObject({
     ok: false,
     error: new ContainerAlreadyLoaded(containerId.value)
@@ -114,7 +129,12 @@ test('does not turn an exceptional journal failure into a result', async () => {
   vi.spyOn(journal, 'append').mockRejectedValue(failure)
 
   await expect(
-    new LoadContainerUseCase(journal).load(id, new Id('container-1'), new Name('Refactoring Book'))
+    new LoadContainerUseCase(journal).load(
+      id,
+      new Id('container-1'),
+      cargoReference,
+      new Name('Refactoring Book')
+    )
   ).rejects.toBe(failure)
 })
 
@@ -129,7 +149,12 @@ test('does not turn an unexpected domain failure into a result', async () => {
   const append = vi.spyOn(journal, 'append')
 
   await expect(
-    new LoadContainerUseCase(journal).load(id, new Id('container-1'), new Name('Refactoring Book'))
+    new LoadContainerUseCase(journal).load(
+      id,
+      new Id('container-1'),
+      cargoReference,
+      new Name('Refactoring Book')
+    )
   ).rejects.toBe(failure)
   expect(append).not.toHaveBeenCalled()
 })
@@ -144,6 +169,7 @@ test('rejects loading while the ship is at sea', async () => {
     await new LoadContainerUseCase(journal).load(
       id,
       new Id('container-1'),
+      cargoReference,
       new Name('Refactoring Book')
     )
   ).toMatchObject({ ok: false, error: new ShipNotAtPort('load a container') })
