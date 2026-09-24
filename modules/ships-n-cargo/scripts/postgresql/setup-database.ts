@@ -2,6 +2,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 import { verifyEventJournalSchema } from '../../src/adapters/outbound/persistence/postgresql/event-journal-schema'
+import { formatDatabaseSetupFailure } from '../../src/bootstrap/startup-failure'
 
 const connectionString = process.env.SHIPS_N_CARGO_DATABASE_URL
 
@@ -22,8 +23,7 @@ if (connectionString === undefined || connectionString.trim() === '') {
     await verifyEventJournalSchema(pool)
     console.log('ships_n_cargo.event_journal is ready')
   } catch (error) {
-    const message = error instanceof Error ? error.message : String(error)
-    console.error(`Database setup failed: ${message}`)
+    console.error(formatDatabaseSetupFailure(error))
     process.exitCode = 1
   } finally {
     await pool.end()
