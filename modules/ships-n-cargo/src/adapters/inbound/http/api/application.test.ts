@@ -4,6 +4,7 @@ import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, expect, test } from 'vitest'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
+import { EventJournalShipHistoryProjection } from '../../../outbound/projections/event-journal-ship-history'
 import { createApplication } from './application'
 
 type HttpResponse = {
@@ -15,9 +16,11 @@ let port: number
 let server: Server
 
 beforeAll(async () => {
+  const eventJournal = new InMemoryEventJournal(new Name('http-workflow-test'))
   server = createApplication({
-    eventJournal: new InMemoryEventJournal(new Name('http-workflow-test')),
-    generateId: () => 'generated-ship-id'
+    eventJournal,
+    generateId: () => 'generated-ship-id',
+    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal)
   }).listen(0, '127.0.0.1')
   await once(server, 'listening')
   port = (server.address() as AddressInfo).port
@@ -194,5 +197,44 @@ test('injected dependencies support a deterministic register, sail, and dock wor
       status: 200
     },
     status: 200
+  })
+
+  const history = await send('GET', '/api/v1/ships/generated-ship-id/history')
+  expect(history).toEqual({
+    body: {
+      body: {
+        shipId: 'generated-ship-id',
+        history: [
+          {
+            kind: 'ship-registered',
+            name: 'King Roy',
+            occurredAt: expect.any(String),
+            port: { country: 'US', name: 'Kingston' }
+          },
+          { kind: 'ship-departed', occurredAt: expect.any(String) },
+          {
+            kind: 'ship-arrived',
+            occurredAt: expect.any(String),
+            port: { country: 'US', name: 'Henderson' }
+          }
+        ]
+      },
+      dateTime: expect.any(String),
+      status: 200
+    },
+    status: 200
+  })
+})
+
+test('history for an unknown ship returns not found without exposing journal details', async () => {
+  const response = await send('GET', '/api/v1/ships/missing/history')
+
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: "Ship 'missing' does not exist",
+      status: 404
+    },
+    status: 404
   })
 })
