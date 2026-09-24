@@ -1,16 +1,16 @@
 import { expect, test } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
-import { Cargo } from './cargo'
 import { DockShip } from './commands/dock-ship'
-import { LoadCargo } from './commands/load-cargo'
+import { LoadContainer } from './commands/load-container'
 import { RegisterShip } from './commands/register-ship'
 import { SailShip } from './commands/sail-ship'
-import { UnloadCargo } from './commands/unload-cargo'
+import { UnloadContainer } from './commands/unload-container'
+import { Container } from './container'
 import { Country } from './country'
 import {
-  CargoAlreadyLoaded,
-  CargoNotFound,
+  ContainerAlreadyLoaded,
+  ContainerNotFound,
   IdsMismatch,
   ShipMustBeRegisteredFirst,
   ShipNotAtPort,
@@ -81,51 +81,85 @@ test('arrival requires a matching registered ship', () => {
   expect(() => Ship.arrive(new DockShip(new Id('456'), port()), departed())).toThrow(IdsMismatch)
 })
 
-test('loads and unloads cargo while preserving current location behavior', () => {
+test('loads and unloads containers by stable identity while at a port', () => {
   const ship = registered()
-  const item = new Cargo(new Name('Refactoring Book'))
-  const loadedEvent = Ship.loadCargo(new LoadCargo(new Id('123'), item), ship)
+  const item = new Container(new Id('container-1'), new Name('Refactoring Book'))
+  const loadedEvent = Ship.loadContainer(new LoadContainer(new Id('123'), item), ship)
   const loaded = Ship.apply(ship, loadedEvent)
 
-  expect(loaded.cargo).toHaveLength(1)
+  expect(loaded.containers).toEqual([item])
   expect(() =>
-    Ship.loadCargo(new LoadCargo(new Id('123'), new Cargo(new Name('REFACTORING BOOK'))), loaded)
-  ).toThrow(CargoAlreadyLoaded)
+    Ship.loadContainer(
+      new LoadContainer(
+        new Id('123'),
+        new Container(new Id('container-1'), new Name('A changed description'))
+      ),
+      loaded
+    )
+  ).toThrow(new ContainerAlreadyLoaded('container-1'))
 
-  const unloadedEvent = Ship.unloadCargo(new UnloadCargo(new Id('123'), item), loaded)
-  expect(Ship.apply(loaded, unloadedEvent).cargo).toEqual([])
+  const sameDescription = new Container(new Id('container-2'), new Name('Refactoring Book'))
+  const loadedAgain = Ship.apply(
+    loaded,
+    Ship.loadContainer(new LoadContainer(new Id('123'), sameDescription), loaded)
+  )
+  expect(loadedAgain.containers).toEqual([item, sameDescription])
+
+  const unloadedEvent = Ship.unloadContainer(
+    new UnloadContainer(new Id('123'), new Id('container-1')),
+    loadedAgain
+  )
+  expect(unloadedEvent.container).toEqual(item)
+  expect(Ship.apply(loadedAgain, unloadedEvent).containers).toEqual([sameDescription])
 })
 
-test('cargo operations require a matching registered ship and onboard cargo', () => {
-  const item = new Cargo(new Name('Refactoring Book'))
-  expect(() => Ship.loadCargo(new LoadCargo(new Id('123'), item))).toThrow(
+test('container operations require a matching registered ship and onboard container', () => {
+  const containerId = new Id('container-1')
+  const item = new Container(containerId, new Name('Refactoring Book'))
+  expect(() => Ship.loadContainer(new LoadContainer(new Id('123'), item))).toThrow(
     ShipMustBeRegisteredFirst
   )
-  expect(() => Ship.loadCargo(new LoadCargo(new Id('456'), item), registered())).toThrow(
+  expect(() => Ship.loadContainer(new LoadContainer(new Id('456'), item), registered())).toThrow(
     IdsMismatch
   )
-  expect(() => Ship.unloadCargo(new UnloadCargo(new Id('123'), item))).toThrow(
+  expect(() => Ship.unloadContainer(new UnloadContainer(new Id('123'), containerId))).toThrow(
     ShipMustBeRegisteredFirst
   )
-  expect(() => Ship.unloadCargo(new UnloadCargo(new Id('456'), item), registered())).toThrow(
-    IdsMismatch
-  )
-  expect(() => Ship.unloadCargo(new UnloadCargo(new Id('123'), item), registered())).toThrow(
-    new CargoNotFound('Refactoring Book')
-  )
+  expect(() =>
+    Ship.unloadContainer(new UnloadContainer(new Id('456'), containerId), registered())
+  ).toThrow(IdsMismatch)
+  expect(() =>
+    Ship.unloadContainer(new UnloadContainer(new Id('123'), containerId), registered())
+  ).toThrow(new ContainerNotFound('container-1'))
 })
 
-test('arrival continues to update the existing cargo Canada state', () => {
+test('container operations are rejected while the ship is at sea', () => {
   const initial = registered()
-  const cargo = new Cargo(new Name('Microservices Architecture'))
-  const loaded = Ship.apply(initial, Ship.loadCargo(new LoadCargo(new Id('123'), cargo), initial))
+  const item = new Container(new Id('container-1'), new Name('Microservices Architecture'))
+  const loaded = Ship.apply(
+    initial,
+    Ship.loadContainer(new LoadContainer(new Id('123'), item), initial)
+  )
   const atSea = departed(loaded)
+
+  expect(() =>
+    Ship.loadContainer(
+      new LoadContainer(
+        new Id('123'),
+        new Container(new Id('container-2'), new Name('Domain Driven Design'))
+      ),
+      atSea
+    )
+  ).toThrow(new ShipNotAtPort('load a container'))
+  expect(() =>
+    Ship.unloadContainer(new UnloadContainer(new Id('123'), new Id('container-1')), atSea)
+  ).toThrow(new ShipNotAtPort('unload a container'))
+
   const arrived = Ship.apply(
     atSea,
     Ship.arrive(new DockShip(new Id('123'), port('Belmont', 'CA')), atSea)
   )
-
-  expect(arrived.cargo[0].hasBeenInCanada).toBe(true)
+  expect(arrived.containers).toEqual([item])
 })
 
 test('clone retains identity and immutable aggregate state', () => {

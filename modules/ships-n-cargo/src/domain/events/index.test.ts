@@ -1,14 +1,15 @@
 import { expect, test } from 'vitest'
+import { Id } from '../../shared/domain/id'
 import { Name } from '../../shared/domain/name'
-import { Cargo } from '../cargo'
+import { Container } from '../container'
 import { Country } from '../country'
 import { Port } from '../port'
 import { PortName } from '../port-name'
-import { CargoLoaded } from './cargo-loaded'
-import { CargoUnloaded } from './cargo-unloaded'
+import { ContainerLoaded } from './container-loaded'
+import { ContainerUnloaded } from './container-unloaded'
 import { eventPayloadHandler } from './index'
-import { CargoLoadedSerializer } from './serializers/cargo-loaded-serializer'
-import { CargoUnloadedSerializer } from './serializers/cargo-unloaded-serializer'
+import { ContainerLoadedSerializer } from './serializers/container-loaded-serializer'
+import { ContainerUnloadedSerializer } from './serializers/container-unloaded-serializer'
 import { ShipArrivedSerializer } from './serializers/ship-arrived-serializer'
 import { ShipDepartedSerializer } from './serializers/ship-departed-serializer'
 import { ShipRegisteredSerializer } from './serializers/ship-registered-serializer'
@@ -19,10 +20,10 @@ import { ShipRegistered } from './ship-registered'
 test('imported file should have event serializers registered', () => {
   expect(eventPayloadHandler).toBeTruthy()
   expect(
-    eventPayloadHandler.byType(CargoLoaded.eventType) instanceof CargoLoadedSerializer
+    eventPayloadHandler.byType(ContainerLoaded.eventType) instanceof ContainerLoadedSerializer
   ).toBeTruthy()
   expect(
-    eventPayloadHandler.byType(CargoUnloaded.eventType) instanceof CargoUnloadedSerializer
+    eventPayloadHandler.byType(ContainerUnloaded.eventType) instanceof ContainerUnloadedSerializer
   ).toBeTruthy()
   expect(
     eventPayloadHandler.byType(ShipArrived.eventType) instanceof ShipArrivedSerializer
@@ -38,14 +39,14 @@ test('imported file should have event serializers registered', () => {
 test('every registered serializer preserves event timestamps through a JSON round trip', () => {
   const occurredAt = new Date('2024-01-02T03:04:05.000Z')
   const recordedAt = new Date('2024-01-03T04:05:06.000Z')
-  const cargo = new Cargo(new Name('Refactoring Book'))
+  const container = new Container(new Id('container-1'), new Name('Refactoring Book'))
   const port = new Port(new PortName('Harrison'), new Country('US'))
   const events = [
     new ShipRegistered('abc', 'King Roy', port, occurredAt, recordedAt),
     new ShipDeparted('abc', occurredAt, recordedAt),
     new ShipArrived('abc', port, occurredAt, recordedAt),
-    new CargoLoaded('abc', cargo, occurredAt, recordedAt),
-    new CargoUnloaded('abc', cargo, occurredAt, recordedAt)
+    new ContainerLoaded('abc', container, occurredAt, recordedAt),
+    new ContainerUnloaded('abc', container, occurredAt, recordedAt)
   ]
 
   for (const event of events) {

@@ -1,5 +1,5 @@
-import type { LoadCargoDto } from '../../../../application/use-cases/load-cargo/load-cargo-dto'
-import type { LoadCargoUseCase } from '../../../../application/use-cases/load-cargo/use-case'
+import type { LoadContainerDto } from '../../../../application/use-cases/load-container/load-container-dto'
+import type { LoadContainerUseCase } from '../../../../application/use-cases/load-container/use-case'
 import { ISODate } from '../../../../shared/domain/date'
 import { Id } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
@@ -7,14 +7,14 @@ import { ExpectedError } from '../../../../shared/error'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 
-export class LoadCargoController {
-  useCase: LoadCargoUseCase
+export class LoadContainerController {
+  useCase: LoadContainerUseCase
 
-  constructor(useCase: LoadCargoUseCase) {
+  constructor(useCase: LoadContainerUseCase) {
     this.useCase = useCase
   }
 
-  async loadCargo(request: LoadCargoDto): Promise<Response> {
+  async loadContainer(request: LoadContainerDto): Promise<Response> {
     let parsed: ReturnType<typeof parseRequest>
     try {
       parsed = parseRequest(request)
@@ -24,11 +24,17 @@ export class LoadCargoController {
     }
 
     try {
-      const result = await this.useCase.load(parsed.id, parsed.cargoName, parsed.dateTime)
+      const result = await this.useCase.load(
+        parsed.id,
+        parsed.containerId,
+        parsed.description,
+        parsed.dateTime
+      )
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
-          case 'CARGO_ALREADY_LOADED':
+          case 'CONTAINER_ALREADY_LOADED':
+          case 'SHIP_NOT_AT_PORT':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
@@ -44,10 +50,11 @@ export class LoadCargoController {
   }
 }
 
-const parseRequest = (request: LoadCargoDto) => {
+const parseRequest = (request: LoadContainerDto) => {
   return {
     id: new Id(request.id),
-    cargoName: new Name(request.cargoName, 'Cargo name'),
+    containerId: new Id(request.containerId, 'Container ID'),
+    description: new Name(request.description, 'Container description'),
     dateTime: new ISODate(request.dateTime)
   }
 }

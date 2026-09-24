@@ -1,12 +1,12 @@
-import { Cargo } from './cargo'
 import type { DockShip } from './commands/dock-ship'
-import type { LoadCargo } from './commands/load-cargo'
+import type { LoadContainer } from './commands/load-container'
 import type { RegisterShip } from './commands/register-ship'
 import type { SailShip } from './commands/sail-ship'
-import type { UnloadCargo } from './commands/unload-cargo'
+import type { UnloadContainer } from './commands/unload-container'
+import type { Container } from './container'
 import {
-  CargoAlreadyLoaded,
-  CargoNotFound,
+  ContainerAlreadyLoaded,
+  ContainerNotFound,
   IdsMismatch,
   InvalidShipHistory,
   ShipMustBeRegisteredFirst,
@@ -14,8 +14,8 @@ import {
   ShipNotAtSea,
   UnregisteredShipRequiredToRegister
 } from './errors/ship'
-import { CargoLoaded } from './events/cargo-loaded'
-import { CargoUnloaded } from './events/cargo-unloaded'
+import { ContainerLoaded } from './events/container-loaded'
+import { ContainerUnloaded } from './events/container-unloaded'
 import type { DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipDeparted } from './events/ship-departed'
@@ -26,23 +26,23 @@ import { SourcedAggregate } from './sourced-aggregate'
 export class Ship extends SourcedAggregate {
   readonly name: string
   readonly location: ShipLocation
-  readonly cargo: readonly Cargo[]
+  readonly containers: readonly Container[]
 
   private constructor(
     id: string,
     name: string,
     location: ShipLocation,
-    cargo: readonly Cargo[] = []
+    containers: readonly Container[] = []
   ) {
     super(id)
     this.name = name
     this.location = location
-    this.cargo = Object.freeze([...cargo])
+    this.containers = Object.freeze([...containers])
     Object.freeze(this)
   }
 
   static clone(from: Ship): Ship {
-    return new Ship(from.id, from.name, from.location, from.cargo)
+    return new Ship(from.id, from.name, from.location, from.containers)
   }
 
   equals(other: Ship): boolean {
@@ -72,25 +72,35 @@ export class Ship extends SourcedAggregate {
         }
         return Ship.handleArrival(registered, event)
       }
-      case CargoLoaded.eventType: {
-        if (!(event instanceof CargoLoaded)) Ship.reject(event, 'event payload is malformed')
+      case ContainerLoaded.eventType: {
+        if (!(event instanceof ContainerLoaded)) Ship.reject(event, 'event payload is malformed')
         const registered = Ship.requireMatchingRegisteredShip(state, event)
+        if (!(registered.location instanceof AtPort)) {
+          Ship.reject(event, 'ship must be at a port to load a container')
+        }
         if (
-          registered.cargo.some(
-            (cargo) => cargo.name.toLowerCase() === event.cargo.name.toLowerCase()
+          registered.containers.some(
+            (container) => container.containerId === event.container.containerId
           )
         ) {
-          Ship.reject(event, `cargo '${event.cargo.name}' is already loaded`)
+          Ship.reject(event, `container '${event.container.containerId}' is already loaded`)
         }
-        return Ship.handleCargoLoaded(registered, event)
+        return Ship.handleContainerLoaded(registered, event)
       }
-      case CargoUnloaded.eventType: {
-        if (!(event instanceof CargoUnloaded)) Ship.reject(event, 'event payload is malformed')
+      case ContainerUnloaded.eventType: {
+        if (!(event instanceof ContainerUnloaded)) Ship.reject(event, 'event payload is malformed')
         const registered = Ship.requireMatchingRegisteredShip(state, event)
-        if (!registered.cargo.some((cargo) => cargo.name === event.cargo.name)) {
-          Ship.reject(event, `cargo '${event.cargo.name}' is not loaded`)
+        if (!(registered.location instanceof AtPort)) {
+          Ship.reject(event, 'ship must be at a port to unload a container')
         }
-        return Ship.handleCargoUnloaded(registered, event)
+        if (
+          !registered.containers.some(
+            (container) => container.containerId === event.container.containerId
+          )
+        ) {
+          Ship.reject(event, `container '${event.container.containerId}' is not loaded`)
+        }
+        return Ship.handleContainerUnloaded(registered, event)
       }
       default:
         return Ship.reject(event, 'event type is not understood by the Ship aggregate')
@@ -132,22 +142,26 @@ export class Ship extends SourcedAggregate {
     return new ShipArrived(command.id, command.port, command.dateTime)
   }
 
-  static loadCargo(command: LoadCargo, state?: Ship): CargoLoaded {
+  static loadContainer(command: LoadContainer, state?: Ship): ContainerLoaded {
     if (state === undefined) throw new ShipMustBeRegisteredFirst()
     if (state.id !== command.id) throw new IdsMismatch()
-    const found = state.cargo.find(
-      (cargo) => cargo.name.toLowerCase() === command.cargo.name.toLowerCase()
+    if (!(state.location instanceof AtPort)) throw new ShipNotAtPort('load a container')
+    const found = state.containers.find(
+      (container) => container.containerId === command.container.containerId
     )
-    if (found !== undefined) throw new CargoAlreadyLoaded(command.cargo.name)
-    return new CargoLoaded(command.id, command.cargo, command.dateTime)
+    if (found !== undefined) throw new ContainerAlreadyLoaded(command.container.containerId)
+    return new ContainerLoaded(command.id, command.container, command.dateTime)
   }
 
-  static unloadCargo(command: UnloadCargo, state?: Ship): CargoUnloaded {
+  static unloadContainer(command: UnloadContainer, state?: Ship): ContainerUnloaded {
     if (state === undefined) throw new ShipMustBeRegisteredFirst()
     if (state.id !== command.id) throw new IdsMismatch()
-    const found = state.cargo.find((cargo) => cargo.name === command.cargo.name)
-    if (found === undefined) throw new CargoNotFound(command.cargo.name)
-    return new CargoUnloaded(command.id, command.cargo, command.dateTime)
+    if (!(state.location instanceof AtPort)) throw new ShipNotAtPort('unload a container')
+    const found = state.containers.find(
+      (container) => container.containerId === command.containerId
+    )
+    if (found === undefined) throw new ContainerNotFound(command.containerId)
+    return new ContainerUnloaded(command.id, found, command.dateTime)
   }
 
   static handleShipRegistered(event: ShipRegistered): Ship {
@@ -155,28 +169,28 @@ export class Ship extends SourcedAggregate {
   }
 
   static handleDeparture(current: Ship): Ship {
-    return new Ship(current.id, current.name, new AtSea(), current.cargo)
+    return new Ship(current.id, current.name, new AtSea(), current.containers)
   }
 
   static handleArrival(current: Ship, event: ShipArrived): Ship {
-    return new Ship(
-      current.id,
-      current.name,
-      new AtPort(event.port),
-      current.cargo.map((cargo) => Cargo.handleArrival(cargo, event))
-    )
+    return new Ship(current.id, current.name, new AtPort(event.port), current.containers)
   }
 
-  static handleCargoLoaded(current: Ship, event: CargoLoaded): Ship {
-    return new Ship(current.id, current.name, current.location, [...current.cargo, event.cargo])
+  static handleContainerLoaded(current: Ship, event: ContainerLoaded): Ship {
+    return new Ship(current.id, current.name, current.location, [
+      ...current.containers,
+      event.container
+    ])
   }
 
-  static handleCargoUnloaded(current: Ship, event: CargoUnloaded): Ship {
+  static handleContainerUnloaded(current: Ship, event: ContainerUnloaded): Ship {
     return new Ship(
       current.id,
       current.name,
       current.location,
-      current.cargo.filter((cargo) => cargo.name !== event.cargo.name)
+      current.containers.filter(
+        (container) => container.containerId !== event.container.containerId
+      )
     )
   }
 }

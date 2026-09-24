@@ -1,36 +1,40 @@
 import { expect, test } from 'vitest'
+import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
-import { Cargo } from '../../cargo'
-import { CargoLoaded } from '../cargo-loaded'
-import { CargoLoadedSerializer } from './cargo-loaded-serializer'
+import { Container } from '../../container'
+import { ContainerLoaded } from '../container-loaded'
+import { ContainerLoadedSerializer } from './container-loaded-serializer'
 
 test('return event object from json string', () => {
   const payload = {
-    type: 'CargoLoaded',
+    type: 'ContainerLoaded',
     aggregateId: 'abc',
     occurredAt: '2024-01-02T03:04:05.000Z',
     recordedAt: '2024-01-03T04:05:06.000Z',
-    cargo: 'Refactoring Book'
+    container: { containerId: 'container-1', description: 'Refactoring Book' }
   }
 
-  const serializer = new CargoLoadedSerializer()
+  const serializer = new ContainerLoadedSerializer()
   const event = serializer.eventFromJson(JSON.stringify(payload))
   expect(event.type).toEqual(payload.type)
   expect(event.aggregateId).toEqual(payload.aggregateId)
   expect(event.occurredAt).toEqual(new Date(payload.occurredAt))
   expect(event.recordedAt).toEqual(new Date(payload.recordedAt))
-  expect(event.cargo.name).toEqual(payload.cargo)
+  expect(event.container).toEqual(payload.container)
 })
 
 test('return json string from event object', () => {
-  const serializer = new CargoLoadedSerializer()
-  const event = new CargoLoaded('abc', new Cargo(new Name('Refactoring Book')))
+  const serializer = new ContainerLoadedSerializer()
+  const event = new ContainerLoaded(
+    'abc',
+    new Container(new Id('container-1'), new Name('Refactoring Book'))
+  )
   const json = serializer.eventToJson(event)
-  const { type, aggregateId, cargo, occurredAt, recordedAt } = JSON.parse(json)
+  const { type, aggregateId, container, occurredAt, recordedAt } = JSON.parse(json)
 
   expect(type).toEqual(event.type)
   expect(aggregateId).toEqual(event.aggregateId)
-  expect(cargo).toEqual(event.cargo.name)
+  expect(container).toEqual(event.container)
   expect(new Date(occurredAt)).toEqual(event.occurredAt)
   expect(new Date(recordedAt)).toEqual(event.recordedAt)
 })

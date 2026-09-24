@@ -3,9 +3,9 @@ import express, { type RequestHandler } from 'express'
 export type ShipHandlers = {
   registerShip: RequestHandler
   dockShip: RequestHandler
-  loadCargo: RequestHandler
+  loadContainer: RequestHandler
   sailShip: RequestHandler
-  unloadCargo: RequestHandler
+  unloadContainer: RequestHandler
 }
 
 export const registerShipRouter = (handlers: ShipHandlers) => {
@@ -14,8 +14,8 @@ export const registerShipRouter = (handlers: ShipHandlers) => {
   router.post('/register', handlers.registerShip)
   router.post('/dock', handlers.dockShip)
   router.post('/sail', handlers.sailShip)
-  router.post('/load-cargo', handlers.loadCargo)
-  router.post('/unload-cargo', handlers.unloadCargo)
+  router.post('/load-container', handlers.loadContainer)
+  router.post('/unload-container', handlers.unloadContainer)
 
   return router
 }

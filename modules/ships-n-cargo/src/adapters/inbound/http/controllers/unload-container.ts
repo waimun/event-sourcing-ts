@@ -1,20 +1,19 @@
-import type { UnloadCargoDto } from '../../../../application/use-cases/unload-cargo/unload-cargo-dto'
-import type { UnloadCargoUseCase } from '../../../../application/use-cases/unload-cargo/use-case'
+import type { UnloadContainerDto } from '../../../../application/use-cases/unload-container/unload-container-dto'
+import type { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
 import { ISODate } from '../../../../shared/domain/date'
 import { Id } from '../../../../shared/domain/id'
-import { Name } from '../../../../shared/domain/name'
 import { ExpectedError } from '../../../../shared/error'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 
-export class UnloadCargoController {
-  useCase: UnloadCargoUseCase
+export class UnloadContainerController {
+  useCase: UnloadContainerUseCase
 
-  constructor(useCase: UnloadCargoUseCase) {
+  constructor(useCase: UnloadContainerUseCase) {
     this.useCase = useCase
   }
 
-  async unloadCargo(request: UnloadCargoDto): Promise<Response> {
+  async unloadContainer(request: UnloadContainerDto): Promise<Response> {
     let parsed: ReturnType<typeof parseRequest>
     try {
       parsed = parseRequest(request)
@@ -24,11 +23,12 @@ export class UnloadCargoController {
     }
 
     try {
-      const result = await this.useCase.unload(parsed.id, parsed.cargoName, parsed.dateTime)
+      const result = await this.useCase.unload(parsed.id, parsed.containerId, parsed.dateTime)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
-          case 'CARGO_NOT_FOUND':
+          case 'CONTAINER_NOT_FOUND':
+          case 'SHIP_NOT_AT_PORT':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
@@ -44,10 +44,10 @@ export class UnloadCargoController {
   }
 }
 
-const parseRequest = (request: UnloadCargoDto) => {
+const parseRequest = (request: UnloadContainerDto) => {
   return {
     id: new Id(request.id),
-    cargoName: new Name(request.cargoName, 'Cargo name'),
+    containerId: new Id(request.containerId, 'Container ID'),
     dateTime: new ISODate(request.dateTime)
   }
 }

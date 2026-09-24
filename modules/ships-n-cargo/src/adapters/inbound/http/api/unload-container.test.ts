@@ -1,21 +1,23 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
-import { CargoAlreadyLoaded } from '../../../../domain/errors/ship'
+import { ContainerNotFound } from '../../../../domain/errors/ship'
 import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
-import { Name, NameNotAllowed } from '../../../../shared/domain/name'
+import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
-import { loadCargoHandler } from './load-cargo'
+import { loadContainerHandler } from './load-container'
 import { registerShipHandler } from './register-ship'
+import { unloadContainerHandler } from './unload-container'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
 const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
-const loadCargo = loadCargoHandler(controllers.loadCargo)
+const loadContainer = loadContainerHandler(controllers.loadContainer)
+const unloadContainer = unloadContainerHandler(controllers.unloadContainer)
 
 beforeEach(() => {
   res.status = vi.fn<Send>().mockReturnValue(res as Response)
@@ -25,7 +27,7 @@ beforeEach(() => {
 test('id is required', async () => {
   req.body = {}
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -38,7 +40,7 @@ test('id is required', async () => {
 test('empty id', async () => {
   req.body = { id: '' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -51,7 +53,7 @@ test('empty id', async () => {
 test('id is invalid', async () => {
   req.body = { id: 'a!b' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -61,36 +63,36 @@ test('id is invalid', async () => {
   })
 })
 
-test('cargo name is required', async () => {
+test('container id is required', async () => {
   req.body = { id: 'abc' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
     status: 400,
-    error: new IsRequired('Cargo name').message,
+    error: new IsRequired('Container ID').message,
     dateTime: expect.any(Date)
   })
 })
 
-test('invalid cargo name', async () => {
-  req.body = { id: 'abc', cargoName: 'a#*x' }
+test('invalid container id', async () => {
+  req.body = { id: 'abc', containerId: 'a#*x' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
     status: 400,
-    error: new NameNotAllowed(req.body.cargoName, 'Cargo name').message,
+    error: new IdNotAllowed(req.body.containerId, 'Container ID').message,
     dateTime: expect.any(Date)
   })
 })
 
 test('dateTime is invalid', async () => {
-  req.body = { id: 'abc', cargoName: 'Microservices Architecture', dateTime: 'invalid-date-format' }
+  req.body = { id: 'abc', containerId: 'container-1', dateTime: 'invalid-date-format' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(400)
   expect(res.json).toHaveBeenCalledWith({
@@ -101,9 +103,9 @@ test('dateTime is invalid', async () => {
 })
 
 test('id not found', async () => {
-  req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
+  req.body = { id: 'abc', containerId: 'container-1' }
 
-  await loadCargo(req as Request, res as Response)
+  await unloadContainer(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(404)
   expect(res.json).toHaveBeenCalledWith({
@@ -113,21 +115,18 @@ test('id not found', async () => {
   })
 })
 
-test('cannot load same cargo twice', async () => {
-  req.body = { id: 'abc', name: 'Thomas Jefferson', port: { name: 'Kingston', country: 'US' } }
+test('cannot find container to unload', async () => {
+  req.body = { id: 'abc', name: 'King Roy', port: { name: 'Kingston', country: 'US' } }
   await registerShip(req as Request, res as Response)
-  expect(res.status).toHaveBeenNthCalledWith(1, 201)
+  expect(res.status).toHaveBeenCalledWith(201)
 
-  req.body = { id: 'abc', cargoName: 'Microservices Architecture' }
-  await loadCargo(req as Request, res as Response)
-  expect(res.status).toHaveBeenNthCalledWith(2, 200)
+  req.body = { id: 'abc', containerId: 'container-1' }
 
-  // cannot load same cargo twice
-  await loadCargo(req as Request, res as Response)
-  expect(res.status).toHaveBeenNthCalledWith(3, 409)
-  expect(res.json).toHaveBeenNthCalledWith(3, {
-    status: 409,
-    error: new CargoAlreadyLoaded(req.body.cargoName).message,
+  await unloadContainer(req as Request, res as Response)
+  expect(res.status).toHaveBeenCalledWith(404)
+  expect(res.json).toHaveBeenCalledWith({
+    status: 404,
+    error: new ContainerNotFound(req.body.containerId).message,
     dateTime: expect.any(Date)
   })
 })
@@ -135,12 +134,23 @@ test('cannot load same cargo twice', async () => {
 test('valid request', async () => {
   req.body = { id: 'xyz', name: 'King Roy', port: { name: 'Kingston', country: 'US' } }
   await registerShip(req as Request, res as Response)
-  expect(res.status).toHaveBeenCalledWith(201)
+  expect(res.status).toHaveBeenNthCalledWith(1, 201)
 
-  req.body = { id: 'xyz', cargoName: 'Microservices Architecture' }
-  await loadCargo(req as Request, res as Response)
-  expect(res.status).toHaveBeenCalledWith(200)
-  expect(res.json).toHaveBeenCalledWith({
+  req.body = {
+    id: 'xyz',
+    containerId: 'container-1',
+    description: 'Microservices Architecture'
+  }
+  await loadContainer(req as Request, res as Response)
+  expect(res.status).toHaveBeenNthCalledWith(2, 200)
+  expect(res.json).toHaveBeenNthCalledWith(2, {
+    status: 200,
+    dateTime: expect.any(Date)
+  })
+
+  await unloadContainer(req as Request, res as Response)
+  expect(res.status).toHaveBeenNthCalledWith(3, 200)
+  expect(res.json).toHaveBeenNthCalledWith(3, {
     status: 200,
     dateTime: expect.any(Date)
   })

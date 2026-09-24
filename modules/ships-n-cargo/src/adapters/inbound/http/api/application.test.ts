@@ -94,7 +94,7 @@ test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   })
 })
 
-test.each(['/register', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+test.each(['/register', '/dock', '/sail', '/load-container', '/unload-container'])(
   'POST /api/v1/ships%s reaches the ship handler',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`, {})
@@ -110,7 +110,7 @@ test.each(['/register', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
   }
 )
 
-test.each(['/register', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+test.each(['/register', '/dock', '/sail', '/load-container', '/unload-container'])(
   'POST /api/v1/ships%s without a body returns a JSON validation error',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`)
