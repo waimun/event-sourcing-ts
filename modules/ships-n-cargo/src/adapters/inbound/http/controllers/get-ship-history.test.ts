@@ -17,7 +17,7 @@ test('returns a stable projected history', async () => {
   }
   const response = await controllerFor({
     historyFor: vi.fn().mockResolvedValue(history)
-  }).get({ shipId: 'ship-1' })
+  }).get({ id: 'ship-1' })
 
   expect(response).toEqual({ status: 200, body: history, dateTime: expect.any(Date) })
 })
@@ -25,7 +25,7 @@ test('returns a stable projected history', async () => {
 test('validates the ship id', async () => {
   const projection = { historyFor: vi.fn() }
 
-  const response = await controllerFor(projection).get({ shipId: '' })
+  const response = await controllerFor(projection).get({ id: '' })
 
   expect(response).toMatchObject({ status: 400, error: new IsRequired('Id').message })
   expect(projection.historyFor).not.toHaveBeenCalled()
@@ -34,7 +34,7 @@ test('validates the ship id', async () => {
 test('returns not found when the ship has no history', async () => {
   const response = await controllerFor({
     historyFor: vi.fn().mockResolvedValue(undefined)
-  }).get({ shipId: 'missing' })
+  }).get({ id: 'missing' })
 
   expect(response).toMatchObject({ status: 404, error: new ShipNotFound('missing').message })
 })
@@ -45,7 +45,7 @@ test('hides projection failures', async () => {
 
   const response = await controllerFor({
     historyFor: vi.fn().mockRejectedValue(failure)
-  }).get({ shipId: 'ship-1' })
+  }).get({ id: 'ship-1' })
 
   expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
   expect(response.error).not.toContain('database detail')
