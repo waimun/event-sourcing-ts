@@ -13,14 +13,12 @@ import {
   CargoNotFound,
   IdsMismatch,
   InvalidPortForDeparture,
-  InvalidShipHistory,
   ShipMustBeCreatedFirst,
   UninitializedShipRequiredToCreate
 } from './errors/ship'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipCreated } from './events/ship-created'
 import { ShipDeparted } from './events/ship-departed'
-import { UnitTestCreated } from './events/unit-test-created'
 import { Port } from './port'
 import { PortName } from './port-name'
 import { Ship } from './ship'
@@ -266,9 +264,4 @@ test('ShipDeparted event', () => {
   expect(ship2.id).toBe('123')
   expect(ship2.name).toBe('King Roy')
   expect(ship2.port.name).toBe(Port.atSea().name)
-})
-
-test('UnitTestCreated event', () => {
-  const ship = Ship.handleShipCreated(Ship.uninitialized(), new ShipCreated('123', 'King Roy'))
-  expect(() => Ship.apply(ship, new UnitTestCreated('123'))).toThrow(InvalidShipHistory)
 })

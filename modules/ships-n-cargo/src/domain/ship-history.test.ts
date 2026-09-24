@@ -5,11 +5,10 @@ import { Country } from './country'
 import { InvalidShipHistory } from './errors/ship'
 import { CargoLoaded } from './events/cargo-loaded'
 import { CargoUnloaded } from './events/cargo-unloaded'
-import type { DomainEvent } from './events/domain-event'
+import { BaseDomainEvent, type DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipCreated } from './events/ship-created'
 import { ShipDeparted } from './events/ship-departed'
-import { UnitTestCreated } from './events/unit-test-created'
 import { Port } from './port'
 import { PortName } from './port-name'
 import { Ship } from './ship'
@@ -19,6 +18,12 @@ const cargo = (name: string = 'Refactoring Book') => new Cargo(new Name(name))
 const created = (id: string = '123') => new ShipCreated(id, 'King Roy')
 const initializedAtPort = () =>
   Ship.replay(Ship.uninitialized(), [created(), new ShipArrived('123', port())])
+
+class UnknownShipEvent extends BaseDomainEvent<'UnknownShipEvent'> {
+  constructor(aggregateId: string) {
+    super('UnknownShipEvent', aggregateId)
+  }
+}
 
 test('domain events and their payloads cannot be changed after construction', () => {
   const occurredAt = new Date('2026-09-23T12:00:00.000Z')
@@ -68,7 +73,7 @@ test('replays a valid persisted event sequence', () => {
 })
 
 test('rejects event types the aggregate does not understand', () => {
-  expect(() => Ship.replay(Ship.uninitialized(), [new UnitTestCreated('123')])).toThrow(
+  expect(() => Ship.replay(Ship.uninitialized(), [new UnknownShipEvent('123')])).toThrow(
     InvalidShipHistory
   )
 })

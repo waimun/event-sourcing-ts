@@ -9,13 +9,18 @@ import {
   InvalidExpectedVersion
 } from './errors/event-journal'
 
+interface StoredEvent {
+  readonly type: string
+  readonly payload: string
+}
+
 export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   readonly name: string
-  private readonly entries: Map<string, readonly string[]>
+  private readonly entries: Map<string, readonly StoredEvent[]>
 
   constructor(name: Name) {
     this.name = name.value
-    this.entries = new Map<string, readonly string[]>()
+    this.entries = new Map<string, readonly StoredEvent[]>()
   }
 
   async append(id: string, expectedVersion: number, events: readonly DomainEvent[]): Promise<void> {
@@ -29,23 +34,19 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
     if (current.length !== expectedVersion)
       throw new JournalVersionConflict(id, expectedVersion, current.length)
 
-    const serialized = events.map((event) =>
-      eventPayloadHandler.byType(event.type).eventToJson(event)
+    const stored = events.map((event) =>
+      Object.freeze({
+        type: event.type,
+        payload: eventPayloadHandler.byType(event.type).eventToJson(event)
+      })
     )
-    this.entries.set(id, Object.freeze([...current, ...serialized]))
+    this.entries.set(id, Object.freeze([...current, ...stored]))
   }
 
   async eventsByAggregate(id: string): Promise<EventStream<DomainEvent>> {
-    const serialized = this.entries.get(id) ?? []
+    const stored = this.entries.get(id) ?? []
     const events = Object.freeze(
-      serialized.map((payload) => {
-        const parsed: unknown = JSON.parse(payload)
-        const type =
-          typeof parsed === 'object' && parsed !== null && 'type' in parsed
-            ? parsed.type
-            : undefined
-        return eventPayloadHandler.byType(String(type)).eventFromJson(payload)
-      })
+      stored.map(({ type, payload }) => eventPayloadHandler.byType(type).eventFromJson(payload))
     )
     return Object.freeze({ events, version: events.length })
   }
