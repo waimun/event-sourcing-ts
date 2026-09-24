@@ -4,20 +4,22 @@ import type { ShipArrived } from './events/ship-arrived'
 
 export class Cargo {
   readonly name: string
-  private _hasBeenInCanada: boolean = false
+  readonly #hasBeenInCanada: boolean
 
-  constructor(name: Name) {
+  constructor(name: Name, hasBeenInCanada: boolean = false) {
     this.name = name.value
+    this.#hasBeenInCanada = hasBeenInCanada
+    Object.freeze(this)
   }
 
   get hasBeenInCanada(): boolean {
-    return this._hasBeenInCanada
+    return this.#hasBeenInCanada
   }
 
   static handleArrival(current: Cargo, event: ShipArrived): Cargo {
-    const nextState = new Cargo(new Name(current.name))
-    nextState._hasBeenInCanada = current.hasBeenInCanada
-    if (EnumCountry.CANADA === event.port.country) nextState._hasBeenInCanada = true
-    return nextState
+    return new Cargo(
+      new Name(current.name),
+      current.hasBeenInCanada || EnumCountry.CANADA === event.port.country
+    )
   }
 }
