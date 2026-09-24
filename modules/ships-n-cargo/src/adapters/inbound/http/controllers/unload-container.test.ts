@@ -87,12 +87,12 @@ test('cannot find container to unload', async () => {
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const registerShipController = new RegisterShipController(registerShipUseCase)
-  const response1 = await registerShipController.register({
+  const registrationResponse = await registerShipController.register({
     id: 'abc',
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   })
-  expect(response1.status).toEqual(201)
+  expect(registrationResponse.status).toEqual(201)
 
   const unloadContainerUseCase = new UnloadContainerUseCase(journal)
   const unloadContainerController = new UnloadContainerController(unloadContainerUseCase)
@@ -103,17 +103,17 @@ test('cannot find container to unload', async () => {
   expect(response.error).toEqual(new ContainerNotFound(request.containerId).message)
 })
 
-test('valid request', async () => {
+test('unloads an onboard container from a ship at port', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const registerShipController = new RegisterShipController(registerShipUseCase)
-  const response1 = await registerShipController.register({
+  const registrationResponse = await registerShipController.register({
     id: 'abc',
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   })
-  expect(response1.status).toEqual(201)
+  expect(registrationResponse.status).toEqual(201)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const loadContainerController = new LoadContainerController(loadContainerUseCase)
@@ -122,13 +122,13 @@ test('valid request', async () => {
     containerId: 'container-1',
     description: 'Enterprise Architecture'
   }
-  const response2 = await loadContainerController.loadContainer(request)
-  expect(response2.status).toEqual(200)
+  const loadResponse = await loadContainerController.loadContainer(request)
+  expect(loadResponse.status).toEqual(200)
 
   const unloadContainerUseCase = new UnloadContainerUseCase(journal)
   const unloadContainerController = new UnloadContainerController(unloadContainerUseCase)
-  const response3 = await unloadContainerController.unloadContainer(request)
-  expect(response3.status).toEqual(200)
+  const unloadResponse = await unloadContainerController.unloadContainer(request)
+  expect(unloadResponse.status).toEqual(200)
 })
 
 test('cannot unload a container while the ship is at sea', async () => {

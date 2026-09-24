@@ -56,26 +56,26 @@ test('cannot find container to unload', async () => {
   })
 })
 
-test('valid request', async () => {
+test('appends a container unload after loading', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
   const id = new Id('abc')
   await registerShipUseCase.register(new Name('Thomas Jefferson'), id, initialPort)
-  const events1 = (await journal.eventsByAggregate(id.value)).events
-  expect(events1.length).toEqual(1)
+  const eventsAfterRegistration = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterRegistration).toHaveLength(1)
 
   const loadContainerUseCase = new LoadContainerUseCase(journal)
   const containerId = new Id('container-1')
   await loadContainerUseCase.load(id, containerId, new Name('Cloud Architecture'))
-  const events2 = (await journal.eventsByAggregate(id.value)).events
-  expect(events2.length).toEqual(2)
+  const eventsAfterLoad = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterLoad).toHaveLength(2)
 
   const unloadContainerUseCase = new UnloadContainerUseCase(journal)
   const result = await unloadContainerUseCase.unload(id, containerId)
   expect(result).toEqual({ ok: true, value: undefined })
-  const events3 = (await journal.eventsByAggregate(id.value)).events
-  expect(events3.length).toEqual(3)
+  const eventsAfterUnload = (await journal.eventsByAggregate(id.value)).events
+  expect(eventsAfterUnload).toHaveLength(3)
 })
 
 test('rechecks container after a concurrent unload wins', async () => {

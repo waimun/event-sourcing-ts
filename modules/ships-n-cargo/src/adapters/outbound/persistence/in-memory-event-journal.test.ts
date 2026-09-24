@@ -38,15 +38,15 @@ test('missing streams start at version zero', async () => {
 
 test('multi-event append advances one stream by consecutive versions', async () => {
   const journal = makeJournal()
-  const events = [registration('123'), arrival('123')]
+  const initialEvents = [registration('123'), arrival('123')]
 
-  await journal.append('123', 0, events)
-  expect(await journal.eventsByAggregate('123')).toEqual({ events, version: 2 })
+  await journal.append('123', 0, initialEvents)
+  expect(await journal.eventsByAggregate('123')).toEqual({ events: initialEvents, version: 2 })
 
-  const next = arrival('123')
-  await journal.append('123', 2, [next])
+  const subsequentArrival = arrival('123')
+  await journal.append('123', 2, [subsequentArrival])
   expect(await journal.eventsByAggregate('123')).toEqual({
-    events: [...events, next],
+    events: [...initialEvents, subsequentArrival],
     version: 3
   })
 })
@@ -61,14 +61,17 @@ test('different aggregates have independent versions', async () => {
 
 test('stale append rejects with actual version and leaves stream unchanged', async () => {
   const journal = makeJournal()
-  const first = registration('123')
-  await journal.append('123', 0, [first])
+  const registrationEvent = registration('123')
+  await journal.append('123', 0, [registrationEvent])
 
   await expect(journal.append('123', 0, [arrival('123'), arrival('123')])).rejects.toMatchObject({
     code: 'JOURNAL_VERSION_CONFLICT',
     meta: { aggregateId: '123', expectedVersion: 0, actualVersion: 1 }
   } satisfies Partial<JournalVersionConflict>)
-  expect(await journal.eventsByAggregate('123')).toEqual({ events: [first], version: 1 })
+  expect(await journal.eventsByAggregate('123')).toEqual({
+    events: [registrationEvent],
+    version: 1
+  })
 })
 
 test('rejects empty appends without changing the version', async () => {
@@ -98,16 +101,16 @@ test('rejects invalid expected versions', async () => {
 
 test('retains serialized snapshots and returns immutable event views', async () => {
   const journal = makeJournal()
-  const first = registration('123')
-  await journal.append('123', 0, [first])
-  const read = await journal.eventsByAggregate('123')
+  const registrationEvent = registration('123')
+  await journal.append('123', 0, [registrationEvent])
+  const firstRead = await journal.eventsByAggregate('123')
   const secondRead = await journal.eventsByAggregate('123')
 
-  expect(read.events[0]).not.toBe(first)
-  expect(secondRead.events[0]).not.toBe(read.events[0])
-  expect(Object.isFrozen(read)).toBe(true)
-  expect(Object.isFrozen(read.events)).toBe(true)
-  expect(Object.isFrozen(read.events[0])).toBe(true)
-  expect(() => (read.events as DomainEvent[]).push(arrival('123'))).toThrow(TypeError)
-  expect(secondRead).toEqual({ events: [first], version: 1 })
+  expect(firstRead.events[0]).not.toBe(registrationEvent)
+  expect(secondRead.events[0]).not.toBe(firstRead.events[0])
+  expect(Object.isFrozen(firstRead)).toBe(true)
+  expect(Object.isFrozen(firstRead.events)).toBe(true)
+  expect(Object.isFrozen(firstRead.events[0])).toBe(true)
+  expect(() => (firstRead.events as DomainEvent[]).push(arrival('123'))).toThrow(TypeError)
+  expect(secondRead).toEqual({ events: [registrationEvent], version: 1 })
 })

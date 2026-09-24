@@ -1,6 +1,5 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
-import type { RegisterShipDto } from '../../../../application/use-cases/register-ship/register-ship-dto'
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { ShipNotAtPort } from '../../../../domain/errors/ship'
@@ -15,60 +14,47 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
+const registerShipAtKingston = async (journal: InMemoryEventJournal) => {
+  const response = await new RegisterShipController(new RegisterShipUseCase(journal)).register({
+    id: 'abc',
+    name: 'King Roy',
+    port: { name: 'Kingston', country: 'US' }
+  })
+  expect(response.status).toEqual(201)
+}
+
 test('construct class object', () => {
   const useCase = new SailShipUseCase(new InMemoryEventJournal(new Name('test-journal')))
   expect(new SailShipController(useCase)).toBeTruthy()
 })
 
-test('sail with valid request', async () => {
+test('departs from its registered port', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
+  await registerShipAtKingston(journal)
 
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
-    id: 'abc',
-    name: 'King Roy',
-    port: { name: 'Kingston', country: 'US' }
-  }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
-  const controller2 = new SailShipController(new SailShipUseCase(journal))
-  expect((await controller2.sail({ id: 'abc' })).status).toEqual(200)
+  const departureResponse = await new SailShipController(new SailShipUseCase(journal)).sail({
+    id: 'abc'
+  })
+  expect(departureResponse.status).toEqual(200)
 })
 
 test('invalid id', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
-    id: 'abc',
-    name: 'King Roy',
-    port: { name: 'Kingston', country: 'US' }
-  }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
-  const controller3 = new SailShipController(new SailShipUseCase(journal))
-  const response3 = await controller3.sail({ id: 'a!c' })
-  expect(response3.status).toEqual(400)
-  expect(response3.error).toEqual(new IdNotAllowed('a!c').message)
+  const response = await new SailShipController(new SailShipUseCase(journal)).sail({ id: 'a!c' })
+  expect(response.status).toEqual(400)
+  expect(response.error).toEqual(new IdNotAllowed('a!c').message)
 })
 
 test('ignores a caller-supplied event time', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
+  await registerShipAtKingston(journal)
 
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
+  const response = await new SailShipController(new SailShipUseCase(journal)).sail({
     id: 'abc',
-    name: 'King Roy',
-    port: { name: 'Kingston', country: 'US' }
-  }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
-  const controller3 = new SailShipController(new SailShipUseCase(journal))
-  const response3 = await controller3.sail({ id: 'abc', dateTime: 'not-a-date' } as never)
-  expect(response3.status).toEqual(200)
+    dateTime: 'not-a-date'
+  } as never)
+  expect(response.status).toEqual(200)
 })
 
 test('hides an unexpected request parsing error', async () => {
@@ -93,23 +79,15 @@ test('ship does not exist', async () => {
 
 test('cannot depart twice without arriving', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
+  await registerShipAtKingston(journal)
 
-  const useCase1 = new RegisterShipUseCase(journal)
-  const controller1 = new RegisterShipController(useCase1)
-  const request1: RegisterShipDto = {
-    id: 'abc',
-    name: 'King Roy',
-    port: { name: 'Kingston', country: 'US' }
-  }
-  const response1 = await controller1.register(request1)
-  expect(response1.status).toEqual(201)
+  const departureController = new SailShipController(new SailShipUseCase(journal))
+  const initialDepartureResponse = await departureController.sail({ id: 'abc' })
+  expect(initialDepartureResponse.status).toEqual(200)
 
-  const useCase2 = new SailShipUseCase(journal)
-  const controller2 = new SailShipController(useCase2)
-  expect((await controller2.sail({ id: 'abc' })).status).toEqual(200)
-  const response2 = await controller2.sail({ id: 'abc' })
-  expect(response2.status).toEqual(409)
-  expect(response2.error).toEqual(new ShipNotAtPort().message)
+  const repeatedDepartureResponse = await departureController.sail({ id: 'abc' })
+  expect(repeatedDepartureResponse.status).toEqual(409)
+  expect(repeatedDepartureResponse.error).toEqual(new ShipNotAtPort().message)
 })
 
 test('hides an unexpected application result', async () => {
