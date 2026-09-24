@@ -57,18 +57,3 @@ test('command created with port', () => {
   expect(command.port.name).toEqual('test')
   expect(command.port.country).toEqual(EnumCountry.UNITED_STATES)
 })
-
-test('command created with specified date', () => {
-  const port = new Port(new PortName('test'), new Country('US'))
-  const currentDate = new Date()
-  const command = new DockShip(new Id('king-1'), port, currentDate)
-
-  expect(command.dateTime).toEqual(currentDate)
-})
-
-test('command created by omitting date', () => {
-  const port = new Port(new PortName('test'), new Country('US'))
-  const command = new DockShip(new Id('king-1'), port)
-
-  expect(command.dateTime).toBeTruthy()
-})

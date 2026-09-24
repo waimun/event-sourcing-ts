@@ -132,14 +132,14 @@ export class Ship extends SourcedAggregate {
     if (state === undefined) throw new ShipMustBeRegisteredFirst()
     if (state.id !== command.id) throw new IdsMismatch()
     if (!(state.location instanceof AtPort)) throw new ShipNotAtPort()
-    return new ShipDeparted(command.id, command.dateTime)
+    return new ShipDeparted(command.id)
   }
 
   static arrive(command: DockShip, state?: Ship): ShipArrived {
     if (state === undefined) throw new ShipMustBeRegisteredFirst()
     if (state.id !== command.id) throw new IdsMismatch()
     if (!(state.location instanceof AtSea)) throw new ShipNotAtSea()
-    return new ShipArrived(command.id, command.port, command.dateTime)
+    return new ShipArrived(command.id, command.port)
   }
 
   static loadContainer(command: LoadContainer, state?: Ship): ContainerLoaded {
@@ -150,7 +150,7 @@ export class Ship extends SourcedAggregate {
       (container) => container.containerId === command.container.containerId
     )
     if (found !== undefined) throw new ContainerAlreadyLoaded(command.container.containerId)
-    return new ContainerLoaded(command.id, command.container, command.dateTime)
+    return new ContainerLoaded(command.id, command.container)
   }
 
   static unloadContainer(command: UnloadContainer, state?: Ship): ContainerUnloaded {
@@ -161,7 +161,7 @@ export class Ship extends SourcedAggregate {
       (container) => container.containerId === command.containerId
     )
     if (found === undefined) throw new ContainerNotFound(command.containerId)
-    return new ContainerUnloaded(command.id, found, command.dateTime)
+    return new ContainerUnloaded(command.id, found)
   }
 
   static handleShipRegistered(event: ShipRegistered): Ship {

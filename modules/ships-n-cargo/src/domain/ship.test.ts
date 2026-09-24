@@ -1,4 +1,4 @@
-import { expect, test } from 'vitest'
+import { afterEach, expect, test, vi } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
 import { DockShip } from './commands/dock-ship'
@@ -30,6 +30,10 @@ const registered = (id = '123') => Ship.apply(undefined, register(id))
 const departed = (ship = registered()) =>
   Ship.apply(ship, Ship.depart(new SailShip(new Id(ship.id)), ship))
 
+afterEach(() => {
+  vi.useRealTimers()
+})
+
 test('registers a ship at its known initial port', () => {
   const event = register()
   const ship = Ship.apply(undefined, event)
@@ -37,6 +41,30 @@ test('registers a ship at its known initial port', () => {
   expect(event.type).toBe('ShipRegistered')
   expect(event.port).toEqual(port())
   expect(ship.location).toEqual(new AtPort(port()))
+})
+
+test('normal commands assign both event times from the server clock', () => {
+  vi.useFakeTimers()
+  const serverTime = new Date('2026-09-24T12:00:00.000Z')
+  vi.setSystemTime(serverTime)
+
+  const registration = register()
+  const atPort = Ship.apply(undefined, registration)
+  const container = new Container(new Id('container-1'), new Name('Refactoring Book'))
+  const loading = Ship.loadContainer(new LoadContainer(new Id(atPort.id), container), atPort)
+  const loaded = Ship.apply(atPort, loading)
+  const unloading = Ship.unloadContainer(
+    new UnloadContainer(new Id(loaded.id), new Id(container.containerId)),
+    loaded
+  )
+  const departedEvent = Ship.depart(new SailShip(new Id(atPort.id)), atPort)
+  const atSea = Ship.apply(atPort, departedEvent)
+  const arrival = Ship.arrive(new DockShip(new Id(atSea.id), port('Boston')), atSea)
+
+  for (const event of [registration, loading, unloading, departedEvent, arrival]) {
+    expect(event.occurredAt).toEqual(serverTime)
+    expect(event.recordedAt).toEqual(serverTime)
+  }
 })
 
 test('rejects registering an already registered ship', () => {

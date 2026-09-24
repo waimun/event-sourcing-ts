@@ -1,7 +1,6 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { InvalidCountry } from '../../../../domain/errors/dock-ship'
-import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
@@ -114,7 +113,7 @@ test('port country is invalid', async () => {
   })
 })
 
-test('dateTime is invalid', async () => {
+test('caller-supplied event time is not part of the command', async () => {
   req.body = {
     id: 'abc',
     port: { name: 'Henderson', country: 'us' },
@@ -123,12 +122,7 @@ test('dateTime is invalid', async () => {
 
   await dockShip(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenCalledWith(400)
-  expect(res.json).toHaveBeenCalledWith({
-    status: 400,
-    error: new InvalidDate().message,
-    dateTime: expect.any(Date)
-  })
+  expect(res.status).toHaveBeenCalledWith(404)
 })
 
 test('valid request', async () => {

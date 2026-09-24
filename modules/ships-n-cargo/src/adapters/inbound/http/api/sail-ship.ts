@@ -6,8 +6,7 @@ export const sailShipHandler =
   (controller: SailShipController) =>
   async (req: Request, res: Response): Promise<void> => {
     const response = await controller.sail({
-      id: trim(req.body.id),
-      dateTime: req.body.dateTime
+      id: trim(req.body.id)
     })
 
     res.status(response.status).json(response)

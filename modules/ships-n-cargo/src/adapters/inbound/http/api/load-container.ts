@@ -8,8 +8,7 @@ export const loadContainerHandler =
     const response = await controller.loadContainer({
       id: trim(req.body.id),
       containerId: trim(req.body.containerId),
-      description: trim(req.body.description),
-      dateTime: req.body.dateTime
+      description: trim(req.body.description)
     })
 
     res.status(response.status).json(response)

@@ -4,7 +4,6 @@ import { RegisterShipUseCase } from '../../../../application/use-cases/register-
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
 import { ContainerNotFound, ShipNotAtPort } from '../../../../domain/errors/ship'
-import { InvalidDate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
@@ -64,14 +63,13 @@ test('invalid container id', async () => {
   expect(response.error).toEqual(new IdNotAllowed(request.containerId, 'Container ID').message)
 })
 
-test('invalid date', async () => {
+test('ignores a caller-supplied event time', async () => {
   const useCase = new UnloadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new UnloadContainerController(useCase)
 
   const request = { id: 'abc', containerId: 'container-1', dateTime: 'not-a-date' }
   const response = await controller.unloadContainer(request)
-  expect(response.status).toEqual(400)
-  expect(response.error).toEqual(new InvalidDate().message)
+  expect(response.status).toEqual(404)
 })
 
 test('hides an unexpected request parsing error', async () => {

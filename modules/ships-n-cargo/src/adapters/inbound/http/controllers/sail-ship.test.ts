@@ -4,7 +4,6 @@ import type { RegisterShipDto } from '../../../../application/use-cases/register
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { ShipNotAtPort } from '../../../../domain/errors/ship'
-import { InvalidDate } from '../../../../shared/domain/date'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
@@ -55,7 +54,7 @@ test('invalid id', async () => {
   expect(response3.error).toEqual(new IdNotAllowed('a!c').message)
 })
 
-test('invalid date', async () => {
+test('ignores a caller-supplied event time', async () => {
   const journal = new InMemoryEventJournal(new Name('test-journal'))
 
   const useCase1 = new RegisterShipUseCase(journal)
@@ -68,9 +67,8 @@ test('invalid date', async () => {
   const response1 = await controller1.register(request1)
   expect(response1.status).toEqual(201)
   const controller3 = new SailShipController(new SailShipUseCase(journal))
-  const response3 = await controller3.sail({ id: 'abc', dateTime: 'not-a-date' })
-  expect(response3.status).toEqual(400)
-  expect(response3.error).toEqual(new InvalidDate().message)
+  const response3 = await controller3.sail({ id: 'abc', dateTime: 'not-a-date' } as never)
+  expect(response3.status).toEqual(200)
 })
 
 test('hides an unexpected request parsing error', async () => {

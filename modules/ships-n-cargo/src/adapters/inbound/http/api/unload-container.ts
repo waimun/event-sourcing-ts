@@ -7,8 +7,7 @@ export const unloadContainerHandler =
   async (req: Request, res: Response): Promise<void> => {
     const response = await controller.unloadContainer({
       id: trim(req.body.id),
-      containerId: trim(req.body.containerId),
-      dateTime: req.body.dateTime
+      containerId: trim(req.body.containerId)
     })
 
     res.status(response.status).json(response)

@@ -1,6 +1,5 @@
 import type { LoadContainerDto } from '../../../../application/use-cases/load-container/load-container-dto'
 import type { LoadContainerUseCase } from '../../../../application/use-cases/load-container/use-case'
-import { ISODate } from '../../../../shared/domain/date'
 import { Id } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { ExpectedError } from '../../../../shared/error'
@@ -24,12 +23,7 @@ export class LoadContainerController {
     }
 
     try {
-      const result = await this.useCase.load(
-        parsed.id,
-        parsed.containerId,
-        parsed.description,
-        parsed.dateTime
-      )
+      const result = await this.useCase.load(parsed.id, parsed.containerId, parsed.description)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
@@ -54,7 +48,6 @@ const parseRequest = (request: LoadContainerDto) => {
   return {
     id: new Id(request.id),
     containerId: new Id(request.containerId, 'Container ID'),
-    description: new Name(request.description, 'Container description'),
-    dateTime: new ISODate(request.dateTime)
+    description: new Name(request.description, 'Container description')
   }
 }

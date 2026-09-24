@@ -3,12 +3,10 @@ import type { Container } from '../container'
 
 export class LoadContainer {
   readonly id: string
-  readonly dateTime: Date
   readonly container: Container
 
-  constructor(id: Id, container: Container, dateTime: Date = new Date()) {
+  constructor(id: Id, container: Container) {
     this.id = id.value
-    this.dateTime = dateTime
     this.container = container
   }
 }

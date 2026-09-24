@@ -1,6 +1,5 @@
 import type { UnloadContainerDto } from '../../../../application/use-cases/unload-container/unload-container-dto'
 import type { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
-import { ISODate } from '../../../../shared/domain/date'
 import { Id } from '../../../../shared/domain/id'
 import { ExpectedError } from '../../../../shared/error'
 import { errorResponse, expectedErrorResponse } from './error-response'
@@ -23,7 +22,7 @@ export class UnloadContainerController {
     }
 
     try {
-      const result = await this.useCase.unload(parsed.id, parsed.containerId, parsed.dateTime)
+      const result = await this.useCase.unload(parsed.id, parsed.containerId)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
@@ -47,7 +46,6 @@ export class UnloadContainerController {
 const parseRequest = (request: UnloadContainerDto) => {
   return {
     id: new Id(request.id),
-    containerId: new Id(request.containerId, 'Container ID'),
-    dateTime: new ISODate(request.dateTime)
+    containerId: new Id(request.containerId, 'Container ID')
   }
 }

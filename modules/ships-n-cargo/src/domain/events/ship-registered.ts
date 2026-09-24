@@ -10,8 +10,8 @@ export class ShipRegistered extends BaseDomainEvent<typeof EVENT_TYPE> {
   readonly name: string
   readonly port: Port
 
-  constructor(aggregateId: string, name: string, port: Port, dateTime?: Date, recordedAt?: Date) {
-    super(ShipRegistered.eventType, aggregateId, dateTime, recordedAt)
+  constructor(aggregateId: string, name: string, port: Port, occurredAt?: Date, recordedAt?: Date) {
+    super(ShipRegistered.eventType, aggregateId, occurredAt, recordedAt)
     this.name = name
     this.port = new Port(new PortName(port.name), new Country(port.country))
     Object.freeze(this)
