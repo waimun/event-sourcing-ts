@@ -26,11 +26,12 @@ export class IdsMismatch extends InvariantError {
 
 export class ShipNotAtPort extends DomainError {
   declare readonly code: 'SHIP_NOT_AT_PORT'
-  constructor() {
+  constructor(operation: string = 'depart') {
     super({
       code: 'SHIP_NOT_AT_PORT',
       kind: 'conflict',
-      message: 'Ship must be at a port to depart'
+      message: `Ship must be at a port to ${operation}`,
+      meta: { operation }
     })
   }
 }
@@ -46,26 +47,26 @@ export class ShipNotAtSea extends DomainError {
   }
 }
 
-export class CargoAlreadyLoaded extends DomainError {
-  declare readonly code: 'CARGO_ALREADY_LOADED'
-  constructor(cargoName: string) {
+export class ContainerAlreadyLoaded extends DomainError {
+  declare readonly code: 'CONTAINER_ALREADY_LOADED'
+  constructor(containerId: string) {
     super({
-      code: 'CARGO_ALREADY_LOADED',
+      code: 'CONTAINER_ALREADY_LOADED',
       kind: 'conflict',
-      message: `Cargo '${cargoName}' is already loaded`,
-      meta: { cargoName }
+      message: `Container '${containerId}' is already loaded`,
+      meta: { containerId }
     })
   }
 }
 
-export class CargoNotFound extends DomainError {
-  declare readonly code: 'CARGO_NOT_FOUND'
-  constructor(cargoName: string) {
+export class ContainerNotFound extends DomainError {
+  declare readonly code: 'CONTAINER_NOT_FOUND'
+  constructor(containerId: string) {
     super({
-      code: 'CARGO_NOT_FOUND',
+      code: 'CONTAINER_NOT_FOUND',
       kind: 'not-found',
-      message: `Cannot find cargo '${cargoName}'`,
-      meta: { cargoName }
+      message: `Cannot find container '${containerId}'`,
+      meta: { containerId }
     })
   }
 }

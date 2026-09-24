@@ -1,7 +1,7 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
-import { CargoAlreadyLoaded } from '../../../domain/errors/ship'
+import { ContainerAlreadyLoaded, ShipNotAtPort } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
@@ -12,7 +12,8 @@ import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { RegisterShipUseCase } from '../register-ship/use-case'
-import { LoadCargoUseCase } from './use-case'
+import { SailShipUseCase } from '../sail-ship/use-case'
+import { LoadContainerUseCase } from './use-case'
 
 afterEach(() => {
   vi.restoreAllMocks()
@@ -21,23 +22,25 @@ afterEach(() => {
 const initialPort = new Port(new PortName('Kingston'), new Country('US'))
 
 test('construct class object', () => {
-  const useCase = new LoadCargoUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   expect(useCase).toBeTruthy()
 })
 
 test('ship id not found', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
-  const useCase = new LoadCargoUseCase(journal)
+  const useCase = new LoadContainerUseCase(journal)
   const id = new Id('abc')
 
-  expect(await useCase.load(id, new Name('Refactoring Book'))).toMatchObject({
-    ok: false,
-    error: new ShipNotFound(id.value)
-  })
+  expect(await useCase.load(id, new Id('container-1'), new Name('Refactoring Book'))).toMatchObject(
+    {
+      ok: false,
+      error: new ShipNotFound(id.value)
+    }
+  )
 })
 
-test('cargo already loaded', async () => {
+test('container already loaded', async () => {
   const journal: EventJournal<string, DomainEvent> = new InMemoryEventJournal(new Name('testing'))
 
   const registerShipUseCase = new RegisterShipUseCase(journal)
@@ -46,23 +49,21 @@ test('cargo already loaded', async () => {
   const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
-  const loadCargoUseCase = new LoadCargoUseCase(journal)
-  const cargoName = new Name('Refactoring Book')
-  await loadCargoUseCase.load(id, cargoName)
+  const loadContainerUseCase = new LoadContainerUseCase(journal)
+  const containerId = new Id('container-1')
+  const description = new Name('Refactoring Book')
+  await loadContainerUseCase.load(id, containerId, description)
   const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
 
-  // try to load the same cargo twice; cargo name is an unique identifier
-  expect(await loadCargoUseCase.load(id, cargoName)).toMatchObject({
+  expect(await loadContainerUseCase.load(id, containerId, description)).toMatchObject({
     ok: false,
-    error: new CargoAlreadyLoaded(cargoName.value)
+    error: new ContainerAlreadyLoaded(containerId.value)
   })
 
-  // try to load the same cargo twice; cargo name is case-insensitive
-  expect(await loadCargoUseCase.load(id, new Name('REFACTORING Book'))).toMatchObject({
-    ok: false,
-    error: new CargoAlreadyLoaded(new Name('REFACTORING Book').value)
-  })
+  expect(
+    await loadContainerUseCase.load(id, new Id('container-2'), new Name('Refactoring Book'))
+  ).toEqual({ ok: true, value: undefined })
 })
 
 test('valid request', async () => {
@@ -74,14 +75,18 @@ test('valid request', async () => {
   const events1 = (await journal.eventsByAggregate(id.value)).events
   expect(events1.length).toEqual(1)
 
-  const loadCargoUseCase = new LoadCargoUseCase(journal)
-  const result = await loadCargoUseCase.load(id, new Name('Refactoring Book'))
+  const loadContainerUseCase = new LoadContainerUseCase(journal)
+  const result = await loadContainerUseCase.load(
+    id,
+    new Id('container-1'),
+    new Name('Refactoring Book')
+  )
   expect(result).toEqual({ ok: true, value: undefined })
   const events2 = (await journal.eventsByAggregate(id.value)).events
   expect(events2.length).toEqual(2)
 })
 
-test('rechecks cargo after a concurrent load wins', async () => {
+test('rechecks container after a concurrent load wins', async () => {
   const journal = new InMemoryEventJournal(new Name('testing'))
   const id = new Id('abc')
   await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
@@ -91,10 +96,12 @@ test('rechecks cargo after a concurrent load wins', async () => {
     throw new JournalVersionConflict(aggregateId, version, version + events.length)
   })
 
-  const cargoName = new Name('Refactoring Book')
-  expect(await new LoadCargoUseCase(journal).load(id, cargoName)).toMatchObject({
+  const containerId = new Id('container-1')
+  expect(
+    await new LoadContainerUseCase(journal).load(id, containerId, new Name('Refactoring Book'))
+  ).toMatchObject({
     ok: false,
-    error: new CargoAlreadyLoaded(cargoName.value)
+    error: new ContainerAlreadyLoaded(containerId.value)
   })
   expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(2)
 })
@@ -106,9 +113,9 @@ test('does not turn an exceptional journal failure into a result', async () => {
   const failure = new Error('journal failed')
   vi.spyOn(journal, 'append').mockRejectedValue(failure)
 
-  await expect(new LoadCargoUseCase(journal).load(id, new Name('Refactoring Book'))).rejects.toBe(
-    failure
-  )
+  await expect(
+    new LoadContainerUseCase(journal).load(id, new Id('container-1'), new Name('Refactoring Book'))
+  ).rejects.toBe(failure)
 })
 
 test('does not turn an unexpected domain failure into a result', async () => {
@@ -116,13 +123,28 @@ test('does not turn an unexpected domain failure into a result', async () => {
   const id = new Id('abc')
   await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
   const failure = new Error('unexpected domain failure')
-  vi.spyOn(Ship, 'loadCargo').mockImplementation(() => {
+  vi.spyOn(Ship, 'loadContainer').mockImplementation(() => {
     throw failure
   })
   const append = vi.spyOn(journal, 'append')
 
-  await expect(new LoadCargoUseCase(journal).load(id, new Name('Refactoring Book'))).rejects.toBe(
-    failure
-  )
+  await expect(
+    new LoadContainerUseCase(journal).load(id, new Id('container-1'), new Name('Refactoring Book'))
+  ).rejects.toBe(failure)
   expect(append).not.toHaveBeenCalled()
+})
+
+test('rejects loading while the ship is at sea', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
+  await new SailShipUseCase(journal).sail(id)
+
+  expect(
+    await new LoadContainerUseCase(journal).load(
+      id,
+      new Id('container-1'),
+      new Name('Refactoring Book')
+    )
+  ).toMatchObject({ ok: false, error: new ShipNotAtPort('load a container') })
 })

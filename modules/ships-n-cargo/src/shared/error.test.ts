@@ -8,8 +8,8 @@ import {
   EventSerializerTypeMismatch
 } from '../domain/errors/event-payload-handler'
 import {
-  CargoAlreadyLoaded,
-  CargoNotFound,
+  ContainerAlreadyLoaded,
+  ContainerNotFound,
   IdsMismatch,
   ShipMustBeRegisteredFirst,
   ShipNotAtPort,
@@ -84,9 +84,9 @@ test.each([
   [new InvalidDate(), 'INVALID_DATE', 'validation'],
   [new InvalidCountry('ZZ'), 'INVALID_COUNTRY', 'validation'],
   [new ShipNotFound('ship-1'), 'SHIP_NOT_FOUND', 'not-found'],
-  [new CargoNotFound('cargo'), 'CARGO_NOT_FOUND', 'not-found'],
+  [new ContainerNotFound('container'), 'CONTAINER_NOT_FOUND', 'not-found'],
   [new IdAlreadyExists('ship-1'), 'SHIP_ALREADY_EXISTS', 'conflict'],
-  [new CargoAlreadyLoaded('cargo'), 'CARGO_ALREADY_LOADED', 'conflict'],
+  [new ContainerAlreadyLoaded('container'), 'CONTAINER_ALREADY_LOADED', 'conflict'],
   [new ShipNotAtPort(), 'SHIP_NOT_AT_PORT', 'conflict'],
   [new ShipNotAtSea(), 'SHIP_NOT_AT_SEA', 'conflict'],
   [new UnregisteredShipRequiredToRegister(), 'SHIP_ALREADY_REGISTERED', 'invariant'],

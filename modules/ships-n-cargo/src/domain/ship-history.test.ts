@@ -1,10 +1,11 @@
 import { expect, test } from 'vitest'
+import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
-import { Cargo } from './cargo'
+import { Container } from './container'
 import { Country } from './country'
 import { InvalidShipHistory } from './errors/ship'
-import { CargoLoaded } from './events/cargo-loaded'
-import { CargoUnloaded } from './events/cargo-unloaded'
+import { ContainerLoaded } from './events/container-loaded'
+import { ContainerUnloaded } from './events/container-unloaded'
 import { BaseDomainEvent, type DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipDeparted } from './events/ship-departed'
@@ -15,7 +16,8 @@ import { Ship } from './ship'
 import { AtPort, AtSea } from './ship-location'
 
 const port = (name = 'Kingston') => new Port(new PortName(name), new Country('US'))
-const cargo = (name = 'Refactoring Book') => new Cargo(new Name(name))
+const container = (containerId = 'container-1', description = 'Refactoring Book') =>
+  new Container(new Id(containerId), new Name(description))
 const registered = (id = '123') => new ShipRegistered(id, 'King Roy', port())
 const replay = (events: readonly DomainEvent[]) => {
   const ship = Ship.replay(events)
@@ -59,26 +61,28 @@ test('domain events, port payloads, and locations cannot be changed', () => {
   }).toThrow(TypeError)
 })
 
-test('replayed aggregate state exposes an immutable cargo view', () => {
-  const ship = replay([registered(), new CargoLoaded('123', cargo())])
+test('replayed aggregate state exposes an immutable container view', () => {
+  const ship = replay([registered(), new ContainerLoaded('123', container())])
   expect(Object.isFrozen(ship)).toBe(true)
-  expect(Object.isFrozen(ship.cargo)).toBe(true)
-  expect(Object.isFrozen(ship.cargo[0])).toBe(true)
-  expect(() => (ship.cargo as Cargo[]).push(cargo('Domain Driven Design'))).toThrow(TypeError)
+  expect(Object.isFrozen(ship.containers)).toBe(true)
+  expect(Object.isFrozen(ship.containers[0])).toBe(true)
+  expect(() =>
+    (ship.containers as Container[]).push(container('container-2', 'Domain Driven Design'))
+  ).toThrow(TypeError)
 })
 
 test('replays the complete at-port to at-sea lifecycle', () => {
   const events = [
     registered(),
-    new CargoLoaded('123', cargo()),
+    new ContainerLoaded('123', container()),
     new ShipDeparted('123'),
     new ShipArrived('123', port('Boston')),
-    new CargoUnloaded('123', cargo())
+    new ContainerUnloaded('123', container())
   ]
   const ship = replay(events)
 
   expect(ship.location).toEqual(new AtPort(port('Boston')))
-  expect(ship.cargo).toEqual([])
+  expect(ship.containers).toEqual([])
 })
 
 test('an empty history represents an absent ship', () => {
@@ -93,8 +97,8 @@ test.each([
   ShipRegistered.eventType,
   ShipDeparted.eventType,
   ShipArrived.eventType,
-  CargoLoaded.eventType,
-  CargoUnloaded.eventType
+  ContainerLoaded.eventType,
+  ContainerUnloaded.eventType
 ])('rejects a malformed %s payload', (eventType) => {
   expect(() => Ship.replay([malformed(eventType)])).toThrow(InvalidShipHistory)
 })
@@ -102,8 +106,8 @@ test.each([
 test.each([
   new ShipDeparted('123'),
   new ShipArrived('123', port()),
-  new CargoLoaded('123', cargo()),
-  new CargoUnloaded('123', cargo())
+  new ContainerLoaded('123', container()),
+  new ContainerUnloaded('123', container())
 ])('rejects $type before registration', (event) => {
   expect(() => Ship.replay([event])).toThrow(InvalidShipHistory)
 })
@@ -125,15 +129,39 @@ test('rejects movement that breaks the at-port and at-sea cycle', () => {
   expect(atSea.location).toBeInstanceOf(AtSea)
 })
 
-test('rejects duplicate loads and unloading absent cargo', () => {
+test('rejects container events that violate identity or location rules', () => {
   expect(() =>
     Ship.replay([
       registered(),
-      new CargoLoaded('123', cargo()),
-      new CargoLoaded('123', cargo('REFACTORING BOOK'))
+      new ContainerLoaded('123', container()),
+      new ContainerLoaded('123', container('container-1', 'A changed description'))
     ])
   ).toThrow(InvalidShipHistory)
-  expect(() => Ship.replay([registered(), new CargoUnloaded('123', cargo())])).toThrow(
+  expect(() => Ship.replay([registered(), new ContainerUnloaded('123', container())])).toThrow(
     InvalidShipHistory
   )
+  expect(() =>
+    Ship.replay([registered(), new ShipDeparted('123'), new ContainerLoaded('123', container())])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new ContainerLoaded('123', container()),
+      new ShipDeparted('123'),
+      new ContainerUnloaded('123', container())
+    ])
+  ).toThrow(InvalidShipHistory)
+})
+
+test('allows distinct container identities to share a description', () => {
+  const ship = replay([
+    registered(),
+    new ContainerLoaded('123', container('container-1')),
+    new ContainerLoaded('123', container('container-2'))
+  ])
+
+  expect(ship.containers.map(({ containerId }) => containerId)).toEqual([
+    'container-1',
+    'container-2'
+  ])
 })

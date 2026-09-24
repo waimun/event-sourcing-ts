@@ -3,12 +3,12 @@ import type { EventJournal } from '../../../../application/ports/event-journal'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
 import { dockShipHandler } from './dock-ship'
-import { loadCargoHandler } from './load-cargo'
+import { loadContainerHandler } from './load-container'
 import { ping } from './ping'
 import { registerShipHandler } from './register-ship'
 import { createV1Router } from './routes/v1'
 import { sailShipHandler } from './sail-ship'
-import { unloadCargoHandler } from './unload-cargo'
+import { unloadContainerHandler } from './unload-container'
 
 export type ApplicationDependencies = {
   eventJournal: EventJournal<string, DomainEvent>
@@ -57,9 +57,9 @@ export const createApplication = ({
     createV1Router({
       registerShip: registerShipHandler(controllers.registerShip, generateId),
       dockShip: dockShipHandler(controllers.dockShip),
-      loadCargo: loadCargoHandler(controllers.loadCargo),
+      loadContainer: loadContainerHandler(controllers.loadContainer),
       sailShip: sailShipHandler(controllers.sailShip),
-      unloadCargo: unloadCargoHandler(controllers.unloadCargo)
+      unloadContainer: unloadContainerHandler(controllers.unloadContainer)
     })
   )
 
