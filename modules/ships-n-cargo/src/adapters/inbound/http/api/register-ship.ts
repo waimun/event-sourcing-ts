@@ -1,9 +1,9 @@
 import type { Request, Response } from 'express'
 import { trim } from '../../../../shared/utils/text'
-import type { CreateShipController } from '../controllers/create-ship'
+import type { RegisterShipController } from '../controllers/register-ship'
 
-export const createShipHandler =
-  (controller: CreateShipController, generateId: () => string) =>
+export const registerShipHandler =
+  (controller: RegisterShipController, generateId: () => string) =>
   async (req: Request, res: Response): Promise<void> => {
     let id = trim(req.body.id)
     const idNotSpecified = id.length === 0
@@ -12,7 +12,7 @@ export const createShipHandler =
       id = generateId()
     }
 
-    const response = await controller.create({ id, name: req.body.name })
+    const response = await controller.register({ id, name: req.body.name, port: req.body.port })
 
     if (response.status === 201 && idNotSpecified) {
       response.body = { id }

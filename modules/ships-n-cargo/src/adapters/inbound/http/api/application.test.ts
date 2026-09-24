@@ -94,7 +94,7 @@ test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   })
 })
 
-test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+test.each(['/register', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
   'POST /api/v1/ships%s reaches the ship handler',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`, {})
@@ -110,7 +110,7 @@ test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
   }
 )
 
-test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
+test.each(['/register', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
   'POST /api/v1/ships%s without a body returns a JSON validation error',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`)
@@ -127,7 +127,7 @@ test.each(['/create', '/dock', '/sail', '/load-cargo', '/unload-cargo'])(
 )
 
 test('POST with an unsupported body type returns a JSON validation error', async () => {
-  const response = await send('POST', '/api/v1/ships/create', 'hello', 'text/plain')
+  const response = await send('POST', '/api/v1/ships/register', 'hello', 'text/plain')
 
   expect(response).toEqual({
     body: {
@@ -140,7 +140,7 @@ test('POST with an unsupported body type returns a JSON validation error', async
 })
 
 test('malformed JSON request bodies receive a JSON validation error', async () => {
-  const response = await send('POST', '/api/v1/ships/create', '{"name":')
+  const response = await send('POST', '/api/v1/ships/register', '{"name":')
 
   expect(response).toEqual({
     body: {
@@ -155,7 +155,7 @@ test('malformed JSON request bodies receive a JSON validation error', async () =
 test('oversized JSON request bodies retain the parser error response', async () => {
   const response = await send(
     'POST',
-    '/api/v1/ships/create',
+    '/api/v1/ships/register',
     { name: 'x'.repeat(1024 * 100) },
     'application/json',
     false
@@ -165,10 +165,13 @@ test('oversized JSON request bodies retain the parser error response', async () 
   expect(response.body).toEqual(expect.stringContaining('PayloadTooLargeError'))
 })
 
-test('injected dependencies support a deterministic create and dock workflow', async () => {
-  const created = await send('POST', '/api/v1/ships/create', { name: 'King Roy' })
+test('injected dependencies support a deterministic register, sail, and dock workflow', async () => {
+  const registered = await send('POST', '/api/v1/ships/register', {
+    name: 'King Roy',
+    port: { country: 'us', name: 'Kingston' }
+  })
 
-  expect(created).toEqual({
+  expect(registered).toEqual({
     body: {
       body: { id: 'generated-ship-id' },
       dateTime: expect.any(String),
@@ -176,6 +179,9 @@ test('injected dependencies support a deterministic create and dock workflow', a
     },
     status: 201
   })
+
+  const sailed = await send('POST', '/api/v1/ships/sail', { id: 'generated-ship-id' })
+  expect(sailed.status).toBe(200)
 
   const docked = await send('POST', '/api/v1/ships/dock', {
     id: 'generated-ship-id',

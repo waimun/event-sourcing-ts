@@ -1,24 +1,24 @@
-import type { DockShipDto } from '../../../../application/use-cases/dock-ship/dock-ship-dto'
-import type { DockShipUseCase } from '../../../../application/use-cases/dock-ship/use-case'
+import type { RegisterShipDto } from '../../../../application/use-cases/register-ship/register-ship-dto'
+import type { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { Country } from '../../../../domain/country'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
-import { ISODate } from '../../../../shared/domain/date'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id } from '../../../../shared/domain/id'
+import { Name } from '../../../../shared/domain/name'
 import { ExpectedError } from '../../../../shared/error'
 import { isNotObject } from '../../../../shared/utils/object'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 
-export class DockShipController {
-  useCase: DockShipUseCase
+export class RegisterShipController {
+  useCase: RegisterShipUseCase
 
-  constructor(useCase: DockShipUseCase) {
+  constructor(useCase: RegisterShipUseCase) {
     this.useCase = useCase
   }
 
-  async dock(request: DockShipDto): Promise<Response> {
+  async register(request: RegisterShipDto): Promise<Response> {
     let parsed: ReturnType<typeof parseRequest>
     try {
       parsed = parseRequest(request)
@@ -28,11 +28,10 @@ export class DockShipController {
     }
 
     try {
-      const result = await this.useCase.dock(parsed.id, parsed.port, parsed.dateTime)
+      const result = await this.useCase.register(parsed.name, parsed.id, parsed.port)
       if (!result.ok) {
         switch (result.error.code) {
-          case 'SHIP_NOT_FOUND':
-          case 'SHIP_NOT_AT_SEA':
+          case 'SHIP_ALREADY_EXISTS':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
@@ -41,17 +40,17 @@ export class DockShipController {
           }
         }
       }
-      return { status: 200, dateTime: new Date() }
+      return { status: 201, dateTime: new Date() }
     } catch (error) {
       return errorResponse(error, request)
     }
   }
 }
 
-const parseRequest = (request: DockShipDto) => {
+const parseRequest = (request: RegisterShipDto) => {
+  const name = new Name(request.name)
   const id = new Id(request.id)
   if (isNotObject(request.port)) throw new IsRequired('Port')
   const port = new Port(new PortName(request.port.name), new Country(request.port.country))
-  const dateTime = new ISODate(request.dateTime)
-  return { id, port, dateTime }
+  return { name, id, port }
 }

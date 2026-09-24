@@ -10,9 +10,6 @@ export class ShipDepartedSerializer implements EventSerializable<ShipDeparted> {
   }
 
   eventToJson(event: ShipDeparted): string {
-    const payload = JSON.parse(event.asJson())
-    payload.portName = event.port.name
-    payload.portCountry = event.port.country
-    return JSON.stringify(payload)
+    return event.asJson()
   }
 }

@@ -30,7 +30,7 @@ export class UnloadCargoUseCase {
 
       if (events.length === 0) return failure(new ShipNotFound(id.value))
 
-      const ship = Ship.replay(Ship.uninitialized(), events)
+      const ship = Ship.replay(events)
       let cargoUnloaded: ReturnType<typeof Ship.unloadCargo>
       try {
         cargoUnloaded = Ship.unloadCargo(command, ship)

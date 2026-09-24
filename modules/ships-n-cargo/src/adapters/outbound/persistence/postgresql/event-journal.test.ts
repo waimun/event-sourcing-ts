@@ -4,7 +4,7 @@ import type { JournalVersionConflict } from '../../../../application/errors/jour
 import { Country } from '../../../../domain/country'
 import { EventSerializerNotFound } from '../../../../domain/errors/event-payload-handler'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
-import { ShipCreated } from '../../../../domain/events/ship-created'
+import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
 import type { EventJournalUnavailable } from '../../../../shared/error'
@@ -39,6 +39,14 @@ const makeClient = (...results: Array<QueryResult<QueryResultRow>>): PoolClient 
 
 const arrival = (id: string) =>
   new ShipArrived(id, new Port(new PortName('Kingston'), new Country('US')))
+const registration = (id: string, name = 'King Roy', occurredAt?: Date, recordedAt?: Date) =>
+  new ShipRegistered(
+    id,
+    name,
+    new Port(new PortName('Kingston'), new Country('US')),
+    occurredAt,
+    recordedAt
+  )
 
 afterEach(async () => {
   await Promise.all(pools.splice(0).map((pool) => pool.end()))
@@ -47,7 +55,7 @@ afterEach(async () => {
 describe('eventsByAggregate', () => {
   test('reads serialized events in database order and reports their version', async () => {
     const pool = makePool()
-    const created = new ShipCreated(
+    const registered = registration(
       'ship-1',
       'King Roy',
       new Date('2020-01-01T00:00:00Z'),
@@ -57,7 +65,12 @@ describe('eventsByAggregate', () => {
     vi.spyOn(pool, 'query').mockResolvedValue(
       result([
         {
-          event_payload: JSON.stringify({ ...JSON.parse(created.asJson()), name: created.name }),
+          event_payload: JSON.stringify({
+            ...JSON.parse(registered.asJson()),
+            name: registered.name,
+            portName: registered.port.name,
+            portCountry: registered.port.country
+          }),
           version: '1'
         },
         {
@@ -73,7 +86,7 @@ describe('eventsByAggregate', () => {
 
     const stream = await new PostgreSqlEventJournal(pool).eventsByAggregate('ship-1')
 
-    expect(stream).toEqual({ events: [created, arrived], version: 2 })
+    expect(stream).toEqual({ events: [registered, arrived], version: 2 })
     expect(Object.isFrozen(stream)).toBe(true)
     expect(Object.isFrozen(stream.events)).toBe(true)
     expect(stream.events.every((event) => Object.isFrozen(event))).toBe(true)
@@ -94,11 +107,16 @@ describe('eventsByAggregate', () => {
 
   test('returns the highest stored version rather than inferring it from event count', async () => {
     const pool = makePool()
-    const created = new ShipCreated('ship-1', 'King Roy')
+    const registered = registration('ship-1')
     vi.spyOn(pool, 'query').mockResolvedValue(
       result([
         {
-          event_payload: JSON.stringify({ ...JSON.parse(created.asJson()), name: created.name }),
+          event_payload: JSON.stringify({
+            ...JSON.parse(registered.asJson()),
+            name: registered.name,
+            portName: registered.port.name,
+            portCountry: registered.port.country
+          }),
           version: '7'
         }
       ]) as never
@@ -106,7 +124,7 @@ describe('eventsByAggregate', () => {
 
     await expect(
       new PostgreSqlEventJournal(pool).eventsByAggregate('ship-1')
-    ).resolves.toMatchObject({ events: [created], version: 7 })
+    ).resolves.toMatchObject({ events: [registered], version: 7 })
   })
 
   test('classifies query failures as journal infrastructure failures', async () => {
@@ -169,19 +187,19 @@ describe('append', () => {
     {
       name: 'negative versions',
       expectedVersion: -1,
-      events: [new ShipCreated('ship-1', 'King Roy')],
+      events: [registration('ship-1')],
       error: InvalidExpectedVersion
     },
     {
       name: 'fractional versions',
       expectedVersion: 0.5,
-      events: [new ShipCreated('ship-1', 'King Roy')],
+      events: [registration('ship-1')],
       error: InvalidExpectedVersion
     },
     {
       name: 'events from another aggregate',
       expectedVersion: 0,
-      events: [new ShipCreated('ship-2', 'King Roy')],
+      events: [registration('ship-2')],
       error: AggregateIdMismatch
     }
   ])(

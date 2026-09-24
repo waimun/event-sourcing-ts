@@ -3,7 +3,6 @@ import { isEmptyString, trim } from '../shared/utils/text'
 import { InvalidCountry } from './errors/dock-ship'
 
 export enum EnumCountry {
-  NO_COUNTRY = 'NO_COUNTRY',
   UNITED_STATES = 'US',
   CANADA = 'CA',
   FRANCE = 'FR',

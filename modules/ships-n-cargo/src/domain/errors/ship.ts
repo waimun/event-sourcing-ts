@@ -1,17 +1,17 @@
 import { DomainError, InvariantError } from '../../shared/error'
 
-export class UninitializedShipRequiredToCreate extends InvariantError {
+export class UnregisteredShipRequiredToRegister extends InvariantError {
   constructor() {
     super({
-      code: 'SHIP_ALREADY_INITIALIZED',
-      message: 'Uninitialized state is required to create'
+      code: 'SHIP_ALREADY_REGISTERED',
+      message: 'Ship is already registered'
     })
   }
 }
 
-export class ShipMustBeCreatedFirst extends InvariantError {
+export class ShipMustBeRegisteredFirst extends InvariantError {
   constructor() {
-    super({ code: 'SHIP_NOT_INITIALIZED', message: 'Create ship first!' })
+    super({ code: 'SHIP_NOT_REGISTERED', message: 'Register ship first' })
   }
 }
 
@@ -24,13 +24,24 @@ export class IdsMismatch extends InvariantError {
   }
 }
 
-export class InvalidPortForDeparture extends DomainError {
-  declare readonly code: 'INVALID_PORT_FOR_DEPARTURE'
+export class ShipNotAtPort extends DomainError {
+  declare readonly code: 'SHIP_NOT_AT_PORT'
   constructor() {
     super({
-      code: 'INVALID_PORT_FOR_DEPARTURE',
+      code: 'SHIP_NOT_AT_PORT',
       kind: 'conflict',
-      message: 'Ship cannot depart from a missing port or at sea'
+      message: 'Ship must be at a port to depart'
+    })
+  }
+}
+
+export class ShipNotAtSea extends DomainError {
+  declare readonly code: 'SHIP_NOT_AT_SEA'
+  constructor() {
+    super({
+      code: 'SHIP_NOT_AT_SEA',
+      kind: 'conflict',
+      message: 'Ship must be at sea to arrive'
     })
   }
 }
