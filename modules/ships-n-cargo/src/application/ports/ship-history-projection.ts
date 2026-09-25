@@ -28,6 +28,12 @@ export interface VoyagePlannedHistoryEntry extends HistoricalEntry {
   readonly destination: PortSummary
 }
 
+export interface VoyageDivertedHistoryEntry extends HistoricalEntry {
+  readonly kind: 'voyage-diverted'
+  readonly previousDestination: PortSummary
+  readonly destination: PortSummary
+}
+
 export interface ContainerHistoryEntry extends HistoricalEntry {
   readonly kind: 'container-loaded' | 'container-unloaded'
   readonly containerId: string
@@ -40,6 +46,7 @@ export type ShipHistoryEntry =
   | ShipArrivedHistoryEntry
   | ShipDepartedHistoryEntry
   | VoyagePlannedHistoryEntry
+  | VoyageDivertedHistoryEntry
   | ContainerHistoryEntry
 
 export interface ShipHistory {

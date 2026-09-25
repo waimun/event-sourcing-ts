@@ -97,37 +97,47 @@ test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   })
 })
 
-test.each(['/register', '/dock', '/sail', '/load-container', '/plan-voyage', '/unload-container'])(
-  'POST /api/v1/ships%s reaches the ship handler',
-  async (path) => {
-    const response = await send('POST', `/api/v1/ships${path}`, {})
+test.each([
+  '/register',
+  '/dock',
+  '/divert',
+  '/sail',
+  '/load-container',
+  '/plan-voyage',
+  '/unload-container'
+])('POST /api/v1/ships%s reaches the ship handler', async (path) => {
+  const response = await send('POST', `/api/v1/ships${path}`, {})
 
-    expect(response).toEqual({
-      body: {
-        dateTime: expect.any(String),
-        error: expect.any(String),
-        status: 400
-      },
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: expect.any(String),
       status: 400
-    })
-  }
-)
+    },
+    status: 400
+  })
+})
 
-test.each(['/register', '/dock', '/sail', '/load-container', '/plan-voyage', '/unload-container'])(
-  'POST /api/v1/ships%s without a body returns a JSON validation error',
-  async (path) => {
-    const response = await send('POST', `/api/v1/ships${path}`)
+test.each([
+  '/register',
+  '/dock',
+  '/divert',
+  '/sail',
+  '/load-container',
+  '/plan-voyage',
+  '/unload-container'
+])('POST /api/v1/ships%s without a body returns a JSON validation error', async (path) => {
+  const response = await send('POST', `/api/v1/ships${path}`)
 
-    expect(response).toEqual({
-      body: {
-        dateTime: expect.any(String),
-        error: expect.any(String),
-        status: 400
-      },
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: expect.any(String),
       status: 400
-    })
-  }
-)
+    },
+    status: 400
+  })
+})
 
 test('POST with an unsupported body type returns a JSON validation error', async () => {
   const response = await send('POST', '/api/v1/ships/register', 'hello', 'text/plain')
@@ -192,9 +202,15 @@ test('injected dependencies support a deterministic register, sail, and dock wor
   const sailed = await send('POST', '/api/v1/ships/sail', { id: 'generated-ship-id' })
   expect(sailed.status).toBe(200)
 
+  const diverted = await send('POST', '/api/v1/ships/divert', {
+    id: 'generated-ship-id',
+    destination: { country: 'ca', name: 'Belmont' }
+  })
+  expect(diverted.status).toBe(200)
+
   const docked = await send('POST', '/api/v1/ships/dock', {
     id: 'generated-ship-id',
-    port: { country: 'us', name: 'Henderson' }
+    port: { country: 'ca', name: 'Belmont' }
   })
 
   expect(docked).toEqual({
@@ -225,9 +241,15 @@ test('injected dependencies support a deterministic register, sail, and dock wor
           },
           { kind: 'ship-departed', occurredAt: expect.any(String) },
           {
+            kind: 'voyage-diverted',
+            occurredAt: expect.any(String),
+            previousDestination: { country: 'US', name: 'Henderson' },
+            destination: { country: 'CA', name: 'Belmont' }
+          },
+          {
             kind: 'ship-arrived',
             occurredAt: expect.any(String),
-            port: { country: 'US', name: 'Henderson' }
+            port: { country: 'CA', name: 'Belmont' }
           }
         ]
       },
