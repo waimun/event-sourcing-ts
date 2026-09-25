@@ -11,6 +11,7 @@ import { BaseDomainEvent, type DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipDeparted } from './events/ship-departed'
 import { ShipRegistered } from './events/ship-registered'
+import { VoyageDiverted } from './events/voyage-diverted'
 import { VoyagePlanned } from './events/voyage-planned'
 import { Port } from './port'
 import { PortName } from './port-name'
@@ -82,12 +83,13 @@ test('replays the complete at-port to at-sea lifecycle', () => {
     new ContainerLoaded('123', container()),
     new VoyagePlanned('123', port(), port('Boston')),
     new ShipDeparted('123'),
-    new ShipArrived('123', port('Boston')),
+    new VoyageDiverted('123', port('Boston'), port('Belmont')),
+    new ShipArrived('123', port('Belmont')),
     new ContainerUnloaded('123', container())
   ]
   const ship = replay(events)
 
-  expect(ship.location).toEqual(new AtPort(port('Boston')))
+  expect(ship.location).toEqual(new AtPort(port('Belmont')))
   expect(ship.containers).toEqual([])
 })
 
@@ -102,6 +104,7 @@ test('rejects event types the aggregate does not understand', () => {
 test.each([
   ShipRegistered.eventType,
   VoyagePlanned.eventType,
+  VoyageDiverted.eventType,
   ShipDeparted.eventType,
   ShipArrived.eventType,
   ContainerLoaded.eventType,
@@ -113,6 +116,7 @@ test.each([
 test.each([
   new ShipDeparted('123'),
   new VoyagePlanned('123', port(), port('Boston')),
+  new VoyageDiverted('123', port('Boston'), port('Belmont')),
   new ShipArrived('123', port()),
   new ContainerLoaded('123', container()),
   new ContainerUnloaded('123', container())
@@ -176,6 +180,38 @@ test('rejects voyage histories that violate planning and destination rules', () 
       new VoyagePlanned('123', port(), port('Boston')),
       new ShipDeparted('123'),
       new ShipArrived('123', port('Belmont'))
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyagePlanned('123', port(), port('Boston')),
+      new VoyageDiverted('123', port('Boston'), port('Belmont'))
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyagePlanned('123', port(), port('Boston')),
+      new ShipDeparted('123'),
+      new VoyageDiverted('123', port('Belmont'), port('Harrison'))
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyagePlanned('123', port(), port('Boston')),
+      new ShipDeparted('123'),
+      new VoyageDiverted('123', port('Boston'), port('Boston'))
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyagePlanned('123', port(), port('Boston')),
+      new ShipDeparted('123'),
+      new VoyageDiverted('123', port('Boston'), port('Belmont')),
+      new ShipArrived('123', port('Boston'))
     ])
   ).toThrow(InvalidShipHistory)
 })

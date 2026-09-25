@@ -38,11 +38,12 @@ export class ShipNotAtPort extends DomainError {
 
 export class ShipNotAtSea extends DomainError {
   declare readonly code: 'SHIP_NOT_AT_SEA'
-  constructor() {
+  constructor(operation: string = 'arrive') {
     super({
       code: 'SHIP_NOT_AT_SEA',
       kind: 'conflict',
-      message: 'Ship must be at sea to arrive'
+      message: `Ship must be at sea to ${operation}`,
+      meta: { operation }
     })
   }
 }
@@ -65,6 +66,17 @@ export class VoyageDestinationSameAsOrigin extends DomainError {
       code: 'VOYAGE_DESTINATION_SAME_AS_ORIGIN',
       kind: 'conflict',
       message: 'Voyage destination must differ from its origin'
+    })
+  }
+}
+
+export class VoyageDestinationUnchanged extends DomainError {
+  declare readonly code: 'VOYAGE_DESTINATION_UNCHANGED'
+  constructor() {
+    super({
+      code: 'VOYAGE_DESTINATION_UNCHANGED',
+      kind: 'conflict',
+      message: 'Diversion destination must differ from the active voyage destination'
     })
   }
 }

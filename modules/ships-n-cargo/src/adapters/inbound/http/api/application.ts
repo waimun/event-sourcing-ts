@@ -5,6 +5,7 @@ import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-shi
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
 import { GetShipHistoryController } from '../controllers/get-ship-history'
+import { divertShipHandler } from './divert-ship'
 import { dockShipHandler } from './dock-ship'
 import { getShipHistoryHandler } from './get-ship-history'
 import { loadContainerHandler } from './load-container'
@@ -67,6 +68,7 @@ export const createApplication = ({
     createV1Router({
       getShipHistory: getShipHistoryHandler(getShipHistory),
       registerShip: registerShipHandler(controllers.registerShip, generateId),
+      divertShip: divertShipHandler(controllers.divertShip),
       dockShip: dockShipHandler(controllers.dockShip),
       loadContainer: loadContainerHandler(controllers.loadContainer),
       planVoyage: planVoyageHandler(controllers.planVoyage),

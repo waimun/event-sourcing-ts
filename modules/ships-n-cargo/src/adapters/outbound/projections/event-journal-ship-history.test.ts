@@ -8,6 +8,7 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../domain/events/ship-registered'
+import { VoyageDiverted } from '../../../domain/events/voyage-diverted'
 import { VoyagePlanned } from '../../../domain/events/voyage-planned'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
@@ -34,7 +35,8 @@ test('projects every ship event into stable business history in stream order', a
     new ContainerUnloaded('ship-1', container, occurredAt),
     new VoyagePlanned('ship-1', port, destination, occurredAt),
     new ShipDeparted('ship-1', occurredAt),
-    new ShipArrived('ship-1', destination, occurredAt)
+    new VoyageDiverted('ship-1', destination, port, occurredAt),
+    new ShipArrived('ship-1', port, occurredAt)
   ]
   await journal.append('ship-1', 0, events)
 
@@ -71,9 +73,15 @@ test('projects every ship event into stable business history in stream order', a
       },
       { kind: 'ship-departed', occurredAt: occurredAt.toISOString() },
       {
+        kind: 'voyage-diverted',
+        occurredAt: occurredAt.toISOString(),
+        previousDestination: { name: 'Singapore', country: 'SG' },
+        destination: { name: 'Kingston', country: 'US' }
+      },
+      {
         kind: 'ship-arrived',
         occurredAt: occurredAt.toISOString(),
-        port: { name: 'Singapore', country: 'SG' }
+        port: { name: 'Kingston', country: 'US' }
       }
     ]
   })

@@ -2,6 +2,7 @@ import { afterEach, expect, test, vi } from 'vitest'
 import { Id } from '../shared/domain/id'
 import { Name } from '../shared/domain/name'
 import { CargoReference } from './cargo-reference'
+import { DivertShip } from './commands/divert-ship'
 import { DockShip } from './commands/dock-ship'
 import { LoadContainer } from './commands/load-container'
 import { PlanVoyage } from './commands/plan-voyage'
@@ -21,6 +22,7 @@ import {
   UnregisteredShipRequiredToRegister,
   VoyageAlreadyPlanned,
   VoyageDestinationSameAsOrigin,
+  VoyageDestinationUnchanged,
   VoyageRequiredToDepart
 } from './errors/ship'
 import { Port } from './port'
@@ -75,9 +77,19 @@ test('normal commands assign both event times from the server clock', () => {
   const readyToDepart = Ship.apply(atPort, voyagePlanned)
   const departedEvent = Ship.depart(new SailShip(new Id(atPort.id)), readyToDepart)
   const atSea = Ship.apply(readyToDepart, departedEvent)
-  const arrival = Ship.arrive(new DockShip(new Id(atSea.id), port('Boston')), atSea)
+  const voyageDiverted = Ship.divert(new DivertShip(new Id(atSea.id), port('Belmont')), atSea)
+  const diverted = Ship.apply(atSea, voyageDiverted)
+  const arrival = Ship.arrive(new DockShip(new Id(atSea.id), port('Belmont')), diverted)
 
-  for (const event of [registration, loading, unloading, voyagePlanned, departedEvent, arrival]) {
+  for (const event of [
+    registration,
+    loading,
+    unloading,
+    voyagePlanned,
+    departedEvent,
+    voyageDiverted,
+    arrival
+  ]) {
     expect(event.occurredAt).toEqual(serverTime)
     expect(event.recordedAt).toEqual(serverTime)
   }
@@ -162,6 +174,43 @@ test('arrival requires a matching registered ship', () => {
   const command = new DockShip(new Id('123'), port())
   expect(() => Ship.arrive(command)).toThrow(ShipMustBeRegisteredFirst)
   expect(() => Ship.arrive(new DockShip(new Id('456'), port()), departed())).toThrow(IdsMismatch)
+})
+
+test('diverts a ship at sea by replacing only its active destination', () => {
+  const atSea = departed()
+  const newDestination = port('Belmont', 'CA')
+  const event = Ship.divert(new DivertShip(new Id(atSea.id), newDestination), atSea)
+  const diverted = Ship.apply(atSea, event)
+
+  expect(event.previousDestination).toEqual(port('Boston'))
+  expect(event.destination).toEqual(newDestination)
+  expect(diverted.location).toBeInstanceOf(AtSea)
+  expect(diverted.activeVoyage).toEqual({ origin: port(), destination: newDestination })
+  expect(Ship.arrive(new DockShip(new Id(diverted.id), newDestination), diverted).port).toEqual(
+    newDestination
+  )
+})
+
+test('diversion requires a matching registered ship at sea and a changed destination', () => {
+  const atPort = registered()
+  const atSea = departed(atPort)
+  const command = new DivertShip(new Id(atSea.id), port('Belmont'))
+
+  expect(() => Ship.divert(command)).toThrow(ShipMustBeRegisteredFirst)
+  expect(() => Ship.divert(new DivertShip(new Id('456'), port('Belmont')), atSea)).toThrow(
+    IdsMismatch
+  )
+  expect(() => Ship.divert(command, atPort)).toThrow(new ShipNotAtSea('divert'))
+  expect(() => Ship.divert(new DivertShip(new Id(atSea.id), port('Boston')), atSea)).toThrow(
+    VoyageDestinationUnchanged
+  )
+})
+
+test('a ship at sea may divert back to its voyage origin', () => {
+  const atSea = departed()
+  const event = Ship.divert(new DivertShip(new Id(atSea.id), port()), atSea)
+
+  expect(Ship.apply(atSea, event).activeVoyage).toEqual({ origin: port(), destination: port() })
 })
 
 test('loads and unloads containers by stable identity while at a port', () => {

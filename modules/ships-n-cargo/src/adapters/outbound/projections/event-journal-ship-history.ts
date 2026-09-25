@@ -10,6 +10,7 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../domain/events/ship-registered'
+import { VoyageDiverted } from '../../../domain/events/voyage-diverted'
 import { VoyagePlanned } from '../../../domain/events/voyage-planned'
 import type { Port } from '../../../domain/port'
 import { UnsupportedShipHistoryEvent } from './errors/ship-history'
@@ -43,6 +44,14 @@ const projectEvent = (event: DomainEvent): ShipHistoryEntry => {
       kind: 'voyage-planned',
       occurredAt,
       origin: summarizePort(event.origin),
+      destination: summarizePort(event.destination)
+    })
+  }
+  if (event instanceof VoyageDiverted) {
+    return Object.freeze({
+      kind: 'voyage-diverted',
+      occurredAt,
+      previousDestination: summarizePort(event.previousDestination),
       destination: summarizePort(event.destination)
     })
   }
