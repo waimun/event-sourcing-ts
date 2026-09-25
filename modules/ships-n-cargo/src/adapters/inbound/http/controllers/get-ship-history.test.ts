@@ -1,14 +1,14 @@
 import { expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
 import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
-import { GetShipHistoryQuery } from '../../../../application/queries/get-ship-history/query'
+import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-ship-history/use-case'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { EventJournalUnavailable } from '../../../../shared/error'
 import { opaqueApplicationErrorMessage } from './error-response'
 import { GetShipHistoryController } from './get-ship-history'
 
 const controllerFor = (projection: ShipHistoryProjection) =>
-  new GetShipHistoryController(new GetShipHistoryQuery(projection))
+  new GetShipHistoryController(new GetShipHistoryUseCase(projection))
 
 test('returns a stable projected history', async () => {
   const history = {

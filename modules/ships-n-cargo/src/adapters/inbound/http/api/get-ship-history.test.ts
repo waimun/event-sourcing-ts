@@ -1,7 +1,7 @@
 import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
-import { GetShipHistoryQuery } from '../../../../application/queries/get-ship-history/query'
+import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-ship-history/use-case'
 import { GetShipHistoryController } from '../controllers/get-ship-history'
 import { getShipHistoryHandler } from './get-ship-history'
 
@@ -9,7 +9,7 @@ const projection: ShipHistoryProjection = {
   historyFor: vi.fn().mockResolvedValue({ shipId: 'ship-1', history: [] })
 }
 const handler = getShipHistoryHandler(
-  new GetShipHistoryController(new GetShipHistoryQuery(projection))
+  new GetShipHistoryController(new GetShipHistoryUseCase(projection))
 )
 const response: Partial<Response> = {}
 

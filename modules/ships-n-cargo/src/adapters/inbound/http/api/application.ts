@@ -1,7 +1,7 @@
 import express, { type Application, type ErrorRequestHandler } from 'express'
 import type { EventJournal } from '../../../../application/ports/event-journal'
 import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
-import { GetShipHistoryQuery } from '../../../../application/queries/get-ship-history/query'
+import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-ship-history/use-case'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
 import { createControllers } from '../controllers'
 import { GetShipHistoryController } from '../controllers/get-ship-history'
@@ -50,7 +50,7 @@ export const createApplication = ({
 }: ApplicationDependencies): Application => {
   const controllers = createControllers(eventJournal)
   const getShipHistory = new GetShipHistoryController(
-    new GetShipHistoryQuery(shipHistoryProjection)
+    new GetShipHistoryUseCase(shipHistoryProjection)
   )
   const application = express()
 
