@@ -1,5 +1,5 @@
 import { SailShip } from '../../../domain/commands/sail-ship'
-import { ShipNotAtPort } from '../../../domain/errors/ship'
+import { ShipNotAtPort, VoyageRequiredToDepart } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Ship } from '../../../domain/ship'
 import type { Id } from '../../../shared/domain/id'
@@ -18,23 +18,30 @@ export class SailShipUseCase {
 
   async sail(
     id: Id
-  ): Promise<Result<void, ShipNotFound | ShipNotAtPort | ConcurrentCommandConflict>> {
+  ): Promise<
+    Result<void, ShipNotFound | ShipNotAtPort | VoyageRequiredToDepart | ConcurrentCommandConflict>
+  > {
     const command = new SailShip(id)
-    return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtPort>(id.value, async () => {
-      const { events, version } = await this.journal.eventsByAggregate(id.value)
+    return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtPort | VoyageRequiredToDepart>(
+      id.value,
+      async () => {
+        const { events, version } = await this.journal.eventsByAggregate(id.value)
 
-      if (events.length === 0) return failure(new ShipNotFound(id.value))
+        if (events.length === 0) return failure(new ShipNotFound(id.value))
 
-      const ship = Ship.replay(events)
-      let shipDeparted: ReturnType<typeof Ship.depart>
-      try {
-        shipDeparted = Ship.depart(command, ship)
-      } catch (error) {
-        if (error instanceof ShipNotAtPort) return failure(error)
-        throw error
+        const ship = Ship.replay(events)
+        let shipDeparted: ReturnType<typeof Ship.depart>
+        try {
+          shipDeparted = Ship.depart(command, ship)
+        } catch (error) {
+          if (error instanceof ShipNotAtPort || error instanceof VoyageRequiredToDepart) {
+            return failure(error)
+          }
+          throw error
+        }
+        await this.journal.append(id.value, version, [shipDeparted])
+        return success()
       }
-      await this.journal.append(id.value, version, [shipDeparted])
-      return success()
-    })
+    )
   }
 }

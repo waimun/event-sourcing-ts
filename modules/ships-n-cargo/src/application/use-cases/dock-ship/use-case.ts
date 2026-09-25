@@ -1,5 +1,5 @@
 import { DockShip } from '../../../domain/commands/dock-ship'
-import { ShipNotAtSea } from '../../../domain/errors/ship'
+import { ShipMustDockAtVoyageDestination, ShipNotAtSea } from '../../../domain/errors/ship'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import type { Port } from '../../../domain/port'
 import { Ship } from '../../../domain/ship'
@@ -20,9 +20,17 @@ export class DockShipUseCase {
   async dock(
     id: Id,
     port: Port
-  ): Promise<Result<void, ShipNotFound | ShipNotAtSea | ConcurrentCommandConflict>> {
+  ): Promise<
+    Result<
+      void,
+      ShipNotFound | ShipNotAtSea | ShipMustDockAtVoyageDestination | ConcurrentCommandConflict
+    >
+  > {
     const command = new DockShip(id, port)
-    return rerunConcurrentCommand<void, ShipNotFound | ShipNotAtSea>(id.value, async () => {
+    return rerunConcurrentCommand<
+      void,
+      ShipNotFound | ShipNotAtSea | ShipMustDockAtVoyageDestination
+    >(id.value, async () => {
       const { events, version } = await this.journal.eventsByAggregate(id.value)
 
       if (events.length === 0) return failure(new ShipNotFound(id.value))
@@ -32,7 +40,9 @@ export class DockShipUseCase {
       try {
         shipArrived = Ship.arrive(command, ship)
       } catch (error) {
-        if (error instanceof ShipNotAtSea) return failure(error)
+        if (error instanceof ShipNotAtSea || error instanceof ShipMustDockAtVoyageDestination) {
+          return failure(error)
+        }
         throw error
       }
       await this.journal.append(id.value, version, [shipArrived])

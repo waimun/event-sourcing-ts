@@ -13,6 +13,7 @@ import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
 import { LoadContainerUseCase } from '../load-container/use-case'
+import { PlanVoyageUseCase } from '../plan-voyage/use-case'
 import { RegisterShipUseCase } from '../register-ship/use-case'
 import { SailShipUseCase } from '../sail-ship/use-case'
 import { UnloadContainerUseCase } from './use-case'
@@ -22,6 +23,7 @@ afterEach(() => {
 })
 
 const initialPort = new Port(new PortName('Kingston'), new Country('US'))
+const destination = new Port(new PortName('Boston'), new Country('US'))
 const cargoReference = new CargoReference('cargo-1')
 
 test('construct class object', () => {
@@ -131,6 +133,7 @@ test('rejects unloading while the ship is at sea', async () => {
     cargoReference,
     new Name('Refactoring Book')
   )
+  await new PlanVoyageUseCase(journal).plan(id, destination)
   await new SailShipUseCase(journal).sail(id)
 
   expect(await new UnloadContainerUseCase(journal).unload(id, containerId)).toMatchObject({

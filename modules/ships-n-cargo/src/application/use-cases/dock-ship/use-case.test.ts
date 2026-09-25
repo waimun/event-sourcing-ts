@@ -11,6 +11,7 @@ import { Name } from '../../../shared/domain/name'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
+import { PlanVoyageUseCase } from '../plan-voyage/use-case'
 import { RegisterShipUseCase } from '../register-ship/use-case'
 import { SailShipUseCase } from '../sail-ship/use-case'
 import { DockShipUseCase } from './use-case'
@@ -21,6 +22,7 @@ const initialPort = new Port(new PortName('Kingston'), new Country('US'))
 const destination = new Port(new PortName('Boston'), new Country('US'))
 const putAtSea = async (journal: EventJournal<string, DomainEvent>, id: Id) => {
   await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
+  await new PlanVoyageUseCase(journal).plan(id, destination)
   await new SailShipUseCase(journal).sail(id)
 }
 
@@ -33,7 +35,22 @@ test('docks a ship that is at sea', async () => {
     ok: true,
     value: undefined
   })
-  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(3)
+  expect((await journal.eventsByAggregate(id.value)).events).toHaveLength(4)
+})
+
+test('rejects docking anywhere except the planned destination', async () => {
+  const journal = new InMemoryEventJournal(new Name('testing'))
+  const id = new Id('abc')
+  await putAtSea(journal, id)
+
+  const result = await new DockShipUseCase(journal).dock(
+    id,
+    new Port(new PortName('Belmont'), new Country('CA'))
+  )
+  expect(result).toMatchObject({
+    ok: false,
+    error: { code: 'SHIP_MUST_DOCK_AT_VOYAGE_DESTINATION' }
+  })
 })
 
 test('returns ship not found for an absent ship', async () => {

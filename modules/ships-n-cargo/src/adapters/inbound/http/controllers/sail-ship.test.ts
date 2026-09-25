@@ -1,9 +1,13 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
+import { PlanVoyageUseCase } from '../../../../application/use-cases/plan-voyage/use-case'
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
-import { ShipNotAtPort } from '../../../../domain/errors/ship'
-import { IdNotAllowed } from '../../../../shared/domain/id'
+import { Country } from '../../../../domain/country'
+import { ShipNotAtPort, VoyageRequiredToDepart } from '../../../../domain/errors/ship'
+import { Port } from '../../../../domain/port'
+import { PortName } from '../../../../domain/port-name'
+import { Id, IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { opaqueApplicationErrorMessage } from './error-response'
@@ -21,6 +25,10 @@ const registerShipAtKingston = async (journal: InMemoryEventJournal) => {
     port: { name: 'Kingston', country: 'US' }
   })
   expect(response.status).toEqual(201)
+  await new PlanVoyageUseCase(journal).plan(
+    new Id('abc'),
+    new Port(new PortName('Boston'), new Country('US'))
+  )
 }
 
 test('construct class object', () => {
@@ -75,6 +83,19 @@ test('ship does not exist', async () => {
   const response = await controller.sail({ id: 'abc' })
   expect(response.status).toEqual(404)
   expect(response.error).toEqual(new ShipNotFound('abc').message)
+})
+
+test('cannot depart without planning a voyage', async () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  await new RegisterShipController(new RegisterShipUseCase(journal)).register({
+    id: 'abc',
+    name: 'King Roy',
+    port: { name: 'Kingston', country: 'US' }
+  })
+
+  expect(
+    await new SailShipController(new SailShipUseCase(journal)).sail({ id: 'abc' })
+  ).toMatchObject({ status: 409, error: new VoyageRequiredToDepart().message })
 })
 
 test('cannot depart twice without arriving', async () => {

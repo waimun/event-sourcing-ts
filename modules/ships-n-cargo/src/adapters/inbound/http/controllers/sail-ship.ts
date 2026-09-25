@@ -27,6 +27,7 @@ export class SailShipController {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
           case 'SHIP_NOT_AT_PORT':
+          case 'VOYAGE_REQUIRED_TO_DEPART':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {

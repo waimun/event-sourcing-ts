@@ -7,6 +7,7 @@ import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
+import { planVoyageHandler } from './plan-voyage'
 import { registerShipHandler } from './register-ship'
 import { sailShipHandler } from './sail-ship'
 
@@ -14,6 +15,7 @@ const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
 const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
+const planVoyage = planVoyageHandler(controllers.planVoyage)
 const sailShip = sailShipHandler(controllers.sailShip)
 
 beforeEach(() => {
@@ -78,6 +80,9 @@ test('cannot depart twice without arriving', async () => {
 
   expect(res.status).toHaveBeenCalledWith(201)
 
+  req.body = { id: 'abc', destination: { name: 'Boston', country: 'US' } }
+  await planVoyage(req as Request, res as Response)
+
   req.body = { id: 'abc' }
   await sailShip(req as Request, res as Response)
   expect(res.status).toHaveBeenCalledWith(200)
@@ -97,11 +102,14 @@ test('valid request', async () => {
 
   expect(res.status).toHaveBeenNthCalledWith(1, 201)
 
+  req.body = { id: 'xyz', destination: { name: 'Boston', country: 'US' } }
+  await planVoyage(req as Request, res as Response)
+
   req.body = { id: 'xyz' }
   await sailShip(req as Request, res as Response)
 
-  expect(res.status).toHaveBeenNthCalledWith(2, 200)
-  expect(res.json).toHaveBeenNthCalledWith(2, {
+  expect(res.status).toHaveBeenNthCalledWith(3, 200)
+  expect(res.json).toHaveBeenNthCalledWith(3, {
     status: 200,
     dateTime: expect.any(Date)
   })

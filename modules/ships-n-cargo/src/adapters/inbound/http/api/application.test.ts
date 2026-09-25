@@ -97,7 +97,7 @@ test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   })
 })
 
-test.each(['/register', '/dock', '/sail', '/load-container', '/unload-container'])(
+test.each(['/register', '/dock', '/sail', '/load-container', '/plan-voyage', '/unload-container'])(
   'POST /api/v1/ships%s reaches the ship handler',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`, {})
@@ -113,7 +113,7 @@ test.each(['/register', '/dock', '/sail', '/load-container', '/unload-container'
   }
 )
 
-test.each(['/register', '/dock', '/sail', '/load-container', '/unload-container'])(
+test.each(['/register', '/dock', '/sail', '/load-container', '/plan-voyage', '/unload-container'])(
   'POST /api/v1/ships%s without a body returns a JSON validation error',
   async (path) => {
     const response = await send('POST', `/api/v1/ships${path}`)
@@ -183,6 +183,12 @@ test('injected dependencies support a deterministic register, sail, and dock wor
     status: 201
   })
 
+  const planned = await send('POST', '/api/v1/ships/plan-voyage', {
+    id: 'generated-ship-id',
+    destination: { country: 'us', name: 'Henderson' }
+  })
+  expect(planned.status).toBe(200)
+
   const sailed = await send('POST', '/api/v1/ships/sail', { id: 'generated-ship-id' })
   expect(sailed.status).toBe(200)
 
@@ -210,6 +216,12 @@ test('injected dependencies support a deterministic register, sail, and dock wor
             name: 'King Roy',
             occurredAt: expect.any(String),
             port: { country: 'US', name: 'Kingston' }
+          },
+          {
+            kind: 'voyage-planned',
+            occurredAt: expect.any(String),
+            origin: { country: 'US', name: 'Kingston' },
+            destination: { country: 'US', name: 'Henderson' }
           },
           { kind: 'ship-departed', occurredAt: expect.any(String) },
           {
