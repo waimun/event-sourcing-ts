@@ -3,7 +3,7 @@ import { ShipNotFound } from '../../errors/ship-not-found'
 import type { ShipHistory, ShipHistoryProjection } from '../../ports/ship-history-projection'
 import { failure, type Result, success } from '../../result'
 
-export class GetShipHistoryQuery {
+export class GetShipHistoryUseCase {
   constructor(private readonly projection: ShipHistoryProjection) {}
 
   async execute(id: Id): Promise<Result<ShipHistory, ShipNotFound>> {
