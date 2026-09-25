@@ -1,5 +1,5 @@
-import type { DockShipDto } from '../../../../application/use-cases/dock-ship/dock-ship-dto'
-import type { DockShipUseCase } from '../../../../application/use-cases/dock-ship/use-case'
+import type { PlanVoyageDto } from '../../../../application/use-cases/plan-voyage/plan-voyage-dto'
+import type { PlanVoyageUseCase } from '../../../../application/use-cases/plan-voyage/use-case'
 import { Country } from '../../../../domain/country'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
@@ -10,14 +10,10 @@ import { isNotObject } from '../../../../shared/utils/object'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 
-export class DockShipController {
-  useCase: DockShipUseCase
+export class PlanVoyageController {
+  constructor(private readonly useCase: PlanVoyageUseCase) {}
 
-  constructor(useCase: DockShipUseCase) {
-    this.useCase = useCase
-  }
-
-  async dock(request: DockShipDto): Promise<Response> {
+  async plan(request: PlanVoyageDto): Promise<Response> {
     let parsed: ReturnType<typeof parseRequest>
     try {
       parsed = parseRequest(request)
@@ -27,12 +23,13 @@ export class DockShipController {
     }
 
     try {
-      const result = await this.useCase.dock(parsed.id, parsed.port)
+      const result = await this.useCase.plan(parsed.id, parsed.destination)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
-          case 'SHIP_NOT_AT_SEA':
-          case 'SHIP_MUST_DOCK_AT_VOYAGE_DESTINATION':
+          case 'SHIP_NOT_AT_PORT':
+          case 'VOYAGE_ALREADY_PLANNED':
+          case 'VOYAGE_DESTINATION_SAME_AS_ORIGIN':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
           default: {
@@ -48,9 +45,12 @@ export class DockShipController {
   }
 }
 
-const parseRequest = (request: DockShipDto) => {
+const parseRequest = (request: PlanVoyageDto) => {
   const id = new Id(request.id)
-  if (isNotObject(request.port)) throw new IsRequired('Port')
-  const port = new Port(new PortName(request.port.name), new Country(request.port.country))
-  return { id, port }
+  if (isNotObject(request.destination)) throw new IsRequired('Destination')
+  const destination = new Port(
+    new PortName(request.destination.name),
+    new Country(request.destination.country)
+  )
+  return { id, destination }
 }

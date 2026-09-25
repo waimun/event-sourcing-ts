@@ -1,12 +1,13 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
 import { DockShipUseCase } from '../../../../application/use-cases/dock-ship/use-case'
+import { PlanVoyageUseCase } from '../../../../application/use-cases/plan-voyage/use-case'
 import type { RegisterShipDto } from '../../../../application/use-cases/register-ship/register-ship-dto'
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { Country } from '../../../../domain/country'
 import { InvalidCountry } from '../../../../domain/errors/dock-ship'
-import { ShipNotAtSea } from '../../../../domain/errors/ship'
+import { ShipMustDockAtVoyageDestination, ShipNotAtSea } from '../../../../domain/errors/ship'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
@@ -38,6 +39,10 @@ test('docks at a destination after departing its initial port', async () => {
     new RegisterShipUseCase(journal)
   ).register(registrationRequest)
   expect(registrationResponse.status).toEqual(201)
+  await new PlanVoyageUseCase(journal).plan(
+    new Id('abc'),
+    new Port(new PortName('Henderson'), new Country('US'))
+  )
   await new SailShipUseCase(journal).sail(new Id('abc'))
 
   const arrivalResponse = await new DockShipController(new DockShipUseCase(journal)).dock({
@@ -144,6 +149,25 @@ test('cannot dock while already at a port', async () => {
   })
   expect(response.status).toBe(409)
   expect(response.error).toBe(new ShipNotAtSea().message)
+})
+
+test('cannot dock away from the planned destination', async () => {
+  const journal = new InMemoryEventJournal(new Name('test-journal'))
+  const id = new Id('abc')
+  const origin = new Port(new PortName('Kingston'), new Country('US'))
+  const destination = new Port(new PortName('Boston'), new Country('US'))
+  await new RegisterShipUseCase(journal).register(new Name('King Roy'), id, origin)
+  await new PlanVoyageUseCase(journal).plan(id, destination)
+  await new SailShipUseCase(journal).sail(id)
+
+  const response = await new DockShipController(new DockShipUseCase(journal)).dock({
+    id: id.value,
+    port: { name: 'Belmont', country: 'CA' }
+  })
+  expect(response).toMatchObject({
+    status: 409,
+    error: new ShipMustDockAtVoyageDestination(destination.name, destination.country).message
+  })
 })
 
 test('hides an unexpected application result', async () => {

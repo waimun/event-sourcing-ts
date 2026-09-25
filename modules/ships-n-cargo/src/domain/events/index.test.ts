@@ -14,9 +14,11 @@ import { ContainerUnloadedSerializer } from './serializers/container-unloaded-se
 import { ShipArrivedSerializer } from './serializers/ship-arrived-serializer'
 import { ShipDepartedSerializer } from './serializers/ship-departed-serializer'
 import { ShipRegisteredSerializer } from './serializers/ship-registered-serializer'
+import { VoyagePlannedSerializer } from './serializers/voyage-planned-serializer'
 import { ShipArrived } from './ship-arrived'
 import { ShipDeparted } from './ship-departed'
 import { ShipRegistered } from './ship-registered'
+import { VoyagePlanned } from './voyage-planned'
 
 test('imported file should have event serializers registered', () => {
   expect(eventPayloadHandler).toBeTruthy()
@@ -35,6 +37,9 @@ test('imported file should have event serializers registered', () => {
   expect(
     eventPayloadHandler.byType(ShipDeparted.eventType) instanceof ShipDepartedSerializer
   ).toBeTruthy()
+  expect(
+    eventPayloadHandler.byType(VoyagePlanned.eventType) instanceof VoyagePlannedSerializer
+  ).toBeTruthy()
 })
 
 test('every registered serializer preserves event timestamps through a JSON round trip', () => {
@@ -48,6 +53,13 @@ test('every registered serializer preserves event timestamps through a JSON roun
   const port = new Port(new PortName('Harrison'), new Country('US'))
   const events = [
     new ShipRegistered('abc', 'King Roy', port, occurredAt, recordedAt),
+    new VoyagePlanned(
+      'abc',
+      port,
+      new Port(new PortName('Boston'), new Country('US')),
+      occurredAt,
+      recordedAt
+    ),
     new ShipDeparted('abc', occurredAt, recordedAt),
     new ShipArrived('abc', port, occurredAt, recordedAt),
     new ContainerLoaded('abc', container, occurredAt, recordedAt),

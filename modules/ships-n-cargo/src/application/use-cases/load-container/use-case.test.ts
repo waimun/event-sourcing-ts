@@ -12,6 +12,7 @@ import { Name } from '../../../shared/domain/name'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
 import type { EventJournal } from '../../ports/event-journal'
+import { PlanVoyageUseCase } from '../plan-voyage/use-case'
 import { RegisterShipUseCase } from '../register-ship/use-case'
 import { SailShipUseCase } from '../sail-ship/use-case'
 import { LoadContainerUseCase } from './use-case'
@@ -21,6 +22,7 @@ afterEach(() => {
 })
 
 const initialPort = new Port(new PortName('Kingston'), new Country('US'))
+const destination = new Port(new PortName('Boston'), new Country('US'))
 const cargoReference = new CargoReference('cargo-1')
 
 test('construct class object', () => {
@@ -163,6 +165,7 @@ test('rejects loading while the ship is at sea', async () => {
   const journal = new InMemoryEventJournal(new Name('testing'))
   const id = new Id('abc')
   await new RegisterShipUseCase(journal).register(new Name('Queen Mary'), id, initialPort)
+  await new PlanVoyageUseCase(journal).plan(id, destination)
   await new SailShipUseCase(journal).sail(id)
 
   expect(

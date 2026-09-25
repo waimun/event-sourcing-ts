@@ -47,6 +47,51 @@ export class ShipNotAtSea extends DomainError {
   }
 }
 
+export class VoyageAlreadyPlanned extends DomainError {
+  declare readonly code: 'VOYAGE_ALREADY_PLANNED'
+  constructor() {
+    super({
+      code: 'VOYAGE_ALREADY_PLANNED',
+      kind: 'conflict',
+      message: 'Ship already has an active voyage'
+    })
+  }
+}
+
+export class VoyageDestinationSameAsOrigin extends DomainError {
+  declare readonly code: 'VOYAGE_DESTINATION_SAME_AS_ORIGIN'
+  constructor() {
+    super({
+      code: 'VOYAGE_DESTINATION_SAME_AS_ORIGIN',
+      kind: 'conflict',
+      message: 'Voyage destination must differ from its origin'
+    })
+  }
+}
+
+export class VoyageRequiredToDepart extends DomainError {
+  declare readonly code: 'VOYAGE_REQUIRED_TO_DEPART'
+  constructor() {
+    super({
+      code: 'VOYAGE_REQUIRED_TO_DEPART',
+      kind: 'conflict',
+      message: 'Plan a voyage before departure'
+    })
+  }
+}
+
+export class ShipMustDockAtVoyageDestination extends DomainError {
+  declare readonly code: 'SHIP_MUST_DOCK_AT_VOYAGE_DESTINATION'
+  constructor(destinationName: string, destinationCountry: string) {
+    super({
+      code: 'SHIP_MUST_DOCK_AT_VOYAGE_DESTINATION',
+      kind: 'conflict',
+      message: `Ship must dock at its voyage destination '${destinationName}, ${destinationCountry}'`,
+      meta: { destinationName, destinationCountry }
+    })
+  }
+}
+
 export class ContainerAlreadyLoaded extends DomainError {
   declare readonly code: 'CONTAINER_ALREADY_LOADED'
   constructor(containerId: string) {

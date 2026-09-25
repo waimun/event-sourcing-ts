@@ -5,6 +5,7 @@ export type ShipHandlers = {
   registerShip: RequestHandler
   dockShip: RequestHandler
   loadContainer: RequestHandler
+  planVoyage: RequestHandler
   sailShip: RequestHandler
   unloadContainer: RequestHandler
 }
@@ -17,6 +18,7 @@ export const registerShipRouter = (handlers: ShipHandlers) => {
   router.post('/dock', handlers.dockShip)
   router.post('/sail', handlers.sailShip)
   router.post('/load-container', handlers.loadContainer)
+  router.post('/plan-voyage', handlers.planVoyage)
   router.post('/unload-container', handlers.unloadContainer)
 
   return router

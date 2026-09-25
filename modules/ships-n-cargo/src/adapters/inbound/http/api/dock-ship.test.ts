@@ -7,6 +7,7 @@ import { Name, NameNotAllowed } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { createControllers } from '../controllers'
 import { dockShipHandler } from './dock-ship'
+import { planVoyageHandler } from './plan-voyage'
 import { registerShipHandler } from './register-ship'
 import { sailShipHandler } from './sail-ship'
 
@@ -14,6 +15,7 @@ const req: Partial<Request> = {}
 const res: Partial<Response> = {}
 const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
 const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
+const planVoyage = planVoyageHandler(controllers.planVoyage)
 const dockShip = dockShipHandler(controllers.dockShip)
 const sailShip = sailShipHandler(controllers.sailShip)
 
@@ -130,6 +132,9 @@ test('valid request', async () => {
   await registerShip(req as Request, res as Response)
 
   expect(res.status).toHaveBeenCalledWith(201)
+
+  req.body = { id: 'abc', destination: { name: 'Henderson', country: 'us' } }
+  await planVoyage(req as Request, res as Response)
 
   req.body = { id: 'abc' }
   await sailShip(req as Request, res as Response)

@@ -1,8 +1,12 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { LoadContainerUseCase } from '../../../../application/use-cases/load-container/use-case'
+import { PlanVoyageUseCase } from '../../../../application/use-cases/plan-voyage/use-case'
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
+import { Country } from '../../../../domain/country'
 import { ShipNotAtPort } from '../../../../domain/errors/ship'
+import { Port } from '../../../../domain/port'
+import { PortName } from '../../../../domain/port-name'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../../../shared/domain/id'
 import { Name, NameNotAllowed } from '../../../../shared/domain/name'
@@ -205,6 +209,7 @@ test('cannot load a container while the ship is at sea', async () => {
     name: 'King Roy',
     port: { name: 'Kingston', country: 'US' }
   })
+  await new PlanVoyageUseCase(journal).plan(id, new Port(new PortName('Boston'), new Country('US')))
   await new SailShipUseCase(journal).sail(id)
 
   const response = await new LoadContainerController(

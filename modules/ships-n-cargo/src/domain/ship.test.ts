@@ -4,6 +4,7 @@ import { Name } from '../shared/domain/name'
 import { CargoReference } from './cargo-reference'
 import { DockShip } from './commands/dock-ship'
 import { LoadContainer } from './commands/load-container'
+import { PlanVoyage } from './commands/plan-voyage'
 import { RegisterShip } from './commands/register-ship'
 import { SailShip } from './commands/sail-ship'
 import { UnloadContainer } from './commands/unload-container'
@@ -14,9 +15,13 @@ import {
   ContainerNotFound,
   IdsMismatch,
   ShipMustBeRegisteredFirst,
+  ShipMustDockAtVoyageDestination,
   ShipNotAtPort,
   ShipNotAtSea,
-  UnregisteredShipRequiredToRegister
+  UnregisteredShipRequiredToRegister,
+  VoyageAlreadyPlanned,
+  VoyageDestinationSameAsOrigin,
+  VoyageRequiredToDepart
 } from './errors/ship'
 import { Port } from './port'
 import { PortName } from './port-name'
@@ -28,8 +33,12 @@ const port = (name = 'Kingston', country = 'US') =>
 const register = (id = '123') =>
   Ship.register(new RegisterShip(new Name('King Roy'), new Id(id), port()))
 const registered = (id = '123') => Ship.apply(undefined, register(id))
-const departed = (ship = registered()) =>
-  Ship.apply(ship, Ship.depart(new SailShip(new Id(ship.id)), ship))
+const planned = (ship = registered(), destination = port('Boston')) =>
+  Ship.apply(ship, Ship.planVoyage(new PlanVoyage(new Id(ship.id), destination), ship))
+const departed = (ship = registered()) => {
+  const ready = ship.activeVoyage === undefined ? planned(ship) : ship
+  return Ship.apply(ready, Ship.depart(new SailShip(new Id(ready.id)), ready))
+}
 
 afterEach(() => {
   vi.useRealTimers()
@@ -62,11 +71,13 @@ test('normal commands assign both event times from the server clock', () => {
     new UnloadContainer(new Id(loaded.id), new Id(container.containerId)),
     loaded
   )
-  const departedEvent = Ship.depart(new SailShip(new Id(atPort.id)), atPort)
-  const atSea = Ship.apply(atPort, departedEvent)
+  const voyagePlanned = Ship.planVoyage(new PlanVoyage(new Id(atPort.id), port('Boston')), atPort)
+  const readyToDepart = Ship.apply(atPort, voyagePlanned)
+  const departedEvent = Ship.depart(new SailShip(new Id(atPort.id)), readyToDepart)
+  const atSea = Ship.apply(readyToDepart, departedEvent)
   const arrival = Ship.arrive(new DockShip(new Id(atSea.id), port('Boston')), atSea)
 
-  for (const event of [registration, loading, unloading, departedEvent, arrival]) {
+  for (const event of [registration, loading, unloading, voyagePlanned, departedEvent, arrival]) {
     expect(event.occurredAt).toEqual(serverTime)
     expect(event.recordedAt).toEqual(serverTime)
   }
@@ -79,13 +90,44 @@ test('rejects registering an already registered ship', () => {
   ).toThrow(UnregisteredShipRequiredToRegister)
 })
 
-test('departs only from a port', () => {
+test('plans one voyage from the current port to a different destination', () => {
   const ship = registered()
-  const event = Ship.depart(new SailShip(new Id('123')), ship)
-  const atSea = Ship.apply(ship, event)
+  const destination = port('Boston')
+  const event = Ship.planVoyage(new PlanVoyage(new Id('123'), destination), ship)
+  const ready = Ship.apply(ship, event)
+
+  expect(event.origin).toEqual(port())
+  expect(event.destination).toEqual(destination)
+  expect(ready.activeVoyage).toEqual({ origin: port(), destination })
+  expect(Object.isFrozen(ready.activeVoyage)).toBe(true)
+  expect(() => Ship.planVoyage(new PlanVoyage(new Id('123'), port('Belmont')), ready)).toThrow(
+    VoyageAlreadyPlanned
+  )
+  expect(() => Ship.planVoyage(new PlanVoyage(new Id('123'), port()), ship)).toThrow(
+    VoyageDestinationSameAsOrigin
+  )
+})
+
+test('voyage planning requires a matching registered ship at a port', () => {
+  const command = new PlanVoyage(new Id('123'), port('Boston'))
+  expect(() => Ship.planVoyage(command)).toThrow(ShipMustBeRegisteredFirst)
+  expect(() =>
+    Ship.planVoyage(new PlanVoyage(new Id('456'), port('Boston')), registered())
+  ).toThrow(IdsMismatch)
+  expect(() => Ship.planVoyage(command, departed())).toThrow(new ShipNotAtPort('plan a voyage'))
+})
+
+test('departs only from a port with an active voyage', () => {
+  const ship = registered()
+  expect(() => Ship.depart(new SailShip(new Id('123')), ship)).toThrow(VoyageRequiredToDepart)
+
+  const ready = planned(ship)
+  const event = Ship.depart(new SailShip(new Id('123')), ready)
+  const atSea = Ship.apply(ready, event)
 
   expect(event.type).toBe('ShipDeparted')
   expect(atSea.location).toBeInstanceOf(AtSea)
+  expect(atSea.activeVoyage).toEqual(ready.activeVoyage)
   expect(() => Ship.depart(new SailShip(new Id('123')), atSea)).toThrow(ShipNotAtPort)
 })
 
@@ -106,6 +148,14 @@ test('arrives only from sea', () => {
 
   expect(event.type).toBe('ShipArrived')
   expect(arrived.location).toEqual(new AtPort(port('Boston')))
+  expect(arrived.activeVoyage).toBeUndefined()
+})
+
+test('arrives only at the active voyage destination', () => {
+  const atSea = departed()
+  expect(() => Ship.arrive(new DockShip(new Id('123'), port('Belmont', 'CA')), atSea)).toThrow(
+    ShipMustDockAtVoyageDestination
+  )
 })
 
 test('arrival requires a matching registered ship', () => {
@@ -156,6 +206,27 @@ test('loads and unloads containers by stable identity while at a port', () => {
   )
   expect(unloadedEvent.container).toEqual(item)
   expect(Ship.apply(loadedAgain, unloadedEvent).containers).toEqual([sameDescription])
+})
+
+test('planning a voyage does not freeze port container operations', () => {
+  const ready = planned()
+  const item = new Container(
+    new Id('container-1'),
+    new CargoReference('cargo-1'),
+    new Name('Refactoring Book')
+  )
+  const loaded = Ship.apply(
+    ready,
+    Ship.loadContainer(new LoadContainer(new Id(ready.id), item), ready)
+  )
+  const unloaded = Ship.apply(
+    loaded,
+    Ship.unloadContainer(new UnloadContainer(new Id(loaded.id), new Id(item.containerId)), loaded)
+  )
+
+  expect(loaded.activeVoyage).toEqual(ready.activeVoyage)
+  expect(unloaded.activeVoyage).toEqual(ready.activeVoyage)
+  expect(unloaded.containers).toEqual([])
 })
 
 test('allows a physical container to carry another cargo reference after unloading', () => {
@@ -241,11 +312,14 @@ test('container operations are rejected while the ship is at sea', () => {
     Ship.unloadContainer(new UnloadContainer(new Id('123'), new Id('container-1')), atSea)
   ).toThrow(new ShipNotAtPort('unload a container'))
 
-  const arrived = Ship.apply(
-    atSea,
-    Ship.arrive(new DockShip(new Id('123'), port('Belmont', 'CA')), atSea)
-  )
+  const arrived = Ship.apply(atSea, Ship.arrive(new DockShip(new Id('123'), port('Boston')), atSea))
   expect(arrived.containers).toEqual([item])
+  expect(
+    Ship.apply(
+      arrived,
+      Ship.unloadContainer(new UnloadContainer(new Id('123'), new Id('container-1')), arrived)
+    ).containers
+  ).toEqual([])
 })
 
 test('clone retains identity and immutable aggregate state', () => {

@@ -1,9 +1,13 @@
 import { afterEach, expect, test, vi } from 'vitest'
 import { LoadContainerUseCase } from '../../../../application/use-cases/load-container/use-case'
+import { PlanVoyageUseCase } from '../../../../application/use-cases/plan-voyage/use-case'
 import { RegisterShipUseCase } from '../../../../application/use-cases/register-ship/use-case'
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
+import { Country } from '../../../../domain/country'
 import { ContainerNotFound, ShipNotAtPort } from '../../../../domain/errors/ship'
+import { Port } from '../../../../domain/port'
+import { PortName } from '../../../../domain/port-name'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Id, IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
@@ -147,6 +151,7 @@ test('cannot unload a container while the ship is at sea', async () => {
     cargoReference: 'cargo-1',
     description: 'Enterprise Architecture'
   })
+  await new PlanVoyageUseCase(journal).plan(id, new Port(new PortName('Boston'), new Country('US')))
   await new SailShipUseCase(journal).sail(id)
 
   const response = await new UnloadContainerController(

@@ -9,6 +9,7 @@ import { dockShipHandler } from './dock-ship'
 import { getShipHistoryHandler } from './get-ship-history'
 import { loadContainerHandler } from './load-container'
 import { ping } from './ping'
+import { planVoyageHandler } from './plan-voyage'
 import { registerShipHandler } from './register-ship'
 import { createV1Router } from './routes/v1'
 import { sailShipHandler } from './sail-ship'
@@ -68,6 +69,7 @@ export const createApplication = ({
       registerShip: registerShipHandler(controllers.registerShip, generateId),
       dockShip: dockShipHandler(controllers.dockShip),
       loadContainer: loadContainerHandler(controllers.loadContainer),
+      planVoyage: planVoyageHandler(controllers.planVoyage),
       sailShip: sailShipHandler(controllers.sailShip),
       unloadContainer: unloadContainerHandler(controllers.unloadContainer)
     })

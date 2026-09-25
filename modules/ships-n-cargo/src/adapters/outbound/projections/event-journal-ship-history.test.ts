@@ -8,6 +8,7 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../domain/events/ship-registered'
+import { VoyagePlanned } from '../../../domain/events/voyage-planned'
 import { Port } from '../../../domain/port'
 import { PortName } from '../../../domain/port-name'
 import { Id } from '../../../shared/domain/id'
@@ -31,6 +32,7 @@ test('projects every ship event into stable business history in stream order', a
     new ShipRegistered('ship-1', 'King Roy', port, occurredAt),
     new ContainerLoaded('ship-1', container, occurredAt),
     new ContainerUnloaded('ship-1', container, occurredAt),
+    new VoyagePlanned('ship-1', port, destination, occurredAt),
     new ShipDeparted('ship-1', occurredAt),
     new ShipArrived('ship-1', destination, occurredAt)
   ]
@@ -60,6 +62,12 @@ test('projects every ship event into stable business history in stream order', a
         containerId: 'container-1',
         cargoReference: 'cargo-42',
         description: 'Coffee beans'
+      },
+      {
+        kind: 'voyage-planned',
+        occurredAt: occurredAt.toISOString(),
+        origin: { name: 'Kingston', country: 'US' },
+        destination: { name: 'Singapore', country: 'SG' }
       },
       { kind: 'ship-departed', occurredAt: occurredAt.toISOString() },
       {
