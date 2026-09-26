@@ -1,4 +1,4 @@
-import { DomainError } from '../../error'
+import { DomainError } from '../../errors/kernel'
 
 export class IsRequired extends DomainError {
   declare readonly code: 'REQUIRED_VALUE'

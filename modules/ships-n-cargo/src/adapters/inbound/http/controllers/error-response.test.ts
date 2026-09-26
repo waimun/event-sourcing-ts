@@ -1,8 +1,9 @@
 import { expect, test, vi } from 'vitest'
 import { ConcurrentCommandConflict } from '../../../../application/errors/concurrent-command-conflict'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
+import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
-import { EventJournalUnavailable, InvariantError } from '../../../../shared/error'
+import { InvariantError } from '../../../../shared/errors/kernel'
 import {
   errorResponse,
   expectedErrorResponse,

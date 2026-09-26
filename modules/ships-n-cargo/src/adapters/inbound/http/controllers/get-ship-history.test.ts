@@ -1,9 +1,9 @@
 import { expect, test, vi } from 'vitest'
 import { ShipNotFound } from '../../../../application/errors/ship-not-found'
+import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
 import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-ship-history/use-case'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
-import { EventJournalUnavailable } from '../../../../shared/error'
 import { opaqueApplicationErrorMessage } from './error-response'
 import { GetShipHistoryController } from './get-ship-history'
 

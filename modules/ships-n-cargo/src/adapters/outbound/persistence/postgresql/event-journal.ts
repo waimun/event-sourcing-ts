@@ -1,9 +1,9 @@
 import type { Pool, PoolClient, QueryResultRow } from 'pg'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
+import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import type { EventJournal, EventStream } from '../../../../application/ports/event-journal'
 import { eventPayloadHandler } from '../../../../domain/events'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
-import { EventJournalUnavailable } from '../../../../shared/error'
 import {
   AggregateIdMismatch,
   EventIsRequired,

@@ -1,4 +1,4 @@
-import { InfrastructureError, InvariantError } from '../../../../shared/error'
+import { InfrastructureError, InvariantError } from '../../../../shared/errors/kernel'
 
 export class InvalidExpectedVersion extends InvariantError {
   constructor(expectedVersion: number) {

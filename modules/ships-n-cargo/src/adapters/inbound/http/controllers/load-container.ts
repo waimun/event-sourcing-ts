@@ -3,7 +3,7 @@ import type { LoadContainerUseCase } from '../../../../application/use-cases/loa
 import { CargoReference } from '../../../../domain/cargo-reference'
 import { Id } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
-import { ExpectedError } from '../../../../shared/error'
+import { ExpectedError } from '../../../../shared/errors/kernel'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 

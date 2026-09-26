@@ -1,4 +1,4 @@
-import { DomainError } from '../error'
+import { DomainError } from '../errors/kernel'
 import { isEmptyString, trim } from '../utils/text'
 import { IsRequired } from './errors/is-required'
 

@@ -1,4 +1,4 @@
-import { DomainError } from '../../shared/error'
+import { DomainError } from '../../shared/errors/kernel'
 import { EnumCountry } from '../country'
 
 export class InvalidCountry extends DomainError {

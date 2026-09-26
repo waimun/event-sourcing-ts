@@ -1,4 +1,4 @@
-import type { ExpectedError } from '../shared/error'
+import type { ExpectedError } from '../shared/errors/kernel'
 import { ConcurrentCommandConflict } from './errors/concurrent-command-conflict'
 import { JournalVersionConflict } from './errors/journal-version-conflict'
 import { failure, type Result } from './result'

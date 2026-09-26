@@ -20,7 +20,7 @@ const writeFixture = (path: string, contents: string): void => {
 beforeAll(() => {
   writeFixture('tsconfig.json', JSON.stringify({ compilerOptions: { module: 'preserve' } }))
   writeFixture(
-    'src/shared/error.ts',
+    'src/shared/errors/kernel.ts',
     `export abstract class BaseError extends Error {
       readonly code = 'BASE_ERROR'
     }
@@ -28,7 +28,7 @@ beforeAll(() => {
   )
   writeFixture(
     'src/valid.ts',
-    `import { BaseError as KernelError } from './shared/error.ts'
+    `import { BaseError as KernelError } from './shared/errors/kernel.ts'
     class KnownFailure extends KernelError {}
     const failure: KernelError = new KnownFailure('known')
     throw failure`
@@ -74,7 +74,7 @@ test('uses resolved types and ignores test fixtures', () => {
   const diagnostics = checkErrorArchitecture({
     configFile: join(fixtureRoot, 'tsconfig.json'),
     sourceRoot,
-    errorKernelFile: join(sourceRoot, 'shared/error.ts')
+    errorKernelFile: join(sourceRoot, 'shared/errors/kernel.ts')
   })
 
   expect(diagnostics).toEqual([

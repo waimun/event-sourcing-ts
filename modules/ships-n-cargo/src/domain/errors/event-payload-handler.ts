@@ -1,4 +1,4 @@
-import { InvariantError } from '../../shared/error'
+import { InvariantError } from '../../shared/errors/kernel'
 
 export class EventSerializerNotFound extends InvariantError {
   constructor(eventName: string) {
