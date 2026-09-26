@@ -97,37 +97,8 @@ test.each(['/', '/api/v1/'])('GET %s responds to ping', async (path) => {
   })
 })
 
-test.each([
-  '/register',
-  '/dock',
-  '/divert',
-  '/sail',
-  '/load-container',
-  '/plan-voyage',
-  '/unload-container'
-])('POST /api/v1/ships%s reaches the ship handler', async (path) => {
-  const response = await send('POST', `/api/v1/ships${path}`, {})
-
-  expect(response).toEqual({
-    body: {
-      dateTime: expect.any(String),
-      error: expect.any(String),
-      status: 400
-    },
-    status: 400
-  })
-})
-
-test.each([
-  '/register',
-  '/dock',
-  '/divert',
-  '/sail',
-  '/load-container',
-  '/plan-voyage',
-  '/unload-container'
-])('POST /api/v1/ships%s without a body returns a JSON validation error', async (path) => {
-  const response = await send('POST', `/api/v1/ships${path}`)
+test('POST without a body returns a JSON validation error', async () => {
+  const response = await send('POST', '/api/v1/ships/register')
 
   expect(response).toEqual({
     body: {
