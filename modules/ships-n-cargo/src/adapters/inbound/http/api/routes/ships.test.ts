@@ -1,9 +1,10 @@
 import { once } from 'node:events'
 import { request, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
-import express, { type RequestHandler } from 'express'
+import type { RequestHandler } from 'express'
 import { afterAll, beforeAll, expect, test } from 'vitest'
-import { registerShipRouter, type ShipHandlers } from './ships'
+import { createHttpApplication } from '../application'
+import type { ShipHandlers } from './ships'
 
 let port: number
 let server: Server
@@ -25,7 +26,7 @@ beforeAll(async () => {
     sailShip: identifyHandler('sailShip'),
     unloadContainer: identifyHandler('unloadContainer')
   }
-  const application = express().use('/api/v1/ships', registerShipRouter(handlers))
+  const application = createHttpApplication(handlers)
 
   server = application.listen(0, '127.0.0.1')
   await once(server, 'listening')

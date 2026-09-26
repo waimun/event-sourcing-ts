@@ -2,10 +2,10 @@ import { once } from 'node:events'
 import { request, type Server } from 'node:http'
 import type { AddressInfo } from 'node:net'
 import { afterAll, beforeAll, expect, test } from 'vitest'
+import { createApplication } from '../../../../bootstrap/composition-root'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { EventJournalShipHistoryProjection } from '../../../outbound/projections/event-journal-ship-history'
-import { createApplication } from './application'
 
 type HttpResponse = {
   body: unknown
