@@ -1,26 +1,7 @@
 import express, { type Application, type ErrorRequestHandler } from 'express'
-import type { EventJournal } from '../../../../application/ports/event-journal'
-import type { ShipHistoryProjection } from '../../../../application/ports/ship-history-projection'
-import { GetShipHistoryUseCase } from '../../../../application/use-cases/get-ship-history/use-case'
-import type { DomainEvent } from '../../../../domain/events/domain-event'
-import { createControllers } from '../controllers'
-import { GetShipHistoryController } from '../controllers/get-ship-history'
-import { divertShipHandler } from './divert-ship'
-import { dockShipHandler } from './dock-ship'
-import { getShipHistoryHandler } from './get-ship-history'
-import { loadContainerHandler } from './load-container'
 import { ping } from './ping'
-import { planVoyageHandler } from './plan-voyage'
-import { registerShipHandler } from './register-ship'
+import type { ShipHandlers } from './routes/ships'
 import { createV1Router } from './routes/v1'
-import { sailShipHandler } from './sail-ship'
-import { unloadContainerHandler } from './unload-container'
-
-export type ApplicationDependencies = {
-  eventJournal: EventJournal<string, DomainEvent>
-  generateId: () => string
-  shipHistoryProjection: ShipHistoryProjection
-}
 
 const malformedJsonErrorHandler: ErrorRequestHandler = (
   error: unknown,
@@ -45,15 +26,7 @@ const malformedJsonErrorHandler: ErrorRequestHandler = (
   next(error)
 }
 
-export const createApplication = ({
-  eventJournal,
-  generateId,
-  shipHistoryProjection
-}: ApplicationDependencies): Application => {
-  const controllers = createControllers(eventJournal)
-  const getShipHistory = new GetShipHistoryController(
-    new GetShipHistoryUseCase(shipHistoryProjection)
-  )
+export const createHttpApplication = (handlers: ShipHandlers): Application => {
   const application = express()
 
   application.use(express.json())
@@ -63,19 +36,7 @@ export const createApplication = ({
     next()
   })
   application.get('/', ping)
-  application.use(
-    '/api/v1',
-    createV1Router({
-      getShipHistory: getShipHistoryHandler(getShipHistory),
-      registerShip: registerShipHandler(controllers.registerShip, generateId),
-      divertShip: divertShipHandler(controllers.divertShip),
-      dockShip: dockShipHandler(controllers.dockShip),
-      loadContainer: loadContainerHandler(controllers.loadContainer),
-      planVoyage: planVoyageHandler(controllers.planVoyage),
-      sailShip: sailShipHandler(controllers.sailShip),
-      unloadContainer: unloadContainerHandler(controllers.unloadContainer)
-    })
-  )
+  application.use('/api/v1', createV1Router(handlers))
 
   return application
 }
