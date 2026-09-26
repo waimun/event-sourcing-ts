@@ -1,4 +1,4 @@
-import { BaseError, type ErrorKind, type ExpectedError } from '../../../../shared/error'
+import { BaseError, type ErrorKind, type ExpectedError } from '../../../../shared/errors/kernel'
 import type { Response } from './response'
 
 export const opaqueApplicationErrorMessage =

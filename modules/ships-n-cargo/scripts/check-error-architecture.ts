@@ -5,7 +5,7 @@ const projectRoot = process.cwd()
 const diagnostics = checkErrorArchitecture({
   configFile: resolve(projectRoot, 'tsconfig.json'),
   sourceRoot: resolve(projectRoot, 'src'),
-  errorKernelFile: resolve(projectRoot, 'src/shared/error.ts')
+  errorKernelFile: resolve(projectRoot, 'src/shared/errors/kernel.ts')
 })
 
 if (diagnostics.length > 0) {

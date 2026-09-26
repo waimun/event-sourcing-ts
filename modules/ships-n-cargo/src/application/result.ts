@@ -1,4 +1,4 @@
-import type { ExpectedError } from '../shared/error'
+import type { ExpectedError } from '../shared/errors/kernel'
 
 export type Result<Success, Failure extends ExpectedError> =
   | { readonly ok: true; readonly value: Success }

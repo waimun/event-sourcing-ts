@@ -1,12 +1,12 @@
 import { expect, test } from 'vitest'
-import { EventIsRequired } from '../adapters/outbound/persistence/errors/event-journal'
-import { IdAlreadyExists } from '../application/errors/id-already-exists'
-import { ShipNotFound } from '../application/errors/ship-not-found'
-import { InvalidCountry } from '../domain/errors/dock-ship'
+import { EventIsRequired } from '../../adapters/outbound/persistence/errors/event-journal'
+import { IdAlreadyExists } from '../../application/errors/id-already-exists'
+import { ShipNotFound } from '../../application/errors/ship-not-found'
+import { InvalidCountry } from '../../domain/errors/dock-ship'
 import {
   EventSerializerNotFound,
   EventSerializerTypeMismatch
-} from '../domain/errors/event-payload-handler'
+} from '../../domain/errors/event-payload-handler'
 import {
   ContainerAlreadyLoaded,
   ContainerNotFound,
@@ -15,18 +15,11 @@ import {
   ShipNotAtPort,
   ShipNotAtSea,
   UnregisteredShipRequiredToRegister
-} from '../domain/errors/ship'
-import { IsRequired } from './domain/errors/is-required'
-import { IdNotAllowed } from './domain/id'
-import { NameNotAllowed } from './domain/name'
-import {
-  ApplicationError,
-  BaseError,
-  DomainError,
-  EventJournalUnavailable,
-  ExpectedError,
-  InfrastructureError
-} from './error'
+} from '../../domain/errors/ship'
+import { IsRequired } from '../domain/errors/is-required'
+import { IdNotAllowed } from '../domain/id'
+import { NameNotAllowed } from '../domain/name'
+import { ApplicationError, BaseError, DomainError, ExpectedError } from './kernel'
 
 class ExampleDomainError extends DomainError {
   constructor() {
@@ -60,21 +53,6 @@ test.each([new ShipNotFound('ship-1'), new IdAlreadyExists('ship-1')])(
     expect(error).not.toBeInstanceOf(DomainError)
   }
 )
-
-test('event journal failures retain operation and cause', () => {
-  const cause = new Error('connection refused')
-  const error = new EventJournalUnavailable('append', cause)
-
-  expect(error).toBeInstanceOf(InfrastructureError)
-  expect(error).not.toBeInstanceOf(ExpectedError)
-  expect(error).toMatchObject({
-    domain: 'ships-n-cargo',
-    code: 'EVENT_JOURNAL_UNAVAILABLE',
-    kind: 'fatal',
-    meta: { operation: 'append' },
-    cause
-  })
-})
 
 test.each([
   [new IsRequired('Id'), 'REQUIRED_VALUE', 'validation'],

@@ -1,13 +1,13 @@
 import { Pool, type PoolClient, type QueryResult, type QueryResultRow } from 'pg'
 import { afterEach, describe, expect, test, vi } from 'vitest'
 import type { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
+import type { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import { Country } from '../../../../domain/country'
 import { EventSerializerNotFound } from '../../../../domain/errors/event-payload-handler'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
 import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
-import type { EventJournalUnavailable } from '../../../../shared/error'
 import {
   AggregateIdMismatch,
   EventIsRequired,

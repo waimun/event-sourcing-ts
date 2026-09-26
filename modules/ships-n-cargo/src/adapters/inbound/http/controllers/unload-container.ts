@@ -1,7 +1,7 @@
 import type { UnloadContainerDto } from '../../../../application/use-cases/unload-container/unload-container-dto'
 import type { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
 import { Id } from '../../../../shared/domain/id'
-import { ExpectedError } from '../../../../shared/error'
+import { ExpectedError } from '../../../../shared/errors/kernel'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 

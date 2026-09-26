@@ -1,4 +1,4 @@
-import { ApplicationError } from '../../shared/error'
+import { ApplicationError } from '../../shared/errors/kernel'
 
 export class IdAlreadyExists extends ApplicationError {
   declare readonly code: 'SHIP_ALREADY_EXISTS'

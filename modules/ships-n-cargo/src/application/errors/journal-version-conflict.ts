@@ -1,4 +1,4 @@
-import { ApplicationError } from '../../shared/error'
+import { ApplicationError } from '../../shared/errors/kernel'
 
 export class JournalVersionConflict extends ApplicationError {
   declare readonly code: 'JOURNAL_VERSION_CONFLICT'

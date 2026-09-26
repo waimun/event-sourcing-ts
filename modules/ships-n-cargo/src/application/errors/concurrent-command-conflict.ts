@@ -1,4 +1,4 @@
-import { ApplicationError } from '../../shared/error'
+import { ApplicationError } from '../../shared/errors/kernel'
 
 export class ConcurrentCommandConflict extends ApplicationError {
   declare readonly code: 'CONCURRENT_COMMAND_CONFLICT'

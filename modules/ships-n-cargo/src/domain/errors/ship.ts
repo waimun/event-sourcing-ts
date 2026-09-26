@@ -1,4 +1,4 @@
-import { DomainError, InvariantError } from '../../shared/error'
+import { DomainError, InvariantError } from '../../shared/errors/kernel'
 
 export class UnregisteredShipRequiredToRegister extends InvariantError {
   constructor() {
