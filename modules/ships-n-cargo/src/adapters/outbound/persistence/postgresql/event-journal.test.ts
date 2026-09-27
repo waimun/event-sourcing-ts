@@ -90,9 +90,10 @@ describe('eventsByAggregate', () => {
     expect(Object.isFrozen(stream)).toBe(true)
     expect(Object.isFrozen(stream.events)).toBe(true)
     expect(stream.events.every((event) => Object.isFrozen(event))).toBe(true)
-    expect(pool.query).toHaveBeenCalledWith(expect.stringContaining('ORDER BY version ASC'), [
-      'ship-1'
-    ])
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('ORDER BY journal.version ASC'),
+      ['ship-1']
+    )
   })
 
   test('returns an empty version-zero stream when no rows exist', async () => {
@@ -165,7 +166,7 @@ describe('append', () => {
     expect(client.query).toHaveBeenNthCalledWith(1, 'BEGIN')
     expect(client.query).toHaveBeenNthCalledWith(
       2,
-      expect.stringContaining('ORDER BY version DESC'),
+      expect.stringContaining('ORDER BY journal.version DESC'),
       ['ship-1']
     )
     expect(client.query).toHaveBeenNthCalledWith(
