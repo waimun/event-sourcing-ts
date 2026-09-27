@@ -1,5 +1,5 @@
-import type { DivertShipDto } from '../../../../application/use-cases/divert-ship/divert-ship-dto'
-import type { DivertShipUseCase } from '../../../../application/use-cases/divert-ship/use-case'
+import type { ChangeVoyageDestinationDto } from '../../../../application/use-cases/change-voyage-destination/change-voyage-destination-dto'
+import type { ChangeVoyageDestinationUseCase } from '../../../../application/use-cases/change-voyage-destination/use-case'
 import { Country } from '../../../../domain/country'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
@@ -11,10 +11,10 @@ import { isNotObject } from '../../../../shared/utils/object'
 import { errorResponse, expectedErrorResponse } from './error-response'
 import type { Response } from './response'
 
-export class DivertShipController {
-  constructor(private readonly useCase: DivertShipUseCase) {}
+export class ChangeVoyageDestinationController {
+  constructor(private readonly useCase: ChangeVoyageDestinationUseCase) {}
 
-  async divert(request: DivertShipDto): Promise<Response> {
+  async change(request: ChangeVoyageDestinationDto): Promise<Response> {
     let parsed: ReturnType<typeof parseRequest>
     try {
       parsed = parseRequest(request)
@@ -24,11 +24,13 @@ export class DivertShipController {
     }
 
     try {
-      const result = await this.useCase.divert(parsed.id, parsed.destination, parsed.reason)
+      const result = await this.useCase.change(parsed.id, parsed.destination, parsed.reason)
       if (!result.ok) {
         switch (result.error.code) {
           case 'SHIP_NOT_FOUND':
-          case 'SHIP_NOT_AT_SEA':
+          case 'SHIP_NOT_AT_PORT':
+          case 'VOYAGE_REQUIRED_TO_CHANGE_DESTINATION':
+          case 'VOYAGE_DESTINATION_SAME_AS_ORIGIN':
           case 'VOYAGE_DESTINATION_UNCHANGED':
           case 'CONCURRENT_COMMAND_CONFLICT':
             return expectedErrorResponse(result.error)
@@ -45,7 +47,7 @@ export class DivertShipController {
   }
 }
 
-const parseRequest = (request: DivertShipDto) => {
+const parseRequest = (request: ChangeVoyageDestinationDto) => {
   const id = new Id(request.id)
   if (isNotObject(request.destination)) throw new IsRequired('Destination')
   const destination = new Port(

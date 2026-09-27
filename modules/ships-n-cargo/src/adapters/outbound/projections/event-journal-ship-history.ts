@@ -10,6 +10,8 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../domain/events/ship-registered'
+import { VoyageCancelled } from '../../../domain/events/voyage-cancelled'
+import { VoyageDestinationChanged } from '../../../domain/events/voyage-destination-changed'
 import { VoyageDiverted } from '../../../domain/events/voyage-diverted'
 import { VoyagePlanned } from '../../../domain/events/voyage-planned'
 import type { Port } from '../../../domain/port'
@@ -52,7 +54,26 @@ const projectEvent = (event: DomainEvent): ShipHistoryEntry => {
       kind: 'voyage-diverted',
       occurredAt,
       previousDestination: summarizePort(event.previousDestination),
-      destination: summarizePort(event.destination)
+      destination: summarizePort(event.destination),
+      reason: event.reason
+    })
+  }
+  if (event instanceof VoyageDestinationChanged) {
+    return Object.freeze({
+      kind: 'voyage-destination-changed',
+      occurredAt,
+      previousDestination: summarizePort(event.previousDestination),
+      destination: summarizePort(event.destination),
+      reason: event.reason
+    })
+  }
+  if (event instanceof VoyageCancelled) {
+    return Object.freeze({
+      kind: 'voyage-cancelled',
+      occurredAt,
+      origin: summarizePort(event.origin),
+      destination: summarizePort(event.destination),
+      reason: event.reason
     })
   }
   if (event instanceof ContainerLoaded || event instanceof ContainerUnloaded) {

@@ -1,6 +1,8 @@
 import type { Application } from 'express'
 import { Pool } from 'pg'
 import { createHttpApplication } from '../adapters/inbound/http/api/application'
+import { cancelVoyageHandler } from '../adapters/inbound/http/api/cancel-voyage'
+import { changeVoyageDestinationHandler } from '../adapters/inbound/http/api/change-voyage-destination'
 import { divertShipHandler } from '../adapters/inbound/http/api/divert-ship'
 import { dockShipHandler } from '../adapters/inbound/http/api/dock-ship'
 import { getShipHistoryHandler } from '../adapters/inbound/http/api/get-ship-history'
@@ -51,6 +53,8 @@ export const createApplication = ({
   return createHttpApplication({
     getShipHistory: getShipHistoryHandler(getShipHistory),
     registerShip: registerShipHandler(controllers.registerShip, generateId),
+    cancelVoyage: cancelVoyageHandler(controllers.cancelVoyage),
+    changeVoyageDestination: changeVoyageDestinationHandler(controllers.changeVoyageDestination),
     divertShip: divertShipHandler(controllers.divertShip),
     dockShip: dockShipHandler(controllers.dockShip),
     loadContainer: loadContainerHandler(controllers.loadContainer),

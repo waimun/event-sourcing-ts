@@ -4,26 +4,26 @@ import { PortName } from '../port-name'
 import { VoyageChangeReason } from '../voyage-change-reason'
 import { BaseDomainEvent } from './domain-event'
 
-const EVENT_TYPE = 'VoyageDiverted'
+const EVENT_TYPE = 'VoyageCancelled'
 
 const copyPort = (port: Port): Port => new Port(new PortName(port.name), new Country(port.country))
 
-export class VoyageDiverted extends BaseDomainEvent<typeof EVENT_TYPE> {
+export class VoyageCancelled extends BaseDomainEvent<typeof EVENT_TYPE> {
   static readonly eventType = EVENT_TYPE
-  readonly previousDestination: Port
+  readonly origin: Port
   readonly destination: Port
   readonly reason: string
 
   constructor(
     aggregateId: string,
-    previousDestination: Port,
+    origin: Port,
     destination: Port,
     reason: string,
     occurredAt?: Date,
     recordedAt?: Date
   ) {
-    super(VoyageDiverted.eventType, aggregateId, occurredAt, recordedAt)
-    this.previousDestination = copyPort(previousDestination)
+    super(VoyageCancelled.eventType, aggregateId, occurredAt, recordedAt)
+    this.origin = copyPort(origin)
     this.destination = copyPort(destination)
     this.reason = new VoyageChangeReason(reason).value
     Object.freeze(this)

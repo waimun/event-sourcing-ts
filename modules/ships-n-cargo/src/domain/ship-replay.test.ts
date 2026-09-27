@@ -11,6 +11,8 @@ import { BaseDomainEvent, type DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipDeparted } from './events/ship-departed'
 import { ShipRegistered } from './events/ship-registered'
+import { VoyageCancelled } from './events/voyage-cancelled'
+import { VoyageDestinationChanged } from './events/voyage-destination-changed'
 import { VoyageDiverted } from './events/voyage-diverted'
 import { VoyagePlanned } from './events/voyage-planned'
 import { Port } from './port'
@@ -83,7 +85,7 @@ test('replays the complete at-port to at-sea lifecycle', () => {
     new ContainerLoaded('123', container()),
     new VoyagePlanned('123', port(), port('Boston')),
     new ShipDeparted('123'),
-    new VoyageDiverted('123', port('Boston'), port('Belmont')),
+    new VoyageDiverted('123', port('Boston'), port('Belmont'), 'Weather changed'),
     new ShipArrived('123', port('Belmont')),
     new ContainerUnloaded('123', container())
   ]
@@ -104,6 +106,8 @@ test('rejects event types the aggregate does not understand', () => {
 test.each([
   ShipRegistered.eventType,
   VoyagePlanned.eventType,
+  VoyageDestinationChanged.eventType,
+  VoyageCancelled.eventType,
   VoyageDiverted.eventType,
   ShipDeparted.eventType,
   ShipArrived.eventType,
@@ -116,7 +120,9 @@ test.each([
 test.each([
   new ShipDeparted('123'),
   new VoyagePlanned('123', port(), port('Boston')),
-  new VoyageDiverted('123', port('Boston'), port('Belmont')),
+  new VoyageDestinationChanged('123', port('Boston'), port('Belmont'), 'Berth unavailable'),
+  new VoyageCancelled('123', port(), port('Boston'), 'Charterer cancelled'),
+  new VoyageDiverted('123', port('Boston'), port('Belmont'), 'Weather changed'),
   new ShipArrived('123', port()),
   new ContainerLoaded('123', container()),
   new ContainerUnloaded('123', container())
@@ -186,7 +192,7 @@ test('rejects voyage histories that violate planning and destination rules', () 
     Ship.replay([
       registered(),
       new VoyagePlanned('123', port(), port('Boston')),
-      new VoyageDiverted('123', port('Boston'), port('Belmont'))
+      new VoyageDiverted('123', port('Boston'), port('Belmont'), 'Weather changed')
     ])
   ).toThrow(InvalidShipHistory)
   expect(() =>
@@ -194,7 +200,7 @@ test('rejects voyage histories that violate planning and destination rules', () 
       registered(),
       new VoyagePlanned('123', port(), port('Boston')),
       new ShipDeparted('123'),
-      new VoyageDiverted('123', port('Belmont'), port('Harrison'))
+      new VoyageDiverted('123', port('Belmont'), port('Harrison'), 'Weather changed')
     ])
   ).toThrow(InvalidShipHistory)
   expect(() =>
@@ -202,7 +208,7 @@ test('rejects voyage histories that violate planning and destination rules', () 
       registered(),
       new VoyagePlanned('123', port(), port('Boston')),
       new ShipDeparted('123'),
-      new VoyageDiverted('123', port('Boston'), port('Boston'))
+      new VoyageDiverted('123', port('Boston'), port('Boston'), 'Weather changed')
     ])
   ).toThrow(InvalidShipHistory)
   expect(() =>
@@ -210,8 +216,86 @@ test('rejects voyage histories that violate planning and destination rules', () 
       registered(),
       new VoyagePlanned('123', port(), port('Boston')),
       new ShipDeparted('123'),
-      new VoyageDiverted('123', port('Boston'), port('Belmont')),
+      new VoyageDiverted('123', port('Boston'), port('Belmont'), 'Weather changed'),
       new ShipArrived('123', port('Boston'))
+    ])
+  ).toThrow(InvalidShipHistory)
+})
+
+test('replays predeparture destination changes and voyage cancellation', () => {
+  const events = [
+    registered(),
+    new VoyagePlanned('123', port(), port('Boston')),
+    new VoyageDestinationChanged('123', port('Boston'), port('Belmont'), 'Berth unavailable'),
+    new VoyageDestinationChanged('123', port('Belmont'), port('Harrison'), 'Cargo reassigned'),
+    new VoyageCancelled('123', port(), port('Harrison'), 'Charterer cancelled')
+  ]
+
+  expect(replay(events).activeVoyage).toBeUndefined()
+})
+
+test('rejects inconsistent predeparture destination-change history', () => {
+  const planned = [registered(), new VoyagePlanned('123', port(), port('Boston'))]
+
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyageDestinationChanged('123', port('Boston'), port('Belmont'), 'Berth unavailable')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new VoyageDestinationChanged('123', port('Harrison'), port('Belmont'), 'Berth unavailable')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new VoyageDestinationChanged('123', port('Boston'), port(), 'Berth unavailable')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new VoyageDestinationChanged('123', port('Boston'), port('Boston'), 'Berth unavailable')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new ShipDeparted('123'),
+      new VoyageDestinationChanged('123', port('Boston'), port('Belmont'), 'Berth unavailable')
+    ])
+  ).toThrow(InvalidShipHistory)
+})
+
+test('rejects inconsistent voyage-cancellation history', () => {
+  const planned = [registered(), new VoyagePlanned('123', port(), port('Boston'))]
+
+  expect(() =>
+    Ship.replay([
+      registered(),
+      new VoyageCancelled('123', port(), port('Boston'), 'Charterer cancelled')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new VoyageCancelled('123', port('Harrison'), port('Boston'), 'Charterer cancelled')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new VoyageCancelled('123', port(), port('Belmont'), 'Charterer cancelled')
+    ])
+  ).toThrow(InvalidShipHistory)
+  expect(() =>
+    Ship.replay([
+      ...planned,
+      new ShipDeparted('123'),
+      new VoyageCancelled('123', port(), port('Boston'), 'Charterer cancelled')
     ])
   ).toThrow(InvalidShipHistory)
 })
