@@ -45,10 +45,10 @@ const currentVersion = async (
   aggregateId: string
 ): Promise<number> => {
   const result = await client.query<VersionRow>(
-    `SELECT version::text
-     FROM ships_n_cargo.event_journal
-     WHERE aggregate_id = $1
-     ORDER BY version DESC
+    `SELECT journal.version::text AS version
+     FROM ships_n_cargo.event_journal AS journal
+     WHERE journal.aggregate_id = $1
+     ORDER BY journal.version DESC
      LIMIT 1`,
     [aggregateId]
   )
@@ -127,10 +127,10 @@ export class PostgreSqlEventJournal implements EventJournal<string, DomainEvent>
     let rows: EventRow[]
     try {
       const result = await this.pool.query<EventRow>(
-        `SELECT version::text, event_payload
-         FROM ships_n_cargo.event_journal
-         WHERE aggregate_id = $1
-         ORDER BY version ASC`,
+        `SELECT journal.version::text AS version, journal.event_payload
+         FROM ships_n_cargo.event_journal AS journal
+         WHERE journal.aggregate_id = $1
+         ORDER BY journal.version ASC`,
         [id]
       )
       rows = result.rows
