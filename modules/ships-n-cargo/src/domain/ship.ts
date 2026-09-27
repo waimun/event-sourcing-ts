@@ -1,3 +1,5 @@
+import type { CancelVoyage } from './commands/cancel-voyage'
+import type { ChangeVoyageDestination } from './commands/change-voyage-destination'
 import type { DivertShip } from './commands/divert-ship'
 import type { DockShip } from './commands/dock-ship'
 import type { LoadContainer } from './commands/load-container'
@@ -19,6 +21,8 @@ import {
   VoyageAlreadyPlanned,
   VoyageDestinationSameAsOrigin,
   VoyageDestinationUnchanged,
+  VoyageRequiredToCancel,
+  VoyageRequiredToChangeDestination,
   VoyageRequiredToDepart
 } from './errors/ship'
 import { ContainerLoaded } from './events/container-loaded'
@@ -27,6 +31,8 @@ import type { DomainEvent } from './events/domain-event'
 import { ShipArrived } from './events/ship-arrived'
 import { ShipDeparted } from './events/ship-departed'
 import { ShipRegistered } from './events/ship-registered'
+import { VoyageCancelled } from './events/voyage-cancelled'
+import { VoyageDestinationChanged } from './events/voyage-destination-changed'
 import { VoyageDiverted } from './events/voyage-diverted'
 import { VoyagePlanned } from './events/voyage-planned'
 import type { Port } from './port'
@@ -129,6 +135,45 @@ export class Ship extends SourcedAggregate {
         }
         return Ship.handleVoyageDiverted(registered, event)
       }
+      case VoyageDestinationChanged.eventType: {
+        if (!(event instanceof VoyageDestinationChanged)) {
+          Ship.reject(event, 'event payload is malformed')
+        }
+        const registered = Ship.requireMatchingRegisteredShip(state, event)
+        if (!(registered.location instanceof AtPort)) {
+          Ship.reject(event, 'ship must be at a port to change a voyage destination')
+        }
+        if (registered.activeVoyage === undefined) {
+          Ship.reject(event, 'ship must have an active voyage to change its destination')
+        }
+        if (!samePort(registered.activeVoyage.destination, event.previousDestination)) {
+          Ship.reject(event, 'destination change must replace the active voyage destination')
+        }
+        if (samePort(registered.activeVoyage.origin, event.destination)) {
+          Ship.reject(event, 'voyage destination must differ from its origin')
+        }
+        if (samePort(event.previousDestination, event.destination)) {
+          Ship.reject(event, 'new voyage destination must differ from the active destination')
+        }
+        return Ship.handleVoyageDestinationChanged(registered, event)
+      }
+      case VoyageCancelled.eventType: {
+        if (!(event instanceof VoyageCancelled)) Ship.reject(event, 'event payload is malformed')
+        const registered = Ship.requireMatchingRegisteredShip(state, event)
+        if (!(registered.location instanceof AtPort)) {
+          Ship.reject(event, 'ship must be at a port to cancel a voyage')
+        }
+        if (registered.activeVoyage === undefined) {
+          Ship.reject(event, 'ship must have an active voyage to cancel')
+        }
+        if (
+          !samePort(registered.activeVoyage.origin, event.origin) ||
+          !samePort(registered.activeVoyage.destination, event.destination)
+        ) {
+          Ship.reject(event, 'cancelled voyage must match the active voyage')
+        }
+        return Ship.handleVoyageCancelled(registered)
+      }
       case ContainerLoaded.eventType: {
         if (!(event instanceof ContainerLoaded)) Ship.reject(event, 'event payload is malformed')
         const registered = Ship.requireMatchingRegisteredShip(state, event)
@@ -223,7 +268,44 @@ export class Ship extends SourcedAggregate {
     if (samePort(previousDestination, command.destination)) {
       throw new VoyageDestinationUnchanged()
     }
-    return new VoyageDiverted(command.id, previousDestination, command.destination)
+    return new VoyageDiverted(command.id, previousDestination, command.destination, command.reason)
+  }
+
+  static changeVoyageDestination(
+    command: ChangeVoyageDestination,
+    state?: Ship
+  ): VoyageDestinationChanged {
+    if (state === undefined) throw new ShipMustBeRegisteredFirst()
+    if (state.id !== command.id) throw new IdsMismatch()
+    if (!(state.location instanceof AtPort)) {
+      throw new ShipNotAtPort('change a voyage destination')
+    }
+    if (state.activeVoyage === undefined) throw new VoyageRequiredToChangeDestination()
+    if (samePort(state.activeVoyage.origin, command.destination)) {
+      throw new VoyageDestinationSameAsOrigin()
+    }
+    if (samePort(state.activeVoyage.destination, command.destination)) {
+      throw new VoyageDestinationUnchanged()
+    }
+    return new VoyageDestinationChanged(
+      command.id,
+      state.activeVoyage.destination,
+      command.destination,
+      command.reason
+    )
+  }
+
+  static cancelVoyage(command: CancelVoyage, state?: Ship): VoyageCancelled {
+    if (state === undefined) throw new ShipMustBeRegisteredFirst()
+    if (state.id !== command.id) throw new IdsMismatch()
+    if (!(state.location instanceof AtPort)) throw new ShipNotAtPort('cancel a voyage')
+    if (state.activeVoyage === undefined) throw new VoyageRequiredToCancel()
+    return new VoyageCancelled(
+      command.id,
+      state.activeVoyage.origin,
+      state.activeVoyage.destination,
+      command.reason
+    )
   }
 
   static loadContainer(command: LoadContainer, state?: Ship): ContainerLoaded {
@@ -273,6 +355,18 @@ export class Ship extends SourcedAggregate {
       origin: activeVoyage.origin,
       destination: event.destination
     })
+  }
+
+  static handleVoyageDestinationChanged(current: Ship, event: VoyageDestinationChanged): Ship {
+    const activeVoyage = current.activeVoyage as ActiveVoyage
+    return new Ship(current.id, current.name, current.location, current.containers, {
+      origin: activeVoyage.origin,
+      destination: event.destination
+    })
+  }
+
+  static handleVoyageCancelled(current: Ship): Ship {
+    return new Ship(current.id, current.name, current.location, current.containers)
   }
 
   static handleContainerLoaded(current: Ship, event: ContainerLoaded): Ship {

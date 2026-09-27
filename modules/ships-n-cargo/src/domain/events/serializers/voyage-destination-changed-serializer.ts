@@ -1,13 +1,15 @@
 import { Country } from '../../country'
 import { Port } from '../../port'
 import { PortName } from '../../port-name'
-import { VoyageDiverted } from '../voyage-diverted'
+import { VoyageDestinationChanged } from '../voyage-destination-changed'
 import type { EventSerializable } from './event-serializable'
 
-export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverted> {
-  readonly eventType = VoyageDiverted.eventType
+export class VoyageDestinationChangedSerializer
+  implements EventSerializable<VoyageDestinationChanged>
+{
+  readonly eventType = VoyageDestinationChanged.eventType
 
-  eventFromJson(json: string): VoyageDiverted {
+  eventFromJson(json: string): VoyageDestinationChanged {
     const {
       aggregateId,
       previousDestinationName,
@@ -18,7 +20,7 @@ export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverte
       occurredAt,
       recordedAt
     } = JSON.parse(json)
-    return new VoyageDiverted(
+    return new VoyageDestinationChanged(
       aggregateId,
       new Port(new PortName(previousDestinationName), new Country(previousDestinationCountry)),
       new Port(new PortName(destinationName), new Country(destinationCountry)),
@@ -28,7 +30,7 @@ export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverte
     )
   }
 
-  eventToJson(event: VoyageDiverted): string {
+  eventToJson(event: VoyageDestinationChanged): string {
     return JSON.stringify({
       ...JSON.parse(event.asJson()),
       previousDestinationName: event.previousDestination.name,

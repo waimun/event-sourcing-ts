@@ -76,7 +76,29 @@ export class VoyageDestinationUnchanged extends DomainError {
     super({
       code: 'VOYAGE_DESTINATION_UNCHANGED',
       kind: 'conflict',
-      message: 'Diversion destination must differ from the active voyage destination'
+      message: 'New voyage destination must differ from the active voyage destination'
+    })
+  }
+}
+
+export class VoyageRequiredToChangeDestination extends DomainError {
+  declare readonly code: 'VOYAGE_REQUIRED_TO_CHANGE_DESTINATION'
+  constructor() {
+    super({
+      code: 'VOYAGE_REQUIRED_TO_CHANGE_DESTINATION',
+      kind: 'conflict',
+      message: 'Plan a voyage before changing its destination'
+    })
+  }
+}
+
+export class VoyageRequiredToCancel extends DomainError {
+  declare readonly code: 'VOYAGE_REQUIRED_TO_CANCEL'
+  constructor() {
+    super({
+      code: 'VOYAGE_REQUIRED_TO_CANCEL',
+      kind: 'conflict',
+      message: 'Plan a voyage before cancelling it'
     })
   }
 }

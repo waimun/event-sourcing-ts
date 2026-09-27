@@ -19,6 +19,8 @@ beforeAll(async () => {
   const handlers: ShipHandlers = {
     getShipHistory: identifyHandler('getShipHistory'),
     registerShip: identifyHandler('registerShip'),
+    cancelVoyage: identifyHandler('cancelVoyage'),
+    changeVoyageDestination: identifyHandler('changeVoyageDestination'),
     divertShip: identifyHandler('divertShip'),
     dockShip: identifyHandler('dockShip'),
     loadContainer: identifyHandler('loadContainer'),
@@ -77,6 +79,8 @@ const send = (method: 'GET' | 'POST', path: string): Promise<unknown> =>
 test.each([
   ['GET', '/ship-123/history', 'getShipHistory', 'ship-123'],
   ['POST', '/register', 'registerShip', undefined],
+  ['POST', '/cancel-voyage', 'cancelVoyage', undefined],
+  ['POST', '/change-voyage-destination', 'changeVoyageDestination', undefined],
   ['POST', '/divert', 'divertShip', undefined],
   ['POST', '/dock', 'dockShip', undefined],
   ['POST', '/sail', 'sailShip', undefined],

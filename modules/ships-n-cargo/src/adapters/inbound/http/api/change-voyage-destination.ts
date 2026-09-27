@@ -1,11 +1,11 @@
 import type { Request, Response } from 'express'
 import { trim } from '../../../../shared/utils/text'
-import type { DivertShipController } from '../controllers/divert-ship'
+import type { ChangeVoyageDestinationController } from '../controllers/change-voyage-destination'
 
-export const divertShipHandler =
-  (controller: DivertShipController) =>
+export const changeVoyageDestinationHandler =
+  (controller: ChangeVoyageDestinationController) =>
   async (req: Request, res: Response): Promise<void> => {
-    const response = await controller.divert({
+    const response = await controller.change({
       id: trim(req.body.id),
       destination: req.body.destination,
       reason: req.body.reason

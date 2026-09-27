@@ -170,12 +170,32 @@ test('injected dependencies support a deterministic register, sail, and dock wor
   })
   expect(planned.status).toBe(200)
 
+  const changed = await send('POST', '/api/v1/ships/change-voyage-destination', {
+    id: 'generated-ship-id',
+    destination: { country: 'ca', name: 'Belmont' },
+    reason: 'Berth unavailable'
+  })
+  expect(changed.status).toBe(200)
+
+  const cancelled = await send('POST', '/api/v1/ships/cancel-voyage', {
+    id: 'generated-ship-id',
+    reason: 'Charterer cancelled'
+  })
+  expect(cancelled.status).toBe(200)
+
+  const replanned = await send('POST', '/api/v1/ships/plan-voyage', {
+    id: 'generated-ship-id',
+    destination: { country: 'us', name: 'Henderson' }
+  })
+  expect(replanned.status).toBe(200)
+
   const sailed = await send('POST', '/api/v1/ships/sail', { id: 'generated-ship-id' })
   expect(sailed.status).toBe(200)
 
   const diverted = await send('POST', '/api/v1/ships/divert', {
     id: 'generated-ship-id',
-    destination: { country: 'ca', name: 'Belmont' }
+    destination: { country: 'ca', name: 'Belmont' },
+    reason: 'Weather changed'
   })
   expect(diverted.status).toBe(200)
 
@@ -210,12 +230,33 @@ test('injected dependencies support a deterministic register, sail, and dock wor
             origin: { country: 'US', name: 'Kingston' },
             destination: { country: 'US', name: 'Henderson' }
           },
+          {
+            kind: 'voyage-destination-changed',
+            occurredAt: expect.any(String),
+            previousDestination: { country: 'US', name: 'Henderson' },
+            destination: { country: 'CA', name: 'Belmont' },
+            reason: 'Berth unavailable'
+          },
+          {
+            kind: 'voyage-cancelled',
+            occurredAt: expect.any(String),
+            origin: { country: 'US', name: 'Kingston' },
+            destination: { country: 'CA', name: 'Belmont' },
+            reason: 'Charterer cancelled'
+          },
+          {
+            kind: 'voyage-planned',
+            occurredAt: expect.any(String),
+            origin: { country: 'US', name: 'Kingston' },
+            destination: { country: 'US', name: 'Henderson' }
+          },
           { kind: 'ship-departed', occurredAt: expect.any(String) },
           {
             kind: 'voyage-diverted',
             occurredAt: expect.any(String),
             previousDestination: { country: 'US', name: 'Henderson' },
-            destination: { country: 'CA', name: 'Belmont' }
+            destination: { country: 'CA', name: 'Belmont' },
+            reason: 'Weather changed'
           },
           {
             kind: 'ship-arrived',

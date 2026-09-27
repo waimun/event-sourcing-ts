@@ -8,6 +8,8 @@ import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../domain/events/ship-registered'
+import { VoyageCancelled } from '../../../domain/events/voyage-cancelled'
+import { VoyageDestinationChanged } from '../../../domain/events/voyage-destination-changed'
 import { VoyageDiverted } from '../../../domain/events/voyage-diverted'
 import { VoyagePlanned } from '../../../domain/events/voyage-planned'
 import { Port } from '../../../domain/port'
@@ -34,8 +36,23 @@ test('projects every ship event into stable business history in stream order', a
     new ContainerLoaded('ship-1', container, occurredAt),
     new ContainerUnloaded('ship-1', container, occurredAt),
     new VoyagePlanned('ship-1', port, destination, occurredAt),
+    new VoyageDestinationChanged(
+      'ship-1',
+      destination,
+      new Port(new PortName('Boston'), new Country('US')),
+      'Berth unavailable',
+      occurredAt
+    ),
+    new VoyageCancelled(
+      'ship-1',
+      port,
+      new Port(new PortName('Boston'), new Country('US')),
+      'Charterer cancelled',
+      occurredAt
+    ),
+    new VoyagePlanned('ship-1', port, destination, occurredAt),
     new ShipDeparted('ship-1', occurredAt),
-    new VoyageDiverted('ship-1', destination, port, occurredAt),
+    new VoyageDiverted('ship-1', destination, port, 'Weather changed', occurredAt),
     new ShipArrived('ship-1', port, occurredAt)
   ]
   await journal.append('ship-1', 0, events)
@@ -71,12 +88,33 @@ test('projects every ship event into stable business history in stream order', a
         origin: { name: 'Kingston', country: 'US' },
         destination: { name: 'Singapore', country: 'SG' }
       },
+      {
+        kind: 'voyage-destination-changed',
+        occurredAt: occurredAt.toISOString(),
+        previousDestination: { name: 'Singapore', country: 'SG' },
+        destination: { name: 'Boston', country: 'US' },
+        reason: 'Berth unavailable'
+      },
+      {
+        kind: 'voyage-cancelled',
+        occurredAt: occurredAt.toISOString(),
+        origin: { name: 'Kingston', country: 'US' },
+        destination: { name: 'Boston', country: 'US' },
+        reason: 'Charterer cancelled'
+      },
+      {
+        kind: 'voyage-planned',
+        occurredAt: occurredAt.toISOString(),
+        origin: { name: 'Kingston', country: 'US' },
+        destination: { name: 'Singapore', country: 'SG' }
+      },
       { kind: 'ship-departed', occurredAt: occurredAt.toISOString() },
       {
         kind: 'voyage-diverted',
         occurredAt: occurredAt.toISOString(),
         previousDestination: { name: 'Singapore', country: 'SG' },
-        destination: { name: 'Kingston', country: 'US' }
+        destination: { name: 'Kingston', country: 'US' },
+        reason: 'Weather changed'
       },
       {
         kind: 'ship-arrived',

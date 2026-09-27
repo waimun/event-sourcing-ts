@@ -38,36 +38,52 @@ test('diverts a ship using a validated destination', async () => {
   await putAtSea(journal, new Id('abc'))
 
   await expect(
-    controller.divert({ id: 'abc', destination: { name: ' Belmont ', country: 'ca' } })
+    controller.divert({
+      id: 'abc',
+      destination: { name: ' Belmont ', country: 'ca' },
+      reason: ' Weather changed '
+    })
   ).resolves.toMatchObject({ status: 200 })
 })
 
 test.each([
   {
-    request: { id: '', destination: { name: 'Belmont', country: 'CA' } },
+    request: { id: '', destination: { name: 'Belmont', country: 'CA' }, reason: 'Weather changed' },
     error: new IsRequired('Id')
   },
   {
-    request: { id: 'a!b', destination: { name: 'Belmont', country: 'CA' } },
+    request: {
+      id: 'a!b',
+      destination: { name: 'Belmont', country: 'CA' },
+      reason: 'Weather changed'
+    },
     error: new IdNotAllowed('a!b')
   },
   { request: { id: 'abc' }, error: new IsRequired('Destination') },
   { request: { id: 'abc', destination: null }, error: new IsRequired('Destination') },
   { request: { id: 'abc', destination: [] }, error: new IsRequired('Destination') },
   {
-    request: { id: 'abc', destination: { name: '', country: 'CA' } },
+    request: { id: 'abc', destination: { name: '', country: 'CA' }, reason: 'Weather changed' },
     error: new IsRequired('Port name')
   },
   {
-    request: { id: 'abc', destination: { name: 'a!', country: 'CA' } },
+    request: { id: 'abc', destination: { name: 'a!', country: 'CA' }, reason: 'Weather changed' },
     error: new NameNotAllowed('a!', 'Port name')
   },
   {
-    request: { id: 'abc', destination: { name: 'Belmont', country: '' } },
+    request: {
+      id: 'abc',
+      destination: { name: 'Belmont', country: '' },
+      reason: 'Weather changed'
+    },
     error: new IsRequired('Country')
   },
   {
-    request: { id: 'abc', destination: { name: 'Belmont', country: 'ZZ' } },
+    request: {
+      id: 'abc',
+      destination: { name: 'Belmont', country: 'ZZ' },
+      reason: 'Weather changed'
+    },
     error: new InvalidCountry('ZZ')
   }
 ])('rejects an invalid request with $error.code', async ({ request, error }) => {
@@ -79,9 +95,25 @@ test.each([
   })
 })
 
+test.each([undefined, '', '   '])('requires a non-empty reason (%s)', async (reason) => {
+  const { controller } = makeController()
+
+  expect(
+    await controller.divert({
+      id: 'abc',
+      destination: { name: 'Belmont', country: 'CA' },
+      reason: reason as string
+    })
+  ).toMatchObject({ status: 400, error: new IsRequired('Voyage change reason').message })
+})
+
 test('reports missing ships and diversion conflicts', async () => {
   const { controller, journal } = makeController()
-  const request = { id: 'abc', destination: { name: 'Belmont', country: 'CA' } }
+  const request = {
+    id: 'abc',
+    destination: { name: 'Belmont', country: 'CA' },
+    reason: 'Weather changed'
+  }
   expect(await controller.divert(request)).toMatchObject({
     status: 404,
     error: new ShipNotFound('abc').message
@@ -101,7 +133,11 @@ test('reports missing ships and diversion conflicts', async () => {
   await new PlanVoyageUseCase(journal).plan(id, new Port(new PortName('Boston'), new Country('US')))
   await new SailShipUseCase(journal).sail(id)
   expect(
-    await controller.divert({ id: 'abc', destination: { name: 'Boston', country: 'US' } })
+    await controller.divert({
+      id: 'abc',
+      destination: { name: 'Boston', country: 'US' },
+      reason: 'Weather changed'
+    })
   ).toMatchObject({ status: 409, error: new VoyageDestinationUnchanged().message })
 })
 
@@ -113,7 +149,11 @@ test('hides unexpected application results and failures', async () => {
     error: new Error('unexpected result')
   } as never)
 
-  const request = { id: 'abc', destination: { name: 'Belmont', country: 'CA' } }
+  const request = {
+    id: 'abc',
+    destination: { name: 'Belmont', country: 'CA' },
+    reason: 'Weather changed'
+  }
   expect(await controller.divert(request)).toMatchObject({
     status: 500,
     error: opaqueApplicationErrorMessage

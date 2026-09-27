@@ -2,7 +2,7 @@ import type { Id } from '../../shared/domain/id'
 import type { Port } from '../port'
 import type { VoyageChangeReason } from '../voyage-change-reason'
 
-export class DivertShip {
+export class ChangeVoyageDestination {
   readonly id: string
   readonly destination: Port
   readonly reason: string

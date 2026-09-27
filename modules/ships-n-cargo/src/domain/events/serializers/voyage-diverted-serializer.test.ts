@@ -17,7 +17,8 @@ test('restores a voyage diversion from JSON', () => {
     previousDestinationName: previousDestination.name,
     previousDestinationCountry: previousDestination.country,
     destinationName: destination.name,
-    destinationCountry: destination.country
+    destinationCountry: destination.country,
+    reason: 'Storm on planned route'
   }
 
   expect(new VoyageDivertedSerializer().eventFromJson(JSON.stringify(payload))).toEqual(
@@ -25,14 +26,20 @@ test('restores a voyage diversion from JSON', () => {
       payload.aggregateId,
       previousDestination,
       destination,
+      payload.reason,
       new Date(payload.occurredAt),
       new Date(payload.recordedAt)
     )
   )
 })
 
-test('serializes the replaced and new destinations', () => {
-  const event = new VoyageDiverted('abc', previousDestination, destination)
+test('serializes the replaced and new destinations with the reason', () => {
+  const event = new VoyageDiverted(
+    'abc',
+    previousDestination,
+    destination,
+    'Storm on planned route'
+  )
   const payload = JSON.parse(new VoyageDivertedSerializer().eventToJson(event))
 
   expect(payload).toMatchObject({
@@ -41,7 +48,8 @@ test('serializes the replaced and new destinations', () => {
     previousDestinationName: previousDestination.name,
     previousDestinationCountry: previousDestination.country,
     destinationName: destination.name,
-    destinationCountry: destination.country
+    destinationCountry: destination.country,
+    reason: 'Storm on planned route'
   })
   expect(new Date(payload.occurredAt)).toEqual(event.occurredAt)
   expect(new Date(payload.recordedAt)).toEqual(event.recordedAt)

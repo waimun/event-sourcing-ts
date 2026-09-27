@@ -1,4 +1,6 @@
 import type { EventJournal } from '../../../../application/ports/event-journal'
+import { CancelVoyageUseCase } from '../../../../application/use-cases/cancel-voyage/use-case'
+import { ChangeVoyageDestinationUseCase } from '../../../../application/use-cases/change-voyage-destination/use-case'
 import { DivertShipUseCase } from '../../../../application/use-cases/divert-ship/use-case'
 import { DockShipUseCase } from '../../../../application/use-cases/dock-ship/use-case'
 import { LoadContainerUseCase } from '../../../../application/use-cases/load-container/use-case'
@@ -7,6 +9,8 @@ import { RegisterShipUseCase } from '../../../../application/use-cases/register-
 import { SailShipUseCase } from '../../../../application/use-cases/sail-ship/use-case'
 import { UnloadContainerUseCase } from '../../../../application/use-cases/unload-container/use-case'
 import type { DomainEvent } from '../../../../domain/events/domain-event'
+import { CancelVoyageController } from './cancel-voyage'
+import { ChangeVoyageDestinationController } from './change-voyage-destination'
 import { DivertShipController } from './divert-ship'
 import { DockShipController } from './dock-ship'
 import { LoadContainerController } from './load-container'
@@ -17,6 +21,10 @@ import { UnloadContainerController } from './unload-container'
 
 export const createControllers = (eventJournal: EventJournal<string, DomainEvent>) => ({
   registerShip: new RegisterShipController(new RegisterShipUseCase(eventJournal)),
+  cancelVoyage: new CancelVoyageController(new CancelVoyageUseCase(eventJournal)),
+  changeVoyageDestination: new ChangeVoyageDestinationController(
+    new ChangeVoyageDestinationUseCase(eventJournal)
+  ),
   divertShip: new DivertShipController(new DivertShipUseCase(eventJournal)),
   dockShip: new DockShipController(new DockShipUseCase(eventJournal)),
   loadContainer: new LoadContainerController(new LoadContainerUseCase(eventJournal)),

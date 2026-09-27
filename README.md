@@ -20,7 +20,7 @@ This repository is where I put those ideas into practice. It is a working explor
 
 I did not set out to invent a shipping domain. I needed something small enough to understand but rich enough to experiment with, so I borrowed the ships, cargo, and ports model from Martin Fowler’s [Event Sourcing](https://www.martinfowler.com/eaaDev/EventSourcing.html) article and used it as a working example.
 
-Fowler’s example follows ships as they arrive at and depart from ports while cargo is loaded and unloaded. This repository takes that starting point and develops its own model around it. Ships are registered at a port, containers are loaded and unloaded, voyages are planned, ships sail and arrive, and a voyage can be diverted while it is underway.
+Fowler’s example follows ships as they arrive at and depart from ports while cargo is loaded and unloaded. This repository takes that starting point and develops its own model around it. Ships are registered at a port, containers are loaded and unloaded, voyages are planned and may be changed or cancelled before departure, ships sail and arrive, and an active voyage can be diverted while it is underway.
 
 ### The aggregate
 
@@ -29,32 +29,41 @@ The `Ship` is the aggregate and consistency boundary. Ports, voyages, and contai
 ```text
 Unregistered
     │ RegisterShip (ShipRegistered)
-At port
+At port without an active voyage
     ├── LoadContainer (ContainerLoaded)
     ├── UnloadContainer (ContainerUnloaded)
     │
     │ PlanVoyage (VoyagePlanned)
 At port with an active voyage
-    ├── Load or unload containers
+    ├── LoadContainer (ContainerLoaded)
+    ├── UnloadContainer (ContainerUnloaded)
+    ├── ChangeVoyageDestination (VoyageDestinationChanged)
+    ├── CancelVoyage (VoyageCancelled)
+    │   └── At port without an active voyage
     │
     │ SailShip (ShipDeparted)
 At sea with an active voyage
     ├── DivertShip (VoyageDiverted)
     │
     │ DockShip (ShipArrived)
-At port
+At port without an active voyage
 ```
 
 The lifecycle is constrained by a few central business rules:
 
 - A ship must be registered before anything else can happen.
 - Containers can only be loaded or unloaded while the ship is at a port.
+- A ship can have only one active voyage.
 - A voyage must start at the ship’s current port and have a different destination.
-- A ship cannot depart without a planned voyage.
+- Before departure, the destination may be changed or the voyage may be cancelled.
+- Changing, cancelling, or diverting a voyage requires a reason.
+- A ship cannot depart without an active voyage.
 - A voyage can only be diverted while the ship is at sea.
 - A ship can only arrive at its active destination.
 
-Commands express an intent. Events record the fact that the intent was accepted. A successful `PlanVoyage`, for example, produces a `VoyagePlanned`; a rejected command produces no event. Applying an event produces a new immutable `Ship` state, and replaying the complete sequence reconstructs its present state. The aggregate protects the rules during that replay, so an invalid or malformed history cannot silently become valid state.
+Commands express an intent. Events record the fact that the intent was accepted. A successful `PlanVoyage`, for example, produces a `VoyagePlanned`; a rejected command produces no event. Commands that change, cancel, or divert an active voyage require a reason, preserving not only what happened but why. Destination-change events record both the previous and new destinations so replay can reject inconsistent history. `VoyageCancelled` and `ShipArrived` clear the active voyage, allowing the ship’s next journey to begin with a new `PlanVoyage`.
+
+Applying an event produces a new immutable `Ship` state, and replaying the complete sequence reconstructs its present state. The aggregate protects the rules during that replay, so an invalid or malformed history cannot silently become valid state.
 
 ### From a request to an event
 
@@ -92,7 +101,7 @@ bootstrap
     │   ├── concurrency handling
     │   └── ports describing required capabilities
     ├── domain
-    │   └── commands, events, values, and business rules
+    │   └── aggregates, commands, events, value objects, and business rules
     └── outbound adapters
         ├── event-journal persistence
         └── query projections
