@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
 import {
   formatDatabaseSetupFailure,
   formatDatabaseStartupFailure,
@@ -13,6 +14,38 @@ test('formats database startup failures with a separate hint', () => {
       '  password authentication failed',
       '',
       'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
+    ].join('\n')
+  )
+})
+
+test('points invalid event-journal configuration to its environment settings', () => {
+  expect(
+    formatDatabaseStartupFailure(
+      new EventJournalConfigurationInvalid('SHIPS_N_CARGO_EVENT_JOURNAL is unsupported')
+    )
+  ).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  Event journal configuration is invalid: SHIPS_N_CARGO_EVENT_JOURNAL is unsupported',
+      '',
+      'Hint: Check the event-journal environment settings before retrying.'
+    ].join('\n')
+  )
+})
+
+test('points SQLite startup failures to the configured file path', () => {
+  const error = Object.assign(new Error('unable to open database file'), {
+    code: 'ERR_SQLITE_ERROR'
+  })
+
+  expect(formatDatabaseStartupFailure(error)).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  unable to open database file',
+      '',
+      'Hint: Check `SHIPS_N_CARGO_SQLITE_PATH` and access to its parent directory before retrying.'
     ].join('\n')
   )
 })

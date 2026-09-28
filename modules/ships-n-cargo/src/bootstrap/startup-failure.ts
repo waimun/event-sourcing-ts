@@ -39,18 +39,29 @@ const connectionFailureHint =
 const databaseHint = (error: unknown, fallback: string): string =>
   hasConnectionFailure(error) ? connectionFailureHint : fallback
 
+const hasCode = (error: unknown, code: string): boolean => {
+  if (typeof error !== 'object' || error === null) return false
+  if ('code' in error && error.code === code) return true
+  return 'cause' in error && hasCode(error.cause, code)
+}
+
 const formatFailure = (title: string, error: unknown, hint: string): string =>
   `${title}\n\n${indented(messageFrom(error))}\n\nHint: ${hint}`
 
-export const formatDatabaseStartupFailure = (error: unknown): string =>
-  formatFailure(
-    'Server startup failed',
-    error,
-    databaseHint(
+export const formatDatabaseStartupFailure = (error: unknown): string => {
+  let hint: string
+  if (hasCode(error, 'EVENT_JOURNAL_CONFIGURATION_INVALID')) {
+    hint = 'Check the event-journal environment settings before retrying.'
+  } else if (hasCode(error, 'ERR_SQLITE_ERROR')) {
+    hint = 'Check `SHIPS_N_CARGO_SQLITE_PATH` and access to its parent directory before retrying.'
+  } else {
+    hint = databaseHint(
       error,
       'Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
     )
-  )
+  }
+  return formatFailure('Server startup failed', error, hint)
+}
 
 export const formatDatabaseSetupFailure = (error: unknown): string =>
   formatFailure(
