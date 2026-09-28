@@ -8,7 +8,7 @@ import { VoyageDivertedSerializer } from './voyage-diverted-serializer'
 const previousDestination = new Port(new PortName('Singapore'), new Country('SG'))
 const destination = new Port(new PortName('Melbourne'), new Country('AU'))
 
-test('restores a voyage diversion from JSON', () => {
+test('restores a voyage diversion from metadata and event-specific data', () => {
   const payload = {
     type: 'VoyageDiverted',
     schemaVersion: 1,
@@ -22,7 +22,16 @@ test('restores a voyage diversion from JSON', () => {
     }
   }
 
-  expect(new VoyageDivertedSerializer().eventFromJson(JSON.stringify(payload))).toEqual(
+  expect(
+    new VoyageDivertedSerializer().eventFromData(
+      {
+        aggregateId: payload.aggregateId,
+        occurredAt: new Date(payload.occurredAt),
+        recordedAt: new Date(payload.recordedAt)
+      },
+      payload.data
+    )
+  ).toEqual(
     new VoyageDiverted(
       payload.aggregateId,
       previousDestination,
@@ -34,25 +43,19 @@ test('restores a voyage diversion from JSON', () => {
   )
 })
 
-test('serializes the replaced and new destinations in the version-one envelope', () => {
+test('returns the replaced and new destinations as version-one event-specific data', () => {
   const event = new VoyageDiverted(
     'abc',
     previousDestination,
     destination,
     'Storm on planned route'
   )
-  const payload = JSON.parse(new VoyageDivertedSerializer().eventToJson(event))
+  const serializer = new VoyageDivertedSerializer()
 
-  expect(payload).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: {
-      previousDestination,
-      destination,
-      reason: 'Storm on planned route'
-    }
+  expect(serializer.schemaVersion).toBe(1)
+  expect(serializer.eventToData(event)).toEqual({
+    previousDestination,
+    destination,
+    reason: 'Storm on planned route'
   })
 })

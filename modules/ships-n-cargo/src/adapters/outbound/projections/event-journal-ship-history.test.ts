@@ -138,8 +138,7 @@ test('rejects event types that have no stable history representation', async () 
     aggregateId: 'ship-1',
     occurredAt,
     recordedAt: occurredAt,
-    type: 'UnexpectedEvent',
-    asJson: () => '{}'
+    type: 'UnexpectedEvent'
   } satisfies DomainEvent
   const journal = {
     append: async () => undefined,

@@ -1,22 +1,17 @@
 import { ShipDeparted } from '../ship-departed'
-import type { EventSerializable } from './event-serializable'
+import type { EventMetadata, EventSerializable } from './event-serializable'
 
-export class ShipDepartedSerializer implements EventSerializable<ShipDeparted> {
+type ShipDepartedData = Record<string, never>
+
+export class ShipDepartedSerializer implements EventSerializable<ShipDeparted, ShipDepartedData> {
   readonly eventType = ShipDeparted.eventType
+  readonly schemaVersion = 1
 
-  eventFromJson(json: string): ShipDeparted {
-    const { aggregateId, occurredAt, recordedAt } = JSON.parse(json)
-    return new ShipDeparted(aggregateId, new Date(occurredAt), new Date(recordedAt))
+  eventFromData(metadata: EventMetadata, _data: ShipDepartedData): ShipDeparted {
+    return new ShipDeparted(metadata.aggregateId, metadata.occurredAt, metadata.recordedAt)
   }
 
-  eventToJson(event: ShipDeparted): string {
-    return JSON.stringify({
-      type: event.type,
-      schemaVersion: 1,
-      aggregateId: event.aggregateId,
-      occurredAt: event.occurredAt,
-      recordedAt: event.recordedAt,
-      data: {}
-    })
+  eventToData(_event: ShipDeparted): ShipDepartedData {
+    return {}
   }
 }

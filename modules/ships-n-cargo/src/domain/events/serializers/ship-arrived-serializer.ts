@@ -2,29 +2,31 @@ import { Country } from '../../country'
 import { Port } from '../../port'
 import { PortName } from '../../port-name'
 import { ShipArrived } from '../ship-arrived'
-import type { EventSerializable } from './event-serializable'
+import type { EventMetadata, EventSerializable } from './event-serializable'
 
-export class ShipArrivedSerializer implements EventSerializable<ShipArrived> {
+interface SerializedPort {
+  readonly name: string
+  readonly country: string
+}
+
+interface ShipArrivedData {
+  readonly port: SerializedPort
+}
+
+export class ShipArrivedSerializer implements EventSerializable<ShipArrived, ShipArrivedData> {
   readonly eventType = ShipArrived.eventType
+  readonly schemaVersion = 1
 
-  eventFromJson(json: string): ShipArrived {
-    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
+  eventFromData(metadata: EventMetadata, data: ShipArrivedData): ShipArrived {
     return new ShipArrived(
-      aggregateId,
+      metadata.aggregateId,
       new Port(new PortName(data.port.name), new Country(data.port.country)),
-      new Date(occurredAt),
-      new Date(recordedAt)
+      metadata.occurredAt,
+      metadata.recordedAt
     )
   }
 
-  eventToJson(event: ShipArrived): string {
-    return JSON.stringify({
-      type: event.type,
-      schemaVersion: 1,
-      aggregateId: event.aggregateId,
-      occurredAt: event.occurredAt,
-      recordedAt: event.recordedAt,
-      data: { port: event.port }
-    })
+  eventToData(event: ShipArrived): ShipArrivedData {
+    return { port: event.port }
   }
 }

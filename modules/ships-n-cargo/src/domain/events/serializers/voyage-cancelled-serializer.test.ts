@@ -8,7 +8,7 @@ import { VoyageCancelledSerializer } from './voyage-cancelled-serializer'
 const origin = new Port(new PortName('Singapore'), new Country('SG'))
 const destination = new Port(new PortName('Melbourne'), new Country('AU'))
 
-test('round trips a cancelled voyage snapshot in the version-one envelope', () => {
+test('round trips version-one event-specific data with supplied metadata', () => {
   const event = new VoyageCancelled(
     'abc',
     origin,
@@ -18,19 +18,22 @@ test('round trips a cancelled voyage snapshot in the version-one envelope', () =
     new Date('2024-01-03T04:05:06.000Z')
   )
   const serializer = new VoyageCancelledSerializer()
-  const json = serializer.eventToJson(event)
+  const data = serializer.eventToData(event)
 
-  expect(JSON.parse(json)).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: {
-      origin,
-      destination,
-      reason: 'Charterer cancelled'
-    }
+  expect(serializer.schemaVersion).toBe(1)
+  expect(data).toEqual({
+    origin,
+    destination,
+    reason: 'Charterer cancelled'
   })
-  expect(serializer.eventFromJson(json)).toEqual(event)
+  expect(
+    serializer.eventFromData(
+      {
+        aggregateId: event.aggregateId,
+        occurredAt: event.occurredAt,
+        recordedAt: event.recordedAt
+      },
+      data
+    )
+  ).toEqual(event)
 })

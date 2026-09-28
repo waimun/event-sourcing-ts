@@ -8,7 +8,7 @@ import { VoyageDestinationChangedSerializer } from './voyage-destination-changed
 const previousDestination = new Port(new PortName('Singapore'), new Country('SG'))
 const destination = new Port(new PortName('Melbourne'), new Country('AU'))
 
-test('round trips a destination change in the version-one envelope', () => {
+test('round trips version-one event-specific data with supplied metadata', () => {
   const event = new VoyageDestinationChanged(
     'abc',
     previousDestination,
@@ -18,19 +18,22 @@ test('round trips a destination change in the version-one envelope', () => {
     new Date('2024-01-03T04:05:06.000Z')
   )
   const serializer = new VoyageDestinationChangedSerializer()
-  const json = serializer.eventToJson(event)
+  const data = serializer.eventToData(event)
 
-  expect(JSON.parse(json)).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: {
-      previousDestination,
-      destination,
-      reason: 'Berth unavailable'
-    }
+  expect(serializer.schemaVersion).toBe(1)
+  expect(data).toEqual({
+    previousDestination,
+    destination,
+    reason: 'Berth unavailable'
   })
-  expect(serializer.eventFromJson(json)).toEqual(event)
+  expect(
+    serializer.eventFromData(
+      {
+        aggregateId: event.aggregateId,
+        occurredAt: event.occurredAt,
+        recordedAt: event.recordedAt
+      },
+      data
+    )
+  ).toEqual(event)
 })

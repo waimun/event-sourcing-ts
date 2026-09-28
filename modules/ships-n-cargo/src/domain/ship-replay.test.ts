@@ -43,8 +43,7 @@ const malformed = (type: DomainEvent['type']): DomainEvent => ({
   type,
   aggregateId: '123',
   occurredAt: new Date(),
-  recordedAt: new Date(),
-  asJson: () => '{}'
+  recordedAt: new Date()
 })
 
 test('domain events, port payloads, and locations cannot be changed', () => {

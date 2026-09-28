@@ -8,7 +8,7 @@ import { VoyagePlannedSerializer } from './voyage-planned-serializer'
 const origin = new Port(new PortName('Kingston'), new Country('US'))
 const destination = new Port(new PortName('Singapore'), new Country('SG'))
 
-test('restores a planned voyage from JSON', () => {
+test('restores a planned voyage from metadata and event-specific data', () => {
   const payload = {
     type: 'VoyagePlanned',
     schemaVersion: 1,
@@ -18,7 +18,16 @@ test('restores a planned voyage from JSON', () => {
     data: { origin, destination }
   }
 
-  expect(new VoyagePlannedSerializer().eventFromJson(JSON.stringify(payload))).toEqual(
+  expect(
+    new VoyagePlannedSerializer().eventFromData(
+      {
+        aggregateId: payload.aggregateId,
+        occurredAt: new Date(payload.occurredAt),
+        recordedAt: new Date(payload.recordedAt)
+      },
+      payload.data
+    )
+  ).toEqual(
     new VoyagePlanned(
       payload.aggregateId,
       origin,
@@ -29,16 +38,10 @@ test('restores a planned voyage from JSON', () => {
   )
 })
 
-test('serializes both voyage endpoints in the version-one envelope', () => {
+test('returns both voyage endpoints as version-one event-specific data', () => {
   const event = new VoyagePlanned('abc', origin, destination)
-  const payload = JSON.parse(new VoyagePlannedSerializer().eventToJson(event))
+  const serializer = new VoyagePlannedSerializer()
 
-  expect(payload).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: { origin, destination }
-  })
+  expect(serializer.schemaVersion).toBe(1)
+  expect(serializer.eventToData(event)).toEqual({ origin, destination })
 })
