@@ -111,7 +111,7 @@ The bootstrap composition root is the one place that knows which concrete pieces
 
 ### Persistence as an adapter
 
-Event persistence sits behind an application port. Its contract is concerned with capabilities: reading an aggregate’s ordered event stream and appending new events at an expected version. A storage adapter owns the mechanics of representing and retrieving those events.
+Event persistence sits behind an application port. Its contract is concerned with capabilities: reading an aggregate’s ordered event stream and appending new events at an expected version. A centralized codec owns the canonical versioned event representation, while storage adapters persist and retrieve those payloads as opaque strings. See the [event payload format and evolution guide](modules/ships-n-cargo/docs/event-payload-evolution.md) for the envelope contract and schema-evolution recipe.
 
 Because the aggregate and its use cases depend on that port rather than a storage technology, adapters can be added or replaced without moving persistence concerns into the domain. The composition root selects and supplies the concrete implementation when the application starts.
 
