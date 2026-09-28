@@ -11,14 +11,15 @@ const destination = new Port(new PortName('Melbourne'), new Country('AU'))
 test('restores a voyage diversion from JSON', () => {
   const payload = {
     type: 'VoyageDiverted',
+    schemaVersion: 1,
     aggregateId: 'abc',
     occurredAt: '2024-01-02T03:04:05.000Z',
     recordedAt: '2024-01-03T04:05:06.000Z',
-    previousDestinationName: previousDestination.name,
-    previousDestinationCountry: previousDestination.country,
-    destinationName: destination.name,
-    destinationCountry: destination.country,
-    reason: 'Storm on planned route'
+    data: {
+      previousDestination,
+      destination,
+      reason: 'Storm on planned route'
+    }
   }
 
   expect(new VoyageDivertedSerializer().eventFromJson(JSON.stringify(payload))).toEqual(
@@ -26,14 +27,14 @@ test('restores a voyage diversion from JSON', () => {
       payload.aggregateId,
       previousDestination,
       destination,
-      payload.reason,
+      payload.data.reason,
       new Date(payload.occurredAt),
       new Date(payload.recordedAt)
     )
   )
 })
 
-test('serializes the replaced and new destinations with the reason', () => {
+test('serializes the replaced and new destinations in the version-one envelope', () => {
   const event = new VoyageDiverted(
     'abc',
     previousDestination,
@@ -42,15 +43,16 @@ test('serializes the replaced and new destinations with the reason', () => {
   )
   const payload = JSON.parse(new VoyageDivertedSerializer().eventToJson(event))
 
-  expect(payload).toMatchObject({
+  expect(payload).toEqual({
     type: event.type,
+    schemaVersion: 1,
     aggregateId: event.aggregateId,
-    previousDestinationName: previousDestination.name,
-    previousDestinationCountry: previousDestination.country,
-    destinationName: destination.name,
-    destinationCountry: destination.country,
-    reason: 'Storm on planned route'
+    occurredAt: event.occurredAt.toISOString(),
+    recordedAt: event.recordedAt.toISOString(),
+    data: {
+      previousDestination,
+      destination,
+      reason: 'Storm on planned route'
+    }
   })
-  expect(new Date(payload.occurredAt)).toEqual(event.occurredAt)
-  expect(new Date(payload.recordedAt)).toEqual(event.recordedAt)
 })

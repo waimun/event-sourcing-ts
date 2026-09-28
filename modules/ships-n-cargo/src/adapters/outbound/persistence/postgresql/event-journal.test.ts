@@ -66,18 +66,26 @@ describe('eventsByAggregate', () => {
       result([
         {
           event_payload: JSON.stringify({
-            ...JSON.parse(registered.asJson()),
-            name: registered.name,
-            portName: registered.port.name,
-            portCountry: registered.port.country
+            type: registered.type,
+            schemaVersion: 1,
+            aggregateId: registered.aggregateId,
+            occurredAt: registered.occurredAt,
+            recordedAt: registered.recordedAt,
+            data: {
+              name: registered.name,
+              port: registered.port
+            }
           }),
           version: '1'
         },
         {
           event_payload: JSON.stringify({
-            ...JSON.parse(arrived.asJson()),
-            portName: arrived.port.name,
-            portCountry: arrived.port.country
+            type: arrived.type,
+            schemaVersion: 1,
+            aggregateId: arrived.aggregateId,
+            occurredAt: arrived.occurredAt,
+            recordedAt: arrived.recordedAt,
+            data: { port: arrived.port }
           }),
           version: '2'
         }
@@ -113,10 +121,15 @@ describe('eventsByAggregate', () => {
       result([
         {
           event_payload: JSON.stringify({
-            ...JSON.parse(registered.asJson()),
-            name: registered.name,
-            portName: registered.port.name,
-            portCountry: registered.port.country
+            type: registered.type,
+            schemaVersion: 1,
+            aggregateId: registered.aggregateId,
+            occurredAt: registered.occurredAt,
+            recordedAt: registered.recordedAt,
+            data: {
+              name: registered.name,
+              port: registered.port
+            }
           }),
           version: '7'
         }
@@ -145,7 +158,19 @@ describe('eventsByAggregate', () => {
   test('does not disguise deserialization invariants as database failures', async () => {
     const pool = makePool()
     vi.spyOn(pool, 'query').mockResolvedValue(
-      result([{ event_payload: JSON.stringify({ type: 'UnknownEvent' }), version: '1' }]) as never
+      result([
+        {
+          event_payload: JSON.stringify({
+            type: 'UnknownEvent',
+            schemaVersion: 1,
+            aggregateId: 'ship-1',
+            occurredAt: '2024-01-02T03:04:05.000Z',
+            recordedAt: '2024-01-03T04:05:06.000Z',
+            data: {}
+          }),
+          version: '1'
+        }
+      ]) as never
     )
 
     await expect(new PostgreSqlEventJournal(pool).eventsByAggregate('ship-1')).rejects.toThrow(

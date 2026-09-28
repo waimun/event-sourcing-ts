@@ -5,9 +5,11 @@ import { ShipDepartedSerializer } from './ship-departed-serializer'
 test('return event object from json string', () => {
   const payload = {
     type: 'ShipDeparted',
+    schemaVersion: 1,
     aggregateId: 'abc',
     occurredAt: '2024-01-02T03:04:05.000Z',
-    recordedAt: '2024-01-03T04:05:06.000Z'
+    recordedAt: '2024-01-03T04:05:06.000Z',
+    data: {}
   }
 
   const serializer = new ShipDepartedSerializer()
@@ -22,11 +24,12 @@ test('return event object from json string', () => {
 test('return json string from event object', () => {
   const serializer = new ShipDepartedSerializer()
   const event = new ShipDeparted('abc')
-  const json = serializer.eventToJson(event)
-  const { type, aggregateId, occurredAt, recordedAt } = JSON.parse(json)
-
-  expect(type).toEqual(event.type)
-  expect(aggregateId).toEqual(event.aggregateId)
-  expect(new Date(occurredAt)).toEqual(event.occurredAt)
-  expect(new Date(recordedAt)).toEqual(event.recordedAt)
+  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
+    type: event.type,
+    schemaVersion: 1,
+    aggregateId: event.aggregateId,
+    occurredAt: event.occurredAt.toISOString(),
+    recordedAt: event.recordedAt.toISOString(),
+    data: {}
+  })
 })

@@ -8,21 +8,15 @@ export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverte
   readonly eventType = VoyageDiverted.eventType
 
   eventFromJson(json: string): VoyageDiverted {
-    const {
-      aggregateId,
-      previousDestinationName,
-      previousDestinationCountry,
-      destinationName,
-      destinationCountry,
-      reason,
-      occurredAt,
-      recordedAt
-    } = JSON.parse(json)
+    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
     return new VoyageDiverted(
       aggregateId,
-      new Port(new PortName(previousDestinationName), new Country(previousDestinationCountry)),
-      new Port(new PortName(destinationName), new Country(destinationCountry)),
-      reason,
+      new Port(
+        new PortName(data.previousDestination.name),
+        new Country(data.previousDestination.country)
+      ),
+      new Port(new PortName(data.destination.name), new Country(data.destination.country)),
+      data.reason,
       new Date(occurredAt),
       new Date(recordedAt)
     )
@@ -30,12 +24,16 @@ export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverte
 
   eventToJson(event: VoyageDiverted): string {
     return JSON.stringify({
-      ...JSON.parse(event.asJson()),
-      previousDestinationName: event.previousDestination.name,
-      previousDestinationCountry: event.previousDestination.country,
-      destinationName: event.destination.name,
-      destinationCountry: event.destination.country,
-      reason: event.reason
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: {
+        previousDestination: event.previousDestination,
+        destination: event.destination,
+        reason: event.reason
+      }
     })
   }
 }
