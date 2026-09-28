@@ -21,7 +21,7 @@ export class VoyageCancelledSerializer
   readonly eventType = VoyageCancelled.eventType
   readonly schemaVersion = 1
 
-  eventFromData(metadata: EventMetadata, data: VoyageCancelledData): VoyageCancelled {
+  toEvent(metadata: EventMetadata, data: VoyageCancelledData): VoyageCancelled {
     return new VoyageCancelled(
       metadata.aggregateId,
       new Port(new PortName(data.origin.name), new Country(data.origin.country)),
@@ -32,7 +32,7 @@ export class VoyageCancelledSerializer
     )
   }
 
-  eventToData(event: VoyageCancelled): VoyageCancelledData {
+  toData(event: VoyageCancelled): VoyageCancelledData {
     return {
       origin: event.origin,
       destination: event.destination,

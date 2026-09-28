@@ -52,7 +52,7 @@ export class EventPayloadHandler {
       aggregateId: event.aggregateId,
       occurredAt: event.occurredAt,
       recordedAt: event.recordedAt,
-      data: serializer.eventToData(event)
+      data: serializer.toData(event)
     })
   }
 
@@ -60,7 +60,7 @@ export class EventPayloadHandler {
     const envelope = JSON.parse(payload) as EventEnvelope
     const serializer = this.byType(String(envelope.type))
 
-    return serializer.eventFromData(
+    return serializer.toEvent(
       {
         aggregateId: envelope.aggregateId,
         occurredAt: new Date(envelope.occurredAt),

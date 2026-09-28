@@ -18,7 +18,7 @@ test('round trips version-one event-specific data with supplied metadata', () =>
     new Date('2024-01-03T04:05:06.000Z')
   )
   const serializer = new VoyageDestinationChangedSerializer()
-  const data = serializer.eventToData(event)
+  const data = serializer.toData(event)
 
   expect(serializer.schemaVersion).toBe(1)
   expect(data).toEqual({
@@ -27,7 +27,7 @@ test('round trips version-one event-specific data with supplied metadata', () =>
     reason: 'Berth unavailable'
   })
   expect(
-    serializer.eventFromData(
+    serializer.toEvent(
       {
         aggregateId: event.aggregateId,
         occurredAt: event.occurredAt,

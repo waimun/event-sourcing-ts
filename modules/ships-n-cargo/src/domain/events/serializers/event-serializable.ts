@@ -9,6 +9,6 @@ export interface EventMetadata {
 export interface EventSerializable<T extends DomainEvent, TData = unknown> {
   readonly eventType: T['type']
   readonly schemaVersion: number
-  eventFromData: (metadata: EventMetadata, data: TData) => T
-  eventToData: (event: T) => TData
+  toEvent: (metadata: EventMetadata, data: TData) => T
+  toData: (event: T) => TData
 }
