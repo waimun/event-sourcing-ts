@@ -13,7 +13,7 @@ test('restores an event from metadata and event-specific data', () => {
   }
 
   const serializer = new ShipDepartedSerializer()
-  const event = serializer.eventFromData(
+  const event = serializer.toEvent(
     {
       aggregateId: payload.aggregateId,
       occurredAt: new Date(payload.occurredAt),
@@ -32,5 +32,5 @@ test('returns empty version-one event-specific data', () => {
   const serializer = new ShipDepartedSerializer()
   const event = new ShipDeparted('abc')
   expect(serializer.schemaVersion).toBe(1)
-  expect(serializer.eventToData(event)).toEqual({})
+  expect(serializer.toData(event)).toEqual({})
 })

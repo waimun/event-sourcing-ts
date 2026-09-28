@@ -18,7 +18,7 @@ test('restores an event from metadata and event-specific data', () => {
   }
 
   const serializer = new ShipArrivedSerializer()
-  const event = serializer.eventFromData(
+  const event = serializer.toEvent(
     {
       aggregateId: payload.aggregateId,
       occurredAt: new Date(payload.occurredAt),
@@ -38,5 +38,5 @@ test('returns version-one event-specific data', () => {
   const serializer = new ShipArrivedSerializer()
   const event = new ShipArrived('abc', new Port(new PortName('Harrison'), new Country('US')))
   expect(serializer.schemaVersion).toBe(1)
-  expect(serializer.eventToData(event)).toEqual({ port: event.port })
+  expect(serializer.toData(event)).toEqual({ port: event.port })
 })

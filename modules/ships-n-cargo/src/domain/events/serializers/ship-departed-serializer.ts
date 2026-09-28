@@ -7,11 +7,11 @@ export class ShipDepartedSerializer implements EventSerializable<ShipDeparted, S
   readonly eventType = ShipDeparted.eventType
   readonly schemaVersion = 1
 
-  eventFromData(metadata: EventMetadata, _data: ShipDepartedData): ShipDeparted {
+  toEvent(metadata: EventMetadata, _data: ShipDepartedData): ShipDeparted {
     return new ShipDeparted(metadata.aggregateId, metadata.occurredAt, metadata.recordedAt)
   }
 
-  eventToData(_event: ShipDeparted): ShipDepartedData {
+  toData(_event: ShipDeparted): ShipDepartedData {
     return {}
   }
 }

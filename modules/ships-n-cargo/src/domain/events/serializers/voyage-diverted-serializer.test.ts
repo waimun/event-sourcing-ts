@@ -23,7 +23,7 @@ test('restores a voyage diversion from metadata and event-specific data', () => 
   }
 
   expect(
-    new VoyageDivertedSerializer().eventFromData(
+    new VoyageDivertedSerializer().toEvent(
       {
         aggregateId: payload.aggregateId,
         occurredAt: new Date(payload.occurredAt),
@@ -53,7 +53,7 @@ test('returns the replaced and new destinations as version-one event-specific da
   const serializer = new VoyageDivertedSerializer()
 
   expect(serializer.schemaVersion).toBe(1)
-  expect(serializer.eventToData(event)).toEqual({
+  expect(serializer.toData(event)).toEqual({
     previousDestination,
     destination,
     reason: 'Storm on planned route'

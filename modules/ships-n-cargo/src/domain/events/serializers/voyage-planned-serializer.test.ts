@@ -19,7 +19,7 @@ test('restores a planned voyage from metadata and event-specific data', () => {
   }
 
   expect(
-    new VoyagePlannedSerializer().eventFromData(
+    new VoyagePlannedSerializer().toEvent(
       {
         aggregateId: payload.aggregateId,
         occurredAt: new Date(payload.occurredAt),
@@ -43,5 +43,5 @@ test('returns both voyage endpoints as version-one event-specific data', () => {
   const serializer = new VoyagePlannedSerializer()
 
   expect(serializer.schemaVersion).toBe(1)
-  expect(serializer.eventToData(event)).toEqual({ origin, destination })
+  expect(serializer.toData(event)).toEqual({ origin, destination })
 })

@@ -15,7 +15,7 @@ export class ContainerLoadedSerializer
   readonly eventType = ContainerLoaded.eventType
   readonly schemaVersion = 1
 
-  eventFromData(metadata: EventMetadata, data: ContainerLoadedData): ContainerLoaded {
+  toEvent(metadata: EventMetadata, data: ContainerLoadedData): ContainerLoaded {
     return new ContainerLoaded(
       metadata.aggregateId,
       new Container(
@@ -28,7 +28,7 @@ export class ContainerLoadedSerializer
     )
   }
 
-  eventToData(event: ContainerLoaded): ContainerLoadedData {
+  toData(event: ContainerLoaded): ContainerLoadedData {
     return { container: event.container }
   }
 }

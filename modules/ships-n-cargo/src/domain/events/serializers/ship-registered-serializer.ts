@@ -20,7 +20,7 @@ export class ShipRegisteredSerializer
   readonly eventType = ShipRegistered.eventType
   readonly schemaVersion = 1
 
-  eventFromData(metadata: EventMetadata, data: ShipRegisteredData): ShipRegistered {
+  toEvent(metadata: EventMetadata, data: ShipRegisteredData): ShipRegistered {
     return new ShipRegistered(
       metadata.aggregateId,
       data.name,
@@ -30,7 +30,7 @@ export class ShipRegisteredSerializer
     )
   }
 
-  eventToData(event: ShipRegistered): ShipRegisteredData {
+  toData(event: ShipRegistered): ShipRegisteredData {
     return { name: event.name, port: event.port }
   }
 }

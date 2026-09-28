@@ -17,7 +17,7 @@ export class ShipArrivedSerializer implements EventSerializable<ShipArrived, Shi
   readonly eventType = ShipArrived.eventType
   readonly schemaVersion = 1
 
-  eventFromData(metadata: EventMetadata, data: ShipArrivedData): ShipArrived {
+  toEvent(metadata: EventMetadata, data: ShipArrivedData): ShipArrived {
     return new ShipArrived(
       metadata.aggregateId,
       new Port(new PortName(data.port.name), new Country(data.port.country)),
@@ -26,7 +26,7 @@ export class ShipArrivedSerializer implements EventSerializable<ShipArrived, Shi
     )
   }
 
-  eventToData(event: ShipArrived): ShipArrivedData {
+  toData(event: ShipArrived): ShipArrivedData {
     return { port: event.port }
   }
 }
