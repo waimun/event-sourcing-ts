@@ -8,12 +8,14 @@ import { ShipRegisteredSerializer } from './ship-registered-serializer'
 test('return event object from json string', () => {
   const payload = {
     type: 'ShipRegistered',
+    schemaVersion: 1,
     aggregateId: 'abc',
     occurredAt: '2024-01-02T03:04:05.000Z',
     recordedAt: '2024-01-03T04:05:06.000Z',
-    name: 'King Roy',
-    portName: 'Kingston',
-    portCountry: 'US'
+    data: {
+      name: 'King Roy',
+      port: { name: 'Kingston', country: 'US' }
+    }
   }
 
   const serializer = new ShipRegisteredSerializer()
@@ -23,9 +25,9 @@ test('return event object from json string', () => {
   expect(event.aggregateId).toEqual(payload.aggregateId)
   expect(event.occurredAt).toEqual(new Date(payload.occurredAt))
   expect(event.recordedAt).toEqual(new Date(payload.recordedAt))
-  expect(event.name).toEqual(payload.name)
+  expect(event.name).toEqual(payload.data.name)
   expect(event.port).toEqual(
-    new Port(new PortName(payload.portName), new Country(payload.portCountry))
+    new Port(new PortName(payload.data.port.name), new Country(payload.data.port.country))
   )
 })
 
@@ -36,15 +38,15 @@ test('return json string from event object', () => {
     'King Roy',
     new Port(new PortName('Kingston'), new Country('US'))
   )
-  const json = serializer.eventToJson(event)
-  const { type, aggregateId, occurredAt, recordedAt, name, portName, portCountry } =
-    JSON.parse(json)
-
-  expect(type).toEqual(event.type)
-  expect(aggregateId).toEqual(event.aggregateId)
-  expect(new Date(occurredAt)).toEqual(event.occurredAt)
-  expect(new Date(recordedAt)).toEqual(event.recordedAt)
-  expect(name).toEqual(event.name)
-  expect(portName).toEqual(event.port.name)
-  expect(portCountry).toEqual(event.port.country)
+  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
+    type: event.type,
+    schemaVersion: 1,
+    aggregateId: event.aggregateId,
+    occurredAt: event.occurredAt.toISOString(),
+    recordedAt: event.recordedAt.toISOString(),
+    data: {
+      name: event.name,
+      port: event.port
+    }
+  })
 })

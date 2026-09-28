@@ -8,21 +8,12 @@ export class VoyageCancelledSerializer implements EventSerializable<VoyageCancel
   readonly eventType = VoyageCancelled.eventType
 
   eventFromJson(json: string): VoyageCancelled {
-    const {
-      aggregateId,
-      originName,
-      originCountry,
-      destinationName,
-      destinationCountry,
-      reason,
-      occurredAt,
-      recordedAt
-    } = JSON.parse(json)
+    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
     return new VoyageCancelled(
       aggregateId,
-      new Port(new PortName(originName), new Country(originCountry)),
-      new Port(new PortName(destinationName), new Country(destinationCountry)),
-      reason,
+      new Port(new PortName(data.origin.name), new Country(data.origin.country)),
+      new Port(new PortName(data.destination.name), new Country(data.destination.country)),
+      data.reason,
       new Date(occurredAt),
       new Date(recordedAt)
     )
@@ -30,12 +21,16 @@ export class VoyageCancelledSerializer implements EventSerializable<VoyageCancel
 
   eventToJson(event: VoyageCancelled): string {
     return JSON.stringify({
-      ...JSON.parse(event.asJson()),
-      originName: event.origin.name,
-      originCountry: event.origin.country,
-      destinationName: event.destination.name,
-      destinationCountry: event.destination.country,
-      reason: event.reason
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: {
+        origin: event.origin,
+        destination: event.destination,
+        reason: event.reason
+      }
     })
   }
 }

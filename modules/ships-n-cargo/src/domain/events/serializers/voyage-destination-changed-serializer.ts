@@ -10,21 +10,15 @@ export class VoyageDestinationChangedSerializer
   readonly eventType = VoyageDestinationChanged.eventType
 
   eventFromJson(json: string): VoyageDestinationChanged {
-    const {
-      aggregateId,
-      previousDestinationName,
-      previousDestinationCountry,
-      destinationName,
-      destinationCountry,
-      reason,
-      occurredAt,
-      recordedAt
-    } = JSON.parse(json)
+    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
     return new VoyageDestinationChanged(
       aggregateId,
-      new Port(new PortName(previousDestinationName), new Country(previousDestinationCountry)),
-      new Port(new PortName(destinationName), new Country(destinationCountry)),
-      reason,
+      new Port(
+        new PortName(data.previousDestination.name),
+        new Country(data.previousDestination.country)
+      ),
+      new Port(new PortName(data.destination.name), new Country(data.destination.country)),
+      data.reason,
       new Date(occurredAt),
       new Date(recordedAt)
     )
@@ -32,12 +26,16 @@ export class VoyageDestinationChangedSerializer
 
   eventToJson(event: VoyageDestinationChanged): string {
     return JSON.stringify({
-      ...JSON.parse(event.asJson()),
-      previousDestinationName: event.previousDestination.name,
-      previousDestinationCountry: event.previousDestination.country,
-      destinationName: event.destination.name,
-      destinationCountry: event.destination.country,
-      reason: event.reason
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: {
+        previousDestination: event.previousDestination,
+        destination: event.destination,
+        reason: event.reason
+      }
     })
   }
 }

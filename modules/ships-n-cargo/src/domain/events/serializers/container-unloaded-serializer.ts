@@ -9,13 +9,13 @@ export class ContainerUnloadedSerializer implements EventSerializable<ContainerU
   readonly eventType = ContainerUnloaded.eventType
 
   eventFromJson(json: string): ContainerUnloaded {
-    const { aggregateId, container, occurredAt, recordedAt } = JSON.parse(json)
+    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
     return new ContainerUnloaded(
       aggregateId,
       new Container(
-        new Id(container.containerId),
-        new CargoReference(container.cargoReference),
-        new Name(container.description, 'Container description')
+        new Id(data.container.containerId),
+        new CargoReference(data.container.cargoReference),
+        new Name(data.container.description, 'Container description')
       ),
       new Date(occurredAt),
       new Date(recordedAt)
@@ -23,8 +23,13 @@ export class ContainerUnloadedSerializer implements EventSerializable<ContainerU
   }
 
   eventToJson(event: ContainerUnloaded): string {
-    const payload = JSON.parse(event.asJson())
-    payload.container = event.container
-    return JSON.stringify(payload)
+    return JSON.stringify({
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: { container: event.container }
+    })
   }
 }

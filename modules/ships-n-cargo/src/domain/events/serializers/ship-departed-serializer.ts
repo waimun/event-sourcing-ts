@@ -10,6 +10,13 @@ export class ShipDepartedSerializer implements EventSerializable<ShipDeparted> {
   }
 
   eventToJson(event: ShipDeparted): string {
-    return event.asJson()
+    return JSON.stringify({
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: {}
+    })
   }
 }

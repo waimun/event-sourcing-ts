@@ -8,21 +8,27 @@ export class ShipRegisteredSerializer implements EventSerializable<ShipRegistere
   readonly eventType = ShipRegistered.eventType
 
   eventFromJson(json: string): ShipRegistered {
-    const { aggregateId, name, portName, portCountry, occurredAt, recordedAt } = JSON.parse(json)
+    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
     return new ShipRegistered(
       aggregateId,
-      name,
-      new Port(new PortName(portName), new Country(portCountry)),
+      data.name,
+      new Port(new PortName(data.port.name), new Country(data.port.country)),
       new Date(occurredAt),
       new Date(recordedAt)
     )
   }
 
   eventToJson(event: ShipRegistered): string {
-    const payload = JSON.parse(event.asJson())
-    payload.name = event.name
-    payload.portName = event.port.name
-    payload.portCountry = event.port.country
-    return JSON.stringify(payload)
+    return JSON.stringify({
+      type: event.type,
+      schemaVersion: 1,
+      aggregateId: event.aggregateId,
+      occurredAt: event.occurredAt,
+      recordedAt: event.recordedAt,
+      data: {
+        name: event.name,
+        port: event.port
+      }
+    })
   }
 }

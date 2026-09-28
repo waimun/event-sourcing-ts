@@ -9,13 +9,16 @@ import { ContainerLoadedSerializer } from './container-loaded-serializer'
 test('return event object from json string', () => {
   const payload = {
     type: 'ContainerLoaded',
+    schemaVersion: 1,
     aggregateId: 'abc',
     occurredAt: '2024-01-02T03:04:05.000Z',
     recordedAt: '2024-01-03T04:05:06.000Z',
-    container: {
-      containerId: 'container-1',
-      cargoReference: 'cargo-1',
-      description: 'Refactoring Book'
+    data: {
+      container: {
+        containerId: 'container-1',
+        cargoReference: 'cargo-1',
+        description: 'Refactoring Book'
+      }
     }
   }
 
@@ -25,7 +28,7 @@ test('return event object from json string', () => {
   expect(event.aggregateId).toEqual(payload.aggregateId)
   expect(event.occurredAt).toEqual(new Date(payload.occurredAt))
   expect(event.recordedAt).toEqual(new Date(payload.recordedAt))
-  expect(event.container).toEqual(payload.container)
+  expect(event.container).toEqual(payload.data.container)
 })
 
 test('return json string from event object', () => {
@@ -38,12 +41,12 @@ test('return json string from event object', () => {
       new Name('Refactoring Book')
     )
   )
-  const json = serializer.eventToJson(event)
-  const { type, aggregateId, container, occurredAt, recordedAt } = JSON.parse(json)
-
-  expect(type).toEqual(event.type)
-  expect(aggregateId).toEqual(event.aggregateId)
-  expect(container).toEqual(event.container)
-  expect(new Date(occurredAt)).toEqual(event.occurredAt)
-  expect(new Date(recordedAt)).toEqual(event.recordedAt)
+  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
+    type: event.type,
+    schemaVersion: 1,
+    aggregateId: event.aggregateId,
+    occurredAt: event.occurredAt.toISOString(),
+    recordedAt: event.recordedAt.toISOString(),
+    data: { container: event.container }
+  })
 })
