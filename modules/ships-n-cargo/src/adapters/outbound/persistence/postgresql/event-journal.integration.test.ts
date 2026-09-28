@@ -10,6 +10,7 @@ import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
 import { EventJournalSchemaIncompatible } from '../errors/event-journal'
+import { eventJournalContract } from '../event-journal-contract'
 import { PostgreSqlEventJournal } from './event-journal'
 import { EVENT_JOURNAL_CONSTRAINTS, verifyEventJournalSchema } from './event-journal-schema'
 
@@ -37,6 +38,8 @@ databaseDescribe('PostgreSQL event journal', () => {
     await pool.query('DROP SCHEMA IF EXISTS ships_n_cargo CASCADE')
     await pool.end()
   })
+
+  eventJournalContract(() => new PostgreSqlEventJournal(pool))
 
   test('initial SQL is idempotent and verifies the resulting schema', async () => {
     await pool.query(initialSql)
