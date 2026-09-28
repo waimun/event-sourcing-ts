@@ -1,9 +1,12 @@
 import { expect, test } from 'vitest'
 import { Id } from '../../shared/domain/id'
 import { Name } from '../../shared/domain/name'
+import type { InvariantError } from '../../shared/errors/kernel'
 import { CargoReference } from '../cargo-reference'
 import { Container } from '../container'
 import {
+  EventPayloadSchemaVersionInvalid,
+  EventPayloadSchemaVersionUnsupported,
   EventSerializerNotFound,
   EventSerializerTypeMismatch
 } from '../errors/event-payload-handler'
@@ -27,6 +30,31 @@ const makeHandler = (): EventPayloadHandler => {
   return handler
 }
 
+const envelope = {
+  type: ContainerLoaded.eventType,
+  aggregateId: 'abc',
+  occurredAt: occurredAt.toISOString(),
+  recordedAt: recordedAt.toISOString(),
+  data: { container }
+}
+
+const expectDeserializationError = (payload: string, expected: InvariantError): void => {
+  try {
+    makeHandler().deserialize(payload)
+  } catch (error) {
+    expect(error).toMatchObject({
+      name: expected.name,
+      code: expected.code,
+      kind: expected.kind,
+      message: expected.message,
+      meta: expected.meta
+    })
+    return
+  }
+
+  throw new Error('Expected event payload deserialization to fail')
+}
+
 test('serializes a domain event as a complete versioned envelope', () => {
   const event = new ContainerLoaded('abc', container, occurredAt, recordedAt)
 
@@ -42,16 +70,46 @@ test('serializes a domain event as a complete versioned envelope', () => {
 
 test('deserializes an opaque versioned envelope through its registered event serializer', () => {
   const payload = JSON.stringify({
-    type: ContainerLoaded.eventType,
-    schemaVersion: 1,
-    aggregateId: 'abc',
-    occurredAt: occurredAt.toISOString(),
-    recordedAt: recordedAt.toISOString(),
-    data: { container }
+    ...envelope,
+    schemaVersion: 1
   })
 
   expect(makeHandler().deserialize(payload)).toEqual(
     new ContainerLoaded('abc', container, occurredAt, recordedAt)
+  )
+})
+
+test('rejects an event payload without a schema version', () => {
+  const payload = JSON.stringify(envelope)
+
+  expectDeserializationError(
+    payload,
+    new EventPayloadSchemaVersionInvalid(ContainerLoaded.eventType, undefined)
+  )
+})
+
+test.each([
+  ['a string', '1'],
+  ['null', null],
+  ['a boolean', true],
+  ['a non-integer number', 1.5],
+  ['zero', 0],
+  ['a negative number', -1]
+])('rejects an event payload whose schema version is %s', (_description, schemaVersion) => {
+  const payload = JSON.stringify({ ...envelope, schemaVersion })
+
+  expectDeserializationError(
+    payload,
+    new EventPayloadSchemaVersionInvalid(ContainerLoaded.eventType, schemaVersion)
+  )
+})
+
+test('rejects a valid schema version that the event serializer does not support', () => {
+  const payload = JSON.stringify({ ...envelope, schemaVersion: 2 })
+
+  expectDeserializationError(
+    payload,
+    new EventPayloadSchemaVersionUnsupported(ContainerLoaded.eventType, 2, 1)
   )
 })
 
