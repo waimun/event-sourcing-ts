@@ -19,3 +19,23 @@ export class EventSerializerTypeMismatch extends InvariantError {
     })
   }
 }
+
+export class EventPayloadSchemaVersionInvalid extends InvariantError {
+  constructor(eventType: string, schemaVersion: unknown) {
+    super({
+      code: 'EVENT_PAYLOAD_SCHEMA_VERSION_INVALID',
+      message: `Event payload schema version for event type '${eventType}' must be a positive integer`,
+      meta: { eventType, schemaVersion }
+    })
+  }
+}
+
+export class EventPayloadSchemaVersionUnsupported extends InvariantError {
+  constructor(eventType: string, schemaVersion: number, currentSchemaVersion: number) {
+    super({
+      code: 'EVENT_PAYLOAD_SCHEMA_VERSION_UNSUPPORTED',
+      message: `Event payload schema version '${schemaVersion}' is not supported for event type '${eventType}'`,
+      meta: { eventType, schemaVersion, currentSchemaVersion }
+    })
+  }
+}

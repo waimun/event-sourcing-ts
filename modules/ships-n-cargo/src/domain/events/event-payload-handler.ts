@@ -1,4 +1,6 @@
 import {
+  EventPayloadSchemaVersionInvalid,
+  EventPayloadSchemaVersionUnsupported,
   EventSerializerNotFound,
   EventSerializerTypeMismatch
 } from '../errors/event-payload-handler'
@@ -10,7 +12,7 @@ type RegisteredEventSerializer = EventSerializable<any, any>
 
 interface EventEnvelope {
   readonly type: string
-  readonly schemaVersion: number
+  readonly schemaVersion: unknown
   readonly aggregateId: string
   readonly occurredAt: string
   readonly recordedAt: string
@@ -43,6 +45,28 @@ export class EventPayloadHandler {
     return serializer
   }
 
+  private requireSupportedSchemaVersion(
+    eventType: string,
+    schemaVersion: unknown,
+    serializer: RegisteredEventSerializer
+  ): void {
+    if (
+      typeof schemaVersion !== 'number' ||
+      !Number.isInteger(schemaVersion) ||
+      schemaVersion <= 0
+    ) {
+      throw new EventPayloadSchemaVersionInvalid(eventType, schemaVersion)
+    }
+
+    if (schemaVersion !== serializer.schemaVersion) {
+      throw new EventPayloadSchemaVersionUnsupported(
+        eventType,
+        schemaVersion,
+        serializer.schemaVersion
+      )
+    }
+  }
+
   serialize(event: DomainEvent): string {
     const serializer = this.byType(event.type)
 
@@ -58,7 +82,9 @@ export class EventPayloadHandler {
 
   deserialize(payload: string): DomainEvent {
     const envelope = JSON.parse(payload) as EventEnvelope
-    const serializer = this.byType(String(envelope.type))
+    const eventType = String(envelope.type)
+    const serializer = this.byType(eventType)
+    this.requireSupportedSchemaVersion(eventType, envelope.schemaVersion, serializer)
 
     return serializer.toEvent(
       {
