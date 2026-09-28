@@ -3,7 +3,6 @@ export interface DomainEvent<TType extends string = string> {
   readonly recordedAt: Date
   readonly type: TType
   readonly aggregateId: string
-  asJson: () => string
 }
 
 export abstract class BaseDomainEvent<TType extends string = string> implements DomainEvent<TType> {
@@ -30,14 +29,5 @@ export abstract class BaseDomainEvent<TType extends string = string> implements 
 
   get recordedAt(): Date {
     return new Date(this.#recordedAt)
-  }
-
-  asJson(): string {
-    return JSON.stringify({
-      type: this.type,
-      aggregateId: this.aggregateId,
-      recordedAt: this.recordedAt,
-      occurredAt: this.occurredAt
-    })
   }
 }

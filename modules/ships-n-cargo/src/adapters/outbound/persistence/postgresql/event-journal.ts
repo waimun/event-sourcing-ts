@@ -33,13 +33,6 @@ const isStreamPositionConflict = (error: unknown): boolean => {
   )
 }
 
-const deserialize = (eventPayload: string): DomainEvent => {
-  const parsed: unknown = JSON.parse(eventPayload)
-  const type =
-    typeof parsed === 'object' && parsed !== null && 'type' in parsed ? parsed.type : undefined
-  return eventPayloadHandler.byType(String(type)).eventFromJson(eventPayload)
-}
-
 const currentVersion = async (
   client: Pick<Pool, 'query'>,
   aggregateId: string
@@ -72,9 +65,7 @@ export class PostgreSqlEventJournal implements EventJournal<string, DomainEvent>
       throw new InvalidExpectedVersion(expectedVersion)
     if (events.some((event) => event.aggregateId !== id)) throw new AggregateIdMismatch(id)
 
-    const serializedEvents = events.map((event) =>
-      eventPayloadHandler.byType(event.type).eventToJson(event)
-    )
+    const serializedEvents = events.map((event) => eventPayloadHandler.serialize(event))
 
     let client: PoolClient
     try {
@@ -138,7 +129,9 @@ export class PostgreSqlEventJournal implements EventJournal<string, DomainEvent>
       throw new EventJournalUnavailable('eventsByAggregate', error)
     }
 
-    const events = Object.freeze(rows.map(({ event_payload }) => deserialize(event_payload)))
+    const events = Object.freeze(
+      rows.map(({ event_payload }) => eventPayloadHandler.deserialize(event_payload))
+    )
     const version = rows.length === 0 ? 0 : Number(rows[rows.length - 1].version)
     return Object.freeze({ events, version })
   }

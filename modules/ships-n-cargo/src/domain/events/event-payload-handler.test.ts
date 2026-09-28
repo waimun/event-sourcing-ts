@@ -1,4 +1,8 @@
 import { expect, test } from 'vitest'
+import { Id } from '../../shared/domain/id'
+import { Name } from '../../shared/domain/name'
+import { CargoReference } from '../cargo-reference'
+import { Container } from '../container'
 import {
   EventSerializerNotFound,
   EventSerializerTypeMismatch
@@ -9,19 +13,49 @@ import { EventPayloadHandler } from './event-payload-handler'
 import { ContainerLoadedSerializer } from './serializers/container-loaded-serializer'
 import { ContainerUnloadedSerializer } from './serializers/container-unloaded-serializer'
 
-test('construct class object', () => {
-  const handler = new EventPayloadHandler()
-  expect(handler).toBeTruthy()
-})
+const occurredAt = new Date('2024-01-02T03:04:05.000Z')
+const recordedAt = new Date('2024-01-03T04:05:06.000Z')
+const container = new Container(
+  new Id('container-1'),
+  new CargoReference('cargo-1'),
+  new Name('Refactoring Book')
+)
 
-test('event serializer registered successfully', () => {
+const makeHandler = (): EventPayloadHandler => {
   const handler = new EventPayloadHandler()
   handler.register(ContainerLoaded.eventType, new ContainerLoadedSerializer())
-  const serializer = handler.byType(ContainerLoaded.eventType)
-  expect(serializer instanceof ContainerLoadedSerializer).toBeTruthy()
+  return handler
+}
+
+test('serializes a domain event as a complete versioned envelope', () => {
+  const event = new ContainerLoaded('abc', container, occurredAt, recordedAt)
+
+  expect(JSON.parse(makeHandler().serialize(event))).toEqual({
+    type: ContainerLoaded.eventType,
+    schemaVersion: 1,
+    aggregateId: 'abc',
+    occurredAt: occurredAt.toISOString(),
+    recordedAt: recordedAt.toISOString(),
+    data: { container }
+  })
 })
 
-test('reject serializer registered under a different event type', () => {
+test('deserializes an opaque versioned envelope through its registered event serializer', () => {
+  const payload = JSON.stringify({
+    type: ContainerLoaded.eventType,
+    schemaVersion: 1,
+    aggregateId: 'abc',
+    occurredAt: occurredAt.toISOString(),
+    recordedAt: recordedAt.toISOString(),
+    data: { container }
+  })
+
+  expect(makeHandler().deserialize(payload)).toEqual(
+    new ContainerLoaded('abc', container, occurredAt, recordedAt)
+  )
+})
+
+test('rejects a serializer registered under a different event type', () => {
   const handler = new EventPayloadHandler()
 
   expect(() => {
@@ -32,10 +66,17 @@ test('reject serializer registered under a different event type', () => {
   )
 })
 
-test('cannot find serializer registered in the handler', () => {
-  const handler = new EventPayloadHandler()
-  handler.register(ContainerLoaded.eventType, new ContainerLoadedSerializer())
-  expect(() => handler.byType('UNKNOWN_SERIALIZER')).toThrow(
+test('cannot deserialize an event without a registered serializer', () => {
+  const payload = JSON.stringify({
+    type: 'UNKNOWN_SERIALIZER',
+    schemaVersion: 1,
+    aggregateId: 'abc',
+    occurredAt: occurredAt.toISOString(),
+    recordedAt: recordedAt.toISOString(),
+    data: {}
+  })
+
+  expect(() => new EventPayloadHandler().deserialize(payload)).toThrow(
     new EventSerializerNotFound('UNKNOWN_SERIALIZER')
   )
 })

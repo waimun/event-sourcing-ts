@@ -10,7 +10,6 @@ import {
 } from './errors/event-journal'
 
 interface StoredEvent {
-  readonly type: string
   readonly payload: string
 }
 
@@ -36,8 +35,7 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
 
     const stored = events.map((event) =>
       Object.freeze({
-        type: event.type,
-        payload: eventPayloadHandler.byType(event.type).eventToJson(event)
+        payload: eventPayloadHandler.serialize(event)
       })
     )
     this.entries.set(id, Object.freeze([...current, ...stored]))
@@ -46,7 +44,7 @@ export class InMemoryEventJournal implements EventJournal<string, DomainEvent> {
   async eventsByAggregate(id: string): Promise<EventStream<DomainEvent>> {
     const stored = this.entries.get(id) ?? []
     const events = Object.freeze(
-      stored.map(({ type, payload }) => eventPayloadHandler.byType(type).eventFromJson(payload))
+      stored.map(({ payload }) => eventPayloadHandler.deserialize(payload))
     )
     return Object.freeze({ events, version: events.length })
   }

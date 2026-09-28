@@ -9,15 +9,6 @@ import { PortName } from '../port-name'
 import { ContainerLoaded } from './container-loaded'
 import { ContainerUnloaded } from './container-unloaded'
 import { eventPayloadHandler } from './index'
-import { ContainerLoadedSerializer } from './serializers/container-loaded-serializer'
-import { ContainerUnloadedSerializer } from './serializers/container-unloaded-serializer'
-import { ShipArrivedSerializer } from './serializers/ship-arrived-serializer'
-import { ShipDepartedSerializer } from './serializers/ship-departed-serializer'
-import { ShipRegisteredSerializer } from './serializers/ship-registered-serializer'
-import { VoyageCancelledSerializer } from './serializers/voyage-cancelled-serializer'
-import { VoyageDestinationChangedSerializer } from './serializers/voyage-destination-changed-serializer'
-import { VoyageDivertedSerializer } from './serializers/voyage-diverted-serializer'
-import { VoyagePlannedSerializer } from './serializers/voyage-planned-serializer'
 import { ShipArrived } from './ship-arrived'
 import { ShipDeparted } from './ship-departed'
 import { ShipRegistered } from './ship-registered'
@@ -26,39 +17,7 @@ import { VoyageDestinationChanged } from './voyage-destination-changed'
 import { VoyageDiverted } from './voyage-diverted'
 import { VoyagePlanned } from './voyage-planned'
 
-test('imported file should have event serializers registered', () => {
-  expect(eventPayloadHandler).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(ContainerLoaded.eventType) instanceof ContainerLoadedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(ContainerUnloaded.eventType) instanceof ContainerUnloadedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(ShipArrived.eventType) instanceof ShipArrivedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(ShipRegistered.eventType) instanceof ShipRegisteredSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(ShipDeparted.eventType) instanceof ShipDepartedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(VoyagePlanned.eventType) instanceof VoyagePlannedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(VoyageDiverted.eventType) instanceof VoyageDivertedSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(VoyageCancelled.eventType) instanceof VoyageCancelledSerializer
-  ).toBeTruthy()
-  expect(
-    eventPayloadHandler.byType(VoyageDestinationChanged.eventType) instanceof
-      VoyageDestinationChangedSerializer
-  ).toBeTruthy()
-})
-
-test('every registered serializer preserves event timestamps through a JSON round trip', () => {
+test('every registered serializer preserves event timestamps through a payload round trip', () => {
   const occurredAt = new Date('2024-01-02T03:04:05.000Z')
   const recordedAt = new Date('2024-01-03T04:05:06.000Z')
   const container = new Container(
@@ -107,8 +66,7 @@ test('every registered serializer preserves event timestamps through a JSON roun
   ]
 
   for (const event of events) {
-    const serializer = eventPayloadHandler.byType(event.type)
-    const restored = serializer.eventFromJson(serializer.eventToJson(event))
+    const restored = eventPayloadHandler.deserialize(eventPayloadHandler.serialize(event))
 
     expect(restored.type).toEqual(event.type)
     expect(restored.occurredAt).toEqual(occurredAt)

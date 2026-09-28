@@ -2,38 +2,44 @@ import { Country } from '../../country'
 import { Port } from '../../port'
 import { PortName } from '../../port-name'
 import { VoyageDiverted } from '../voyage-diverted'
-import type { EventSerializable } from './event-serializable'
+import type { EventMetadata, EventSerializable } from './event-serializable'
 
-export class VoyageDivertedSerializer implements EventSerializable<VoyageDiverted> {
+interface SerializedPort {
+  readonly name: string
+  readonly country: string
+}
+
+interface VoyageDivertedData {
+  readonly previousDestination: SerializedPort
+  readonly destination: SerializedPort
+  readonly reason: string
+}
+
+export class VoyageDivertedSerializer
+  implements EventSerializable<VoyageDiverted, VoyageDivertedData>
+{
   readonly eventType = VoyageDiverted.eventType
+  readonly schemaVersion = 1
 
-  eventFromJson(json: string): VoyageDiverted {
-    const { aggregateId, occurredAt, recordedAt, data } = JSON.parse(json)
+  eventFromData(metadata: EventMetadata, data: VoyageDivertedData): VoyageDiverted {
     return new VoyageDiverted(
-      aggregateId,
+      metadata.aggregateId,
       new Port(
         new PortName(data.previousDestination.name),
         new Country(data.previousDestination.country)
       ),
       new Port(new PortName(data.destination.name), new Country(data.destination.country)),
       data.reason,
-      new Date(occurredAt),
-      new Date(recordedAt)
+      metadata.occurredAt,
+      metadata.recordedAt
     )
   }
 
-  eventToJson(event: VoyageDiverted): string {
-    return JSON.stringify({
-      type: event.type,
-      schemaVersion: 1,
-      aggregateId: event.aggregateId,
-      occurredAt: event.occurredAt,
-      recordedAt: event.recordedAt,
-      data: {
-        previousDestination: event.previousDestination,
-        destination: event.destination,
-        reason: event.reason
-      }
-    })
+  eventToData(event: VoyageDiverted): VoyageDivertedData {
+    return {
+      previousDestination: event.previousDestination,
+      destination: event.destination,
+      reason: event.reason
+    }
   }
 }

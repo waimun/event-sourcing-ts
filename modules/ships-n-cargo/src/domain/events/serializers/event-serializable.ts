@@ -1,7 +1,14 @@
 import type { DomainEvent } from '../domain-event'
 
-export interface EventSerializable<T extends DomainEvent> {
+export interface EventMetadata {
+  readonly aggregateId: string
+  readonly occurredAt: Date
+  readonly recordedAt: Date
+}
+
+export interface EventSerializable<T extends DomainEvent, TData = unknown> {
   readonly eventType: T['type']
-  eventFromJson: (json: string) => T
-  eventToJson: (event: T) => string
+  readonly schemaVersion: number
+  eventFromData: (metadata: EventMetadata, data: TData) => T
+  eventToData: (event: T) => TData
 }

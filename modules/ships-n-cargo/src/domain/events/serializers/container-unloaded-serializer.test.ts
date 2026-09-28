@@ -6,7 +6,7 @@ import { Container } from '../../container'
 import { ContainerUnloaded } from '../container-unloaded'
 import { ContainerUnloadedSerializer } from './container-unloaded-serializer'
 
-test('return event object from json string', () => {
+test('restores an event from metadata and event-specific data', () => {
   const payload = {
     type: 'ContainerUnloaded',
     schemaVersion: 1,
@@ -23,7 +23,14 @@ test('return event object from json string', () => {
   }
 
   const serializer = new ContainerUnloadedSerializer()
-  const event = serializer.eventFromJson(JSON.stringify(payload))
+  const event = serializer.eventFromData(
+    {
+      aggregateId: payload.aggregateId,
+      occurredAt: new Date(payload.occurredAt),
+      recordedAt: new Date(payload.recordedAt)
+    },
+    payload.data
+  )
   expect(event.type).toEqual(payload.type)
   expect(event.aggregateId).toEqual(payload.aggregateId)
   expect(event.occurredAt).toEqual(new Date(payload.occurredAt))
@@ -31,7 +38,7 @@ test('return event object from json string', () => {
   expect(event.container).toEqual(payload.data.container)
 })
 
-test('return json string from event object', () => {
+test('returns version-one event-specific data', () => {
   const serializer = new ContainerUnloadedSerializer()
   const event = new ContainerUnloaded(
     'abc',
@@ -41,12 +48,6 @@ test('return json string from event object', () => {
       new Name('Refactoring Book')
     )
   )
-  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: { container: event.container }
-  })
+  expect(serializer.schemaVersion).toBe(1)
+  expect(serializer.eventToData(event)).toEqual({ container: event.container })
 })

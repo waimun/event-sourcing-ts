@@ -2,7 +2,7 @@ import { expect, test } from 'vitest'
 import { ShipDeparted } from '../ship-departed'
 import { ShipDepartedSerializer } from './ship-departed-serializer'
 
-test('return event object from json string', () => {
+test('restores an event from metadata and event-specific data', () => {
   const payload = {
     type: 'ShipDeparted',
     schemaVersion: 1,
@@ -13,7 +13,14 @@ test('return event object from json string', () => {
   }
 
   const serializer = new ShipDepartedSerializer()
-  const event = serializer.eventFromJson(JSON.stringify(payload))
+  const event = serializer.eventFromData(
+    {
+      aggregateId: payload.aggregateId,
+      occurredAt: new Date(payload.occurredAt),
+      recordedAt: new Date(payload.recordedAt)
+    },
+    payload.data
+  )
 
   expect(event.type).toEqual(payload.type)
   expect(event.aggregateId).toEqual(payload.aggregateId)
@@ -21,15 +28,9 @@ test('return event object from json string', () => {
   expect(event.recordedAt).toEqual(new Date(payload.recordedAt))
 })
 
-test('return json string from event object', () => {
+test('returns empty version-one event-specific data', () => {
   const serializer = new ShipDepartedSerializer()
   const event = new ShipDeparted('abc')
-  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: {}
-  })
+  expect(serializer.schemaVersion).toBe(1)
+  expect(serializer.eventToData(event)).toEqual({})
 })

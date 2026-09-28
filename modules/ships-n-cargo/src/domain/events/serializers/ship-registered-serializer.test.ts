@@ -5,7 +5,7 @@ import { PortName } from '../../port-name'
 import { ShipRegistered } from '../ship-registered'
 import { ShipRegisteredSerializer } from './ship-registered-serializer'
 
-test('return event object from json string', () => {
+test('restores an event from metadata and event-specific data', () => {
   const payload = {
     type: 'ShipRegistered',
     schemaVersion: 1,
@@ -19,7 +19,14 @@ test('return event object from json string', () => {
   }
 
   const serializer = new ShipRegisteredSerializer()
-  const event = serializer.eventFromJson(JSON.stringify(payload))
+  const event = serializer.eventFromData(
+    {
+      aggregateId: payload.aggregateId,
+      occurredAt: new Date(payload.occurredAt),
+      recordedAt: new Date(payload.recordedAt)
+    },
+    payload.data
+  )
 
   expect(event.type).toEqual(payload.type)
   expect(event.aggregateId).toEqual(payload.aggregateId)
@@ -31,22 +38,16 @@ test('return event object from json string', () => {
   )
 })
 
-test('return json string from event object', () => {
+test('returns version-one event-specific data', () => {
   const serializer = new ShipRegisteredSerializer()
   const event = new ShipRegistered(
     'abc',
     'King Roy',
     new Port(new PortName('Kingston'), new Country('US'))
   )
-  expect(JSON.parse(serializer.eventToJson(event))).toEqual({
-    type: event.type,
-    schemaVersion: 1,
-    aggregateId: event.aggregateId,
-    occurredAt: event.occurredAt.toISOString(),
-    recordedAt: event.recordedAt.toISOString(),
-    data: {
-      name: event.name,
-      port: event.port
-    }
+  expect(serializer.schemaVersion).toBe(1)
+  expect(serializer.eventToData(event)).toEqual({
+    name: event.name,
+    port: event.port
   })
 })
