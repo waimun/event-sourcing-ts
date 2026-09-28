@@ -3,7 +3,7 @@
 The event journal stores every domain event as a self-describing JSON envelope. This format is a
 durable contract: adapters may store it differently, but they do not define or interpret it.
 The governing architectural rationale is recorded in
-[the versioned event payload ADR](../adr/adr-20260927.md).
+[the versioned event payload ADR](adr/adr-20260927.md).
 
 ## Canonical version-one envelope
 
@@ -28,14 +28,14 @@ Every event starts with schema version one. A serialized `ShipRegistered` is:
 
 All six envelope fields are required:
 
-| Field | Contract |
-| --- | --- |
-| `type` | The stable domain-event discriminator used to select its serializer. |
-| `schemaVersion` | A positive integer identifying the representation of this event type. Versioning starts at `1`; an absent or invalid value is rejected and never defaults to version one. |
-| `aggregateId` | The identifier of the aggregate that emitted the event. |
-| `occurredAt` | The event's occurrence time as an ISO 8601 string. |
-| `recordedAt` | The event's recording time as an ISO 8601 string. |
-| `data` | The event-specific representation, separate from the common envelope metadata. |
+| Field           | Contract                                                                                                                                                                   |
+| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `type`          | The stable domain-event discriminator used to select its serializer.                                                                                                       |
+| `schemaVersion` | A positive integer identifying the representation of this event type. Versioning starts at `1`; an absent or invalid value is rejected and never defaults to version one.  |
+| `aggregateId`   | The identifier of the aggregate that emitted the event.                                                                                                                    |
+| `occurredAt`    | The event's occurrence time as an ISO 8601 string.                                                                                                                         |
+| `recordedAt`    | The event's recording time as an ISO 8601 string.                                                                                                                          |
+| `data`          | The event-specific representation, separate from the common envelope metadata.                                                                                             |
 
 The `data` object follows the structure of domain values rather than flattening their properties
 into the envelope. A port, for example, is represented as `{ "name", "country" }`. An event with no
@@ -50,12 +50,12 @@ version tells the reader how one event's `data` is represented.
 
 The responsibilities are deliberately separated:
 
-| Component | Responsibility |
-| --- | --- |
-| [Event-payload codec](../src/domain/events/event-payload-handler.ts) | Parse and construct the envelope, select the event serializer, validate and route schema versions, run upcasters, and preserve envelope metadata while upcasting. |
-| [Event serializer](../src/domain/events/serializers/event-serializable.ts) | Declare an event type and its current schema version, map a current domain event to `data`, and reconstruct it from current `data` plus envelope metadata. |
-| [Event upcaster](../src/domain/events/event-upcaster.ts) | Purely and deterministically transform one event type's `data` from version `N` to `N + 1`. |
-| Journal adapter | Store and retrieve the codec's serialized payload as an opaque string while managing stream mechanics. |
+| Component                                                                  | Responsibility                                                                                                                                                     |
+| -------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| [Event-payload codec](../src/domain/events/event-payload-handler.ts)       | Parse and construct the envelope, select the event serializer, validate and route schema versions, run upcasters, and preserve envelope metadata while upcasting.  |
+| [Event serializer](../src/domain/events/serializers/event-serializable.ts) | Declare an event type and its current schema version, map a current domain event to `data`, and reconstruct it from current `data` plus envelope metadata.         |
+| [Event upcaster](../src/domain/events/event-upcaster.ts)                   | Purely and deterministically transform one event type's `data` from version `N` to `N + 1`.                                                                        |
+| Journal adapter                                                            | Store and retrieve the codec's serialized payload as an opaque string while managing stream mechanics.                                                             |
 
 This boundary lets a journal adapter be replaced without duplicating knowledge of event JSON. The
 codec upcasts only while reading; it does not rewrite stored history. Serialization always writes
