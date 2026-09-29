@@ -126,6 +126,28 @@ test('selects and closes a file-backed SQLite journal explicitly', async () => {
   expect(close).toHaveBeenCalledOnce()
 })
 
+test('selects and closes a file-backed SQLite journal from its configured path', async () => {
+  const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
+  const close = vi.fn()
+  const sqliteEventJournalFactory = vi.fn(() => ({
+    append: vi.fn(),
+    eventsByAggregate: vi.fn(),
+    close
+  })) as never
+
+  const runtime = await createDefaultApplication(
+    { SHIPS_N_CARGO_SQLITE_PATH: '  ./ships.sqlite  ' },
+    PoolConstructor,
+    sqliteEventJournalFactory
+  )
+
+  expect(sqliteEventJournalFactory).toHaveBeenCalledWith('./ships.sqlite')
+  expect(construct).not.toHaveBeenCalled()
+  expect(runtime.application).toBeDefined()
+  await runtime.close()
+  expect(close).toHaveBeenCalledOnce()
+})
+
 test('constructs the built-in SQLite adapter for the default SQLite factory', async () => {
   const directory = await mkdtemp(join(tmpdir(), 'ships-n-cargo-composition-'))
   const databasePath = join(directory, 'journal.sqlite')
@@ -192,8 +214,11 @@ test.each([
     }
   },
   {
-    name: 'a SQLite path without an explicit SQLite selection',
-    environment: { SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite' }
+    name: 'PostgreSQL and SQLite settings without an explicit selection',
+    environment: {
+      SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships',
+      SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite'
+    }
   }
 ])('rejects conflicting configuration: $name', async ({ environment }) => {
   await expect(createDefaultApplication(environment)).rejects.toThrow(

@@ -31,13 +31,13 @@ SHIPS_N_CARGO_DATABASE_URL='postgresql://<user>:<password>@<host>:<port>/<databa
 The command is safe to rerun when the schema matches. It reports an error when an existing
 `ships_n_cargo.event_journal` table is incompatible.
 
-## SQLite setup (optional)
+## 🪶 SQLite setup (optional)
 
-SQLite uses the built-in Node.js 24 SQLite module and creates its schema automatically. Select it
-and provide a file path when starting the application:
+SQLite uses the built-in Node.js 24 SQLite module and creates its schema automatically. Provide a
+file path when starting the application:
 
 ```sh
-SHIPS_N_CARGO_EVENT_JOURNAL=sqlite SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
+SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
 ```
 
 ## 🚀 Running locally
@@ -45,8 +45,8 @@ SHIPS_N_CARGO_EVENT_JOURNAL=sqlite SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sq
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
 2. Run `npm start` for an in-memory event journal. To choose an adapter explicitly, set
    `SHIPS_N_CARGO_EVENT_JOURNAL` to `memory`, `postgresql`, or `sqlite`. PostgreSQL also requires
-   `SHIPS_N_CARGO_DATABASE_URL`; when the selector is omitted, that existing setting continues to
-   select PostgreSQL. SQLite requires `SHIPS_N_CARGO_SQLITE_PATH`.
+   `SHIPS_N_CARGO_DATABASE_URL`, while SQLite requires `SHIPS_N_CARGO_SQLITE_PATH`. When the
+   selector is omitted, either setting selects its corresponding adapter; setting both is invalid.
 
 The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
 request to `/` to verify that it is running.

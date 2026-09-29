@@ -97,12 +97,14 @@ const selectedEventJournal = (environment: RuntimeEnvironment): EventJournalSele
   const sqliteConfigured = environment.SHIPS_N_CARGO_SQLITE_PATH !== undefined
 
   if (selection === undefined) {
-    if (sqliteConfigured) {
+    if (postgresqlConfigured && sqliteConfigured) {
       throw new EventJournalConfigurationInvalid(
-        'SHIPS_N_CARGO_EVENT_JOURNAL must be set to sqlite when SHIPS_N_CARGO_SQLITE_PATH is set'
+        'SHIPS_N_CARGO_DATABASE_URL and SHIPS_N_CARGO_SQLITE_PATH cannot both be set'
       )
     }
-    return postgresqlConfigured ? 'postgresql' : 'memory'
+    if (postgresqlConfigured) return 'postgresql'
+    if (sqliteConfigured) return 'sqlite'
+    return 'memory'
   }
 
   if (!['memory', 'postgresql', 'sqlite'].includes(selection)) {
