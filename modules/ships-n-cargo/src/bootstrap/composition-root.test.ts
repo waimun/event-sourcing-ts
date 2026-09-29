@@ -9,7 +9,7 @@ import { createDefaultApplication } from './composition-root'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
 import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
 
-const result = <TRow extends QueryResultRow>(rows: TRow[]): QueryResult<TRow> => ({
+const result = <TRow extends QueryResultRow>(rows: TRow[] = []): QueryResult<TRow> => ({
   command: '',
   rowCount: rows.length,
   oid: 0,
@@ -61,13 +61,28 @@ const fakePool = (columnRows = compatibleColumns) => {
     .fn()
     .mockResolvedValueOnce(result(columnRows))
     .mockResolvedValueOnce(result(compatibleConstraints))
+  const migrationQuery = vi
+    .fn()
+    .mockImplementation((sql: string) =>
+      Promise.resolve(sql.includes('SELECT version') ? result([]) : result())
+    )
+  const release = vi.fn()
+  const connect = vi.fn().mockResolvedValue({ query: migrationQuery, release })
   const end = vi.fn().mockResolvedValue(undefined)
-  return { end, pool: { query, end } as unknown as Pool, query }
+  return {
+    connect,
+    end,
+    migrationQuery,
+    pool: { connect, query, end } as unknown as Pool,
+    query,
+    release
+  }
 }
 
 const fakePoolConstructor = (pool: Pool) => {
   const construct = vi.fn()
   const PoolConstructor = class {
+    readonly connect = pool.connect
     readonly end = pool.end
     readonly query = pool.query
 
@@ -146,8 +161,8 @@ test('rejects simultaneous PostgreSQL and SQLite settings as ambiguous', async (
   ).rejects.toThrow(EventJournalConfigurationInvalid)
 })
 
-test('verifies PostgreSQL compatibility before returning the application runtime', async () => {
-  const { end, pool, query } = fakePool()
+test('migrates and verifies PostgreSQL before returning the application runtime', async () => {
+  const { end, migrationQuery, pool, query, release } = fakePool()
   const { construct, PoolConstructor } = fakePoolConstructor(pool)
 
   const runtime = await createDefaultApplication(
@@ -158,6 +173,10 @@ test('verifies PostgreSQL compatibility before returning the application runtime
   expect(construct).toHaveBeenCalledWith({
     connectionString: 'postgresql://database/ships'
   })
+  expect(migrationQuery).toHaveBeenCalledWith(
+    expect.stringContaining('CREATE TABLE ships_n_cargo.event_journal')
+  )
+  expect(release).toHaveBeenCalledOnce()
   expect(query).toHaveBeenCalledTimes(2)
   expect(runtime.application).toBeDefined()
   await runtime.close()
@@ -190,8 +209,13 @@ test('closes PostgreSQL and prevents startup when the schema is incompatible', a
 
 test('preserves the startup failure when closing the rejected PostgreSQL pool also fails', async () => {
   const connectionFailure = new Error('database unavailable')
-  const pool = {
+  const migrationClient = {
     query: vi.fn().mockRejectedValue(connectionFailure),
+    release: vi.fn()
+  }
+  const pool = {
+    connect: vi.fn().mockResolvedValue(migrationClient),
+    query: vi.fn(),
     end: vi.fn().mockRejectedValue(new Error('close failed'))
   } as unknown as Pool
 

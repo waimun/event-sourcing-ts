@@ -57,7 +57,7 @@ export const formatDatabaseStartupFailure = (error: unknown): string => {
   } else {
     hint = databaseHint(
       error,
-      'Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
+      'Check `SHIPS_N_CARGO_POSTGRESQL_URL` and permission to apply schema migrations before retrying.'
     )
   }
   return formatFailure('Server startup failed', error, hint)

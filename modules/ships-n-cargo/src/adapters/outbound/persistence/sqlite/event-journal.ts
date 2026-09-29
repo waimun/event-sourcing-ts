@@ -9,6 +9,7 @@ import {
   EventIsRequired,
   InvalidExpectedVersion
 } from '../errors/event-journal'
+import { migrateEventJournalSchema } from './event-journal-migrations'
 
 interface EventRow {
   event_payload: string
@@ -24,15 +25,13 @@ export class SqliteEventJournal implements EventJournal<string, DomainEvent> {
 
   constructor(databasePath: string) {
     this.database = new DatabaseSync(databasePath, { timeout: 5_000 })
-    this.database.exec(`
-      PRAGMA journal_mode = WAL;
-      CREATE TABLE IF NOT EXISTS event_journal (
-        aggregate_id TEXT NOT NULL,
-        version INTEGER NOT NULL CHECK (version > 0),
-        event_payload TEXT NOT NULL,
-        PRIMARY KEY (aggregate_id, version)
-      ) STRICT;
-    `)
+    try {
+      this.database.exec('PRAGMA journal_mode = WAL')
+      migrateEventJournalSchema(this.database)
+    } catch (error) {
+      this.database.close()
+      throw error
+    }
   }
 
   async append(id: string, expectedVersion: number, events: readonly DomainEvent[]): Promise<void> {

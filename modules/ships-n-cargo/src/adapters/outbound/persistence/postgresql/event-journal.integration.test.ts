@@ -1,5 +1,3 @@
-import { readFile } from 'node:fs/promises'
-import { fileURLToPath } from 'node:url'
 import { Pool } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
@@ -12,26 +10,24 @@ import { PortName } from '../../../../domain/port-name'
 import { EventJournalSchemaIncompatible } from '../errors/event-journal'
 import { eventJournalContract } from '../event-journal-contract'
 import { PostgreSqlEventJournal } from './event-journal'
+import { migrateEventJournalSchema } from './event-journal-migrations'
 import { EVENT_JOURNAL_CONSTRAINTS, verifyEventJournalSchema } from './event-journal-schema'
 
 const connectionString = process.env.TEST_DATABASE_URL
 const databaseDescribe = connectionString === undefined ? describe.skip : describe
-const sqlPath = fileURLToPath(new URL('./schema/001-event-journal.sql', import.meta.url))
 const port = () => new Port(new PortName('Kingston'), new Country('US'))
 const registration = (id: string, name = 'King Roy') => new ShipRegistered(id, name, port())
 
 databaseDescribe('PostgreSQL event journal', () => {
   let pool: Pool
-  let initialSql: string
 
   beforeAll(async () => {
-    initialSql = await readFile(sqlPath, 'utf8')
     pool = new Pool({ connectionString })
   })
 
   beforeEach(async () => {
     await pool.query('DROP SCHEMA IF EXISTS ships_n_cargo CASCADE')
-    await pool.query(initialSql)
+    await migrateEventJournalSchema(pool)
   })
 
   afterAll(async () => {
@@ -41,15 +37,18 @@ databaseDescribe('PostgreSQL event journal', () => {
 
   eventJournalContract(() => new PostgreSqlEventJournal(pool))
 
-  test('initial SQL is idempotent and verifies the resulting schema', async () => {
-    await pool.query(initialSql)
+  test('migrations are idempotent and verify the resulting schema', async () => {
+    await migrateEventJournalSchema(pool)
+
+    await expect(
+      pool.query('SELECT version FROM ships_n_cargo.event_journal_migrations ORDER BY version')
+    ).resolves.toMatchObject({ rows: [{ version: 1 }] })
     await expect(verifyEventJournalSchema(pool)).resolves.toBeUndefined()
   })
 
   test('setup verification rejects an existing incompatible table', async () => {
     await pool.query('DROP TABLE ships_n_cargo.event_journal')
     await pool.query('CREATE TABLE ships_n_cargo.event_journal (aggregate_id TEXT PRIMARY KEY)')
-    await pool.query(initialSql)
 
     await expect(verifyEventJournalSchema(pool)).rejects.toThrow(EventJournalSchemaIncompatible)
   })
