@@ -28,8 +28,7 @@ import { EventJournalConfigurationInvalid } from './errors/event-journal-configu
 import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
 
 interface RuntimeEnvironment {
-  SHIPS_N_CARGO_DATABASE_URL?: string
-  SHIPS_N_CARGO_EVENT_JOURNAL?: string
+  SHIPS_N_CARGO_POSTGRESQL_URL?: string
   SHIPS_N_CARGO_SQLITE_PATH?: string
 }
 
@@ -92,37 +91,17 @@ const memoryRuntime = (): ApplicationRuntime => {
 }
 
 const selectedEventJournal = (environment: RuntimeEnvironment): EventJournalSelection => {
-  const selection = environment.SHIPS_N_CARGO_EVENT_JOURNAL
-  const postgresqlConfigured = environment.SHIPS_N_CARGO_DATABASE_URL !== undefined
+  const postgresqlConfigured = environment.SHIPS_N_CARGO_POSTGRESQL_URL !== undefined
   const sqliteConfigured = environment.SHIPS_N_CARGO_SQLITE_PATH !== undefined
 
-  if (selection === undefined) {
-    if (postgresqlConfigured && sqliteConfigured) {
-      throw new EventJournalConfigurationInvalid(
-        'SHIPS_N_CARGO_DATABASE_URL and SHIPS_N_CARGO_SQLITE_PATH cannot both be set'
-      )
-    }
-    if (postgresqlConfigured) return 'postgresql'
-    if (sqliteConfigured) return 'sqlite'
-    return 'memory'
-  }
-
-  if (!['memory', 'postgresql', 'sqlite'].includes(selection)) {
+  if (postgresqlConfigured && sqliteConfigured) {
     throw new EventJournalConfigurationInvalid(
-      'SHIPS_N_CARGO_EVENT_JOURNAL must be one of memory, postgresql, or sqlite'
+      'SHIPS_N_CARGO_POSTGRESQL_URL and SHIPS_N_CARGO_SQLITE_PATH cannot both be set'
     )
   }
-  if (selection !== 'postgresql' && postgresqlConfigured) {
-    throw new EventJournalConfigurationInvalid(
-      `SHIPS_N_CARGO_DATABASE_URL cannot be set when SHIPS_N_CARGO_EVENT_JOURNAL is ${selection}`
-    )
-  }
-  if (selection !== 'sqlite' && sqliteConfigured) {
-    throw new EventJournalConfigurationInvalid(
-      `SHIPS_N_CARGO_SQLITE_PATH cannot be set when SHIPS_N_CARGO_EVENT_JOURNAL is ${selection}`
-    )
-  }
-  return selection as EventJournalSelection
+  if (postgresqlConfigured) return 'postgresql'
+  if (sqliteConfigured) return 'sqlite'
+  return 'memory'
 }
 
 export const createDefaultApplication = async (
@@ -148,7 +127,7 @@ export const createDefaultApplication = async (
     }
   }
 
-  const connectionString = environment.SHIPS_N_CARGO_DATABASE_URL
+  const connectionString = environment.SHIPS_N_CARGO_POSTGRESQL_URL
   if (connectionString === undefined || connectionString.trim() === '')
     throw new PostgreSqlConnectionStringInvalid()
 

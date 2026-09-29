@@ -88,44 +88,6 @@ test('uses the in-memory journal by default without creating a PostgreSQL pool',
   await expect(runtime.close()).resolves.toBeUndefined()
 })
 
-test('allows the in-memory journal to be selected explicitly', async () => {
-  const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
-
-  const runtime = await createDefaultApplication(
-    { SHIPS_N_CARGO_EVENT_JOURNAL: 'memory' },
-    PoolConstructor
-  )
-
-  expect(runtime.application).toBeDefined()
-  expect(construct).not.toHaveBeenCalled()
-  await expect(runtime.close()).resolves.toBeUndefined()
-})
-
-test('selects and closes a file-backed SQLite journal explicitly', async () => {
-  const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
-  const close = vi.fn()
-  const sqliteEventJournalFactory = vi.fn(() => ({
-    append: vi.fn(),
-    eventsByAggregate: vi.fn(),
-    close
-  })) as never
-
-  const runtime = await createDefaultApplication(
-    {
-      SHIPS_N_CARGO_EVENT_JOURNAL: 'sqlite',
-      SHIPS_N_CARGO_SQLITE_PATH: '  ./ships.sqlite  '
-    },
-    PoolConstructor,
-    sqliteEventJournalFactory
-  )
-
-  expect(sqliteEventJournalFactory).toHaveBeenCalledWith('./ships.sqlite')
-  expect(construct).not.toHaveBeenCalled()
-  expect(runtime.application).toBeDefined()
-  await runtime.close()
-  expect(close).toHaveBeenCalledOnce()
-})
-
 test('selects and closes a file-backed SQLite journal from its configured path', async () => {
   const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
   const close = vi.fn()
@@ -154,7 +116,6 @@ test('constructs the built-in SQLite adapter for the default SQLite factory', as
 
   try {
     const runtime = await createDefaultApplication({
-      SHIPS_N_CARGO_EVENT_JOURNAL: 'sqlite',
       SHIPS_N_CARGO_SQLITE_PATH: databasePath
     })
 
@@ -165,65 +126,24 @@ test('constructs the built-in SQLite adapter for the default SQLite factory', as
   }
 })
 
-test.each(['', 'SQLite', 'unknown'])(
-  'rejects an invalid event-journal selection %j',
-  async (selection) => {
-    const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
-
-    await expect(
-      createDefaultApplication({ SHIPS_N_CARGO_EVENT_JOURNAL: selection }, PoolConstructor)
-    ).rejects.toThrow(EventJournalConfigurationInvalid)
-    expect(construct).not.toHaveBeenCalled()
-  }
-)
-
-test.each([undefined, '  '])(
-  'requires a nonblank SQLite path when SQLite is selected',
+test.each(['', '  '])(
+  'rejects a blank SQLite path instead of falling back to memory',
   async (databasePath) => {
     await expect(
       createDefaultApplication({
-        SHIPS_N_CARGO_EVENT_JOURNAL: 'sqlite',
         SHIPS_N_CARGO_SQLITE_PATH: databasePath
       })
     ).rejects.toThrow(EventJournalConfigurationInvalid)
   }
 )
 
-test.each([
-  {
-    name: 'SQLite with a PostgreSQL connection string',
-    environment: {
-      SHIPS_N_CARGO_EVENT_JOURNAL: 'sqlite',
-      SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite',
-      SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships'
-    }
-  },
-  {
-    name: 'memory with a PostgreSQL connection string',
-    environment: {
-      SHIPS_N_CARGO_EVENT_JOURNAL: 'memory',
-      SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships'
-    }
-  },
-  {
-    name: 'PostgreSQL with a SQLite path',
-    environment: {
-      SHIPS_N_CARGO_EVENT_JOURNAL: 'postgresql',
-      SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships',
+test('rejects simultaneous PostgreSQL and SQLite settings as ambiguous', async () => {
+  await expect(
+    createDefaultApplication({
+      SHIPS_N_CARGO_POSTGRESQL_URL: 'postgresql://database/ships',
       SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite'
-    }
-  },
-  {
-    name: 'PostgreSQL and SQLite settings without an explicit selection',
-    environment: {
-      SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships',
-      SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite'
-    }
-  }
-])('rejects conflicting configuration: $name', async ({ environment }) => {
-  await expect(createDefaultApplication(environment)).rejects.toThrow(
-    EventJournalConfigurationInvalid
-  )
+    })
+  ).rejects.toThrow(EventJournalConfigurationInvalid)
 })
 
 test('verifies PostgreSQL compatibility before returning the application runtime', async () => {
@@ -231,7 +151,7 @@ test('verifies PostgreSQL compatibility before returning the application runtime
   const { construct, PoolConstructor } = fakePoolConstructor(pool)
 
   const runtime = await createDefaultApplication(
-    { SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships' },
+    { SHIPS_N_CARGO_POSTGRESQL_URL: 'postgresql://database/ships' },
     PoolConstructor
   )
 
@@ -248,15 +168,9 @@ test('rejects an empty PostgreSQL connection string instead of falling back to m
   const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
 
   await expect(
-    createDefaultApplication({ SHIPS_N_CARGO_DATABASE_URL: '  ' }, PoolConstructor)
+    createDefaultApplication({ SHIPS_N_CARGO_POSTGRESQL_URL: '  ' }, PoolConstructor)
   ).rejects.toThrow(PostgreSqlConnectionStringInvalid)
   expect(construct).not.toHaveBeenCalled()
-})
-
-test('requires a PostgreSQL connection string when PostgreSQL is selected explicitly', async () => {
-  await expect(
-    createDefaultApplication({ SHIPS_N_CARGO_EVENT_JOURNAL: 'postgresql' })
-  ).rejects.toThrow(PostgreSqlConnectionStringInvalid)
 })
 
 test('closes PostgreSQL and prevents startup when the schema is incompatible', async () => {
@@ -267,7 +181,7 @@ test('closes PostgreSQL and prevents startup when the schema is incompatible', a
 
   await expect(
     createDefaultApplication(
-      { SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships' },
+      { SHIPS_N_CARGO_POSTGRESQL_URL: 'postgresql://database/ships' },
       fakePoolConstructor(pool).PoolConstructor
     )
   ).rejects.toThrow(EventJournalSchemaIncompatible)
@@ -283,7 +197,7 @@ test('preserves the startup failure when closing the rejected PostgreSQL pool al
 
   await expect(
     createDefaultApplication(
-      { SHIPS_N_CARGO_DATABASE_URL: 'postgresql://database/ships' },
+      { SHIPS_N_CARGO_POSTGRESQL_URL: 'postgresql://database/ships' },
       fakePoolConstructor(pool).PoolConstructor
     )
   ).rejects.toBe(connectionFailure)
