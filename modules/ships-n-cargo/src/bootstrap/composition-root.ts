@@ -16,6 +16,7 @@ import { GetShipHistoryController } from '../adapters/inbound/http/controllers/g
 import { generateId } from '../adapters/inbound/http/generate-id'
 import { InMemoryEventJournal } from '../adapters/outbound/persistence/in-memory-event-journal'
 import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgresql/event-journal'
+import { migrateEventJournalSchema } from '../adapters/outbound/persistence/postgresql/event-journal-migrations'
 import { verifyEventJournalSchema } from '../adapters/outbound/persistence/postgresql/event-journal-schema'
 import { SqliteEventJournal } from '../adapters/outbound/persistence/sqlite/event-journal'
 import { EventJournalShipHistoryProjection } from '../adapters/outbound/projections/event-journal-ship-history'
@@ -133,6 +134,7 @@ export const createDefaultApplication = async (
 
   const pool = new PoolConstructor({ connectionString })
   try {
+    await migrateEventJournalSchema(pool)
     await verifyEventJournalSchema(pool)
   } catch (error) {
     try {

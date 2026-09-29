@@ -22,19 +22,20 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 
 ## 🐘 PostgreSQL setup (optional)
 
-Provision a PostgreSQL database, then apply and verify the checked-in initial schema:
+Provision a PostgreSQL database, then apply and verify its pending schema migrations:
 
 ```sh
 SHIPS_N_CARGO_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run db:setup
 ```
 
-The command is safe to rerun when the schema matches. It reports an error when an existing
+The application applies the same pending migrations during startup, so this command is only needed
+to prepare the database separately. It is safe to rerun and reports an error when the resulting
 `ships_n_cargo.event_journal` table is incompatible.
 
 ## 🪶 SQLite setup (optional)
 
-SQLite uses the built-in Node.js 24 SQLite module and creates its schema automatically. Provide a
-file path when starting the application:
+SQLite uses the built-in Node.js 24 SQLite module and applies its pending schema migrations
+automatically. Provide a file path when starting the application:
 
 ```sh
 SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
