@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest'
 import { createDefaultApplication } from './composition-root'
-import { formatDatabaseStartupFailure } from './startup-failure'
+import { formatDatabaseSetupFailure, formatDatabaseStartupFailure } from './startup-failure'
 
 const connectionString = process.env.TEST_DATABASE_URL
 const databaseTest = connectionString === undefined ? test.skip : test
@@ -31,6 +31,12 @@ databaseTest(
     expect(formattedFailure).toContain('password authentication failed')
     expect(formattedFailure).toContain(
       'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
+    )
+
+    const formattedSetupFailure = formatDatabaseSetupFailure(startupError)
+    expect(formattedSetupFailure).toContain('password authentication failed')
+    expect(formattedSetupFailure).toContain(
+      'Hint: Check the credentials in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
     )
   }
 )
