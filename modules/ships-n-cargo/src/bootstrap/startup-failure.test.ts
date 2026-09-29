@@ -13,7 +13,7 @@ test('formats database startup failures with a separate hint', () => {
       '',
       '  password authentication failed',
       '',
-      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and permission to apply schema migrations before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
     ].join('\n')
   )
 })
@@ -144,7 +144,7 @@ test('indents every line in a multi-line database failure', () => {
       '',
       '  Expected columns:',
       '',
-      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and permission to apply schema migrations before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
     ].join('\n')
   )
 })
