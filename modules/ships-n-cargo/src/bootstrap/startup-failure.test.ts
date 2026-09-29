@@ -13,7 +13,7 @@ test('formats database startup failures with a separate hint', () => {
       '',
       '  password authentication failed',
       '',
-      'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
     ].join('\n')
   )
 })
@@ -21,13 +21,15 @@ test('formats database startup failures with a separate hint', () => {
 test('points invalid event-journal configuration to its environment settings', () => {
   expect(
     formatDatabaseStartupFailure(
-      new EventJournalConfigurationInvalid('SHIPS_N_CARGO_EVENT_JOURNAL is unsupported')
+      new EventJournalConfigurationInvalid(
+        'SHIPS_N_CARGO_POSTGRESQL_URL and SHIPS_N_CARGO_SQLITE_PATH cannot both be set'
+      )
     )
   ).toBe(
     [
       'Server startup failed',
       '',
-      '  Event journal configuration is invalid: SHIPS_N_CARGO_EVENT_JOURNAL is unsupported',
+      '  Event journal configuration is invalid: SHIPS_N_CARGO_POSTGRESQL_URL and SHIPS_N_CARGO_SQLITE_PATH cannot both be set',
       '',
       'Hint: Check the event-journal environment settings before retrying.'
     ].join('\n')
@@ -65,7 +67,7 @@ test('shows each refused PostgreSQL connection when an aggregate failure has no 
       '  connect ECONNREFUSED ::1:5432',
       '  connect ECONNREFUSED 127.0.0.1:5432',
       '',
-      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_DATABASE_URL` points to it before retrying.'
+      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_POSTGRESQL_URL` points to it before retrying.'
     ].join('\n')
   )
 })
@@ -85,7 +87,7 @@ test('formats database setup connection failures with the same nested details an
       '  connect ECONNREFUSED ::1:5432',
       '  connect ECONNREFUSED 127.0.0.1:5432',
       '',
-      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_DATABASE_URL` points to it before retrying.'
+      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_POSTGRESQL_URL` points to it before retrying.'
     ].join('\n')
   )
 })
@@ -97,7 +99,7 @@ test('keeps non-connection database setup failures on their general recovery pat
       '',
       '  permission denied for schema ships_n_cargo',
       '',
-      'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and the database setup SQL before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
     ].join('\n')
   )
 })
@@ -114,7 +116,7 @@ test('recognizes a connection failure retained as the cause of a higher-level er
       '',
       '  could not initialize the database pool',
       '',
-      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_DATABASE_URL` points to it before retrying.'
+      'Hint: Check that PostgreSQL is running and `SHIPS_N_CARGO_POSTGRESQL_URL` points to it before retrying.'
     ].join('\n')
   )
 })
@@ -126,7 +128,7 @@ test('safely formats a non-error database setup failure', () => {
       '',
       '  setup rejected',
       '',
-      'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and the database setup SQL before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
     ].join('\n')
   )
 })
@@ -142,7 +144,7 @@ test('indents every line in a multi-line database failure', () => {
       '',
       '  Expected columns:',
       '',
-      'Hint: Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
     ].join('\n')
   )
 })

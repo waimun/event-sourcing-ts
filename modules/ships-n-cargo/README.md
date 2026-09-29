@@ -25,7 +25,7 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 Provision a PostgreSQL database, then apply and verify the checked-in initial schema:
 
 ```sh
-SHIPS_N_CARGO_DATABASE_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run db:setup
+SHIPS_N_CARGO_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run db:setup
 ```
 
 The command is safe to rerun when the schema matches. It reports an error when an existing
@@ -43,10 +43,9 @@ SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
 ## 🚀 Running locally
 
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
-2. Run `npm start` for an in-memory event journal. To choose an adapter explicitly, set
-   `SHIPS_N_CARGO_EVENT_JOURNAL` to `memory`, `postgresql`, or `sqlite`. PostgreSQL also requires
-   `SHIPS_N_CARGO_DATABASE_URL`, while SQLite requires `SHIPS_N_CARGO_SQLITE_PATH`. When the
-   selector is omitted, either setting selects its corresponding adapter; setting both is invalid.
+2. Run `npm start` for an in-memory event journal. Set `SHIPS_N_CARGO_POSTGRESQL_URL` or
+   `SHIPS_N_CARGO_SQLITE_PATH` to use the corresponding persistent adapter; setting both is
+   invalid.
 
 The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
 request to `/` to verify that it is running.

@@ -34,7 +34,7 @@ const hasConnectionFailure = (error: unknown): boolean => {
 }
 
 const connectionFailureHint =
-  'Check that PostgreSQL is running and `SHIPS_N_CARGO_DATABASE_URL` points to it before retrying.'
+  'Check that PostgreSQL is running and `SHIPS_N_CARGO_POSTGRESQL_URL` points to it before retrying.'
 
 const databaseHint = (error: unknown, fallback: string): string =>
   hasConnectionFailure(error) ? connectionFailureHint : fallback
@@ -57,7 +57,7 @@ export const formatDatabaseStartupFailure = (error: unknown): string => {
   } else {
     hint = databaseHint(
       error,
-      'Check `SHIPS_N_CARGO_DATABASE_URL` and run `npm run db:setup` before retrying.'
+      'Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
     )
   }
   return formatFailure('Server startup failed', error, hint)
@@ -69,7 +69,7 @@ export const formatDatabaseSetupFailure = (error: unknown): string =>
     error,
     databaseHint(
       error,
-      'Check `SHIPS_N_CARGO_DATABASE_URL` and the database setup SQL before retrying.'
+      'Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
     )
   )
 
