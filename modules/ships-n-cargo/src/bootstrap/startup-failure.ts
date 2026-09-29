@@ -24,14 +24,27 @@ const connectionFailureCodes = new Set([
   'ETIMEDOUT'
 ])
 
-const hasConnectionFailure = (error: unknown): boolean => {
+const hasNestedErrorMatching = (
+  error: unknown,
+  matches: (candidate: object) => boolean
+): boolean => {
   if (typeof error !== 'object' || error === null) return false
 
-  if ('code' in error && connectionFailureCodes.has(String(error.code))) return true
-  if (error instanceof AggregateError && error.errors.some(hasConnectionFailure)) return true
+  if (matches(error)) return true
+  if (
+    error instanceof AggregateError &&
+    error.errors.some((nestedError) => hasNestedErrorMatching(nestedError, matches))
+  )
+    return true
 
-  return 'cause' in error && hasConnectionFailure(error.cause)
+  return 'cause' in error && hasNestedErrorMatching(error.cause, matches)
 }
+
+const hasConnectionFailure = (error: unknown): boolean =>
+  hasNestedErrorMatching(
+    error,
+    (candidate) => 'code' in candidate && connectionFailureCodes.has(String(candidate.code))
+  )
 
 const connectionFailureHint =
   'Check that PostgreSQL is running and `SHIPS_N_CARGO_POSTGRESQL_URL` points to it before retrying.'
@@ -39,11 +52,18 @@ const connectionFailureHint =
 const databaseHint = (error: unknown, fallback: string): string =>
   hasConnectionFailure(error) ? connectionFailureHint : fallback
 
-const hasCode = (error: unknown, code: string): boolean => {
-  if (typeof error !== 'object' || error === null) return false
-  if ('code' in error && error.code === code) return true
-  return 'cause' in error && hasCode(error.cause, code)
-}
+const hasCode = (error: unknown, code: string): boolean =>
+  hasNestedErrorMatching(error, (candidate) => 'code' in candidate && candidate.code === code)
+
+const isSqliteCannotOpenFailure = (error: unknown): boolean =>
+  hasNestedErrorMatching(
+    error,
+    (candidate) =>
+      'code' in candidate &&
+      candidate.code === 'ERR_SQLITE_ERROR' &&
+      'errcode' in candidate &&
+      candidate.errcode === 14
+  )
 
 const formatFailure = (title: string, error: unknown, hint: string): string =>
   `${title}\n\n${indented(messageFrom(error))}\n\nHint: ${hint}`
@@ -52,8 +72,10 @@ export const formatDatabaseStartupFailure = (error: unknown): string => {
   let hint: string
   if (hasCode(error, 'EVENT_JOURNAL_CONFIGURATION_INVALID')) {
     hint = 'Check the event-journal environment settings before retrying.'
-  } else if (hasCode(error, 'ERR_SQLITE_ERROR')) {
+  } else if (isSqliteCannotOpenFailure(error)) {
     hint = 'Check `SHIPS_N_CARGO_SQLITE_PATH` and access to its parent directory before retrying.'
+  } else if (hasCode(error, 'ERR_SQLITE_ERROR')) {
+    hint = 'Check the SQLite database and its schema migrations before retrying.'
   } else {
     hint = databaseHint(
       error,
@@ -63,15 +85,19 @@ export const formatDatabaseStartupFailure = (error: unknown): string => {
   return formatFailure('Server startup failed', error, hint)
 }
 
+const databaseSetupHint = (error: unknown): string => {
+  if (hasConnectionFailure(error)) return connectionFailureHint
+  if (hasCode(error, '28P01') || hasCode(error, '28000'))
+    return 'Check the credentials in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
+  if (hasCode(error, '3D000'))
+    return 'Check the database name in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
+  if (hasCode(error, '42501'))
+    return 'Ensure the user in `SHIPS_N_CARGO_POSTGRESQL_URL` can apply schema migrations before retrying.'
+  return 'Check the PostgreSQL event journal schema migrations before retrying.'
+}
+
 export const formatDatabaseSetupFailure = (error: unknown): string =>
-  formatFailure(
-    'Database setup failed',
-    error,
-    databaseHint(
-      error,
-      'Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
-    )
-  )
+  formatFailure('Database setup failed', error, databaseSetupHint(error))
 
 export const formatServerListenFailure = (error: unknown, port: number): string => {
   const addressInUse =

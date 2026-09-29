@@ -38,7 +38,8 @@ test('points invalid event-journal configuration to its environment settings', (
 
 test('points SQLite startup failures to the configured file path', () => {
   const error = Object.assign(new Error('unable to open database file'), {
-    code: 'ERR_SQLITE_ERROR'
+    code: 'ERR_SQLITE_ERROR',
+    errcode: 14
   })
 
   expect(formatDatabaseStartupFailure(error)).toBe(
@@ -48,6 +49,23 @@ test('points SQLite startup failures to the configured file path', () => {
       '  unable to open database file',
       '',
       'Hint: Check `SHIPS_N_CARGO_SQLITE_PATH` and access to its parent directory before retrying.'
+    ].join('\n')
+  )
+})
+
+test('does not blame the SQLite path for other SQLite failures', () => {
+  const error = Object.assign(new Error('near "BROKEN": syntax error'), {
+    code: 'ERR_SQLITE_ERROR',
+    errcode: 1
+  })
+
+  expect(formatDatabaseStartupFailure(error)).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  near "BROKEN": syntax error',
+      '',
+      'Hint: Check the SQLite database and its schema migrations before retrying.'
     ].join('\n')
   )
 })
@@ -92,15 +110,73 @@ test('formats database setup connection failures with the same nested details an
   )
 })
 
-test('keeps non-connection database setup failures on their general recovery path', () => {
-  expect(formatDatabaseSetupFailure(new Error('permission denied for schema ships_n_cargo'))).toBe(
+test('points PostgreSQL authentication failures to the configured credentials', () => {
+  const error = Object.assign(new Error('password authentication failed for user "ships"'), {
+    code: '28P01'
+  })
+
+  expect(formatDatabaseSetupFailure(error)).toBe(
+    [
+      'Database setup failed',
+      '',
+      '  password authentication failed for user "ships"',
+      '',
+      'Hint: Check the credentials in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
+    ].join('\n')
+  )
+})
+
+test('points a missing PostgreSQL database to the configured database name', () => {
+  const error = Object.assign(new Error('database "ships" does not exist'), { code: '3D000' })
+
+  expect(formatDatabaseSetupFailure(error)).toBe(
+    [
+      'Database setup failed',
+      '',
+      '  database "ships" does not exist',
+      '',
+      'Hint: Check the database name in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
+    ].join('\n')
+  )
+})
+
+test('points insufficient PostgreSQL privileges to migration permissions', () => {
+  const error = Object.assign(new Error('permission denied for schema ships_n_cargo'), {
+    code: '42501'
+  })
+
+  expect(formatDatabaseSetupFailure(error)).toBe(
     [
       'Database setup failed',
       '',
       '  permission denied for schema ships_n_cargo',
       '',
-      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
+      'Hint: Ensure the user in `SHIPS_N_CARGO_POSTGRESQL_URL` can apply schema migrations before retrying.'
     ].join('\n')
+  )
+})
+
+test('points other database setup failures to the PostgreSQL schema migrations', () => {
+  expect(formatDatabaseSetupFailure(new Error('migration rejected'))).toBe(
+    [
+      'Database setup failed',
+      '',
+      '  migration rejected',
+      '',
+      'Hint: Check the PostgreSQL event journal schema migrations before retrying.'
+    ].join('\n')
+  )
+})
+
+test('recognizes a PostgreSQL code nested inside an aggregate setup failure', () => {
+  const error = new AggregateError([
+    Object.assign(new Error('password authentication failed for user "ships"'), {
+      code: '28P01'
+    })
+  ])
+
+  expect(formatDatabaseSetupFailure(error)).toContain(
+    'Hint: Check the credentials in `SHIPS_N_CARGO_POSTGRESQL_URL` before retrying.'
   )
 })
 
@@ -128,7 +204,7 @@ test('safely formats a non-error database setup failure', () => {
       '',
       '  setup rejected',
       '',
-      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and the database setup SQL before retrying.'
+      'Hint: Check the PostgreSQL event journal schema migrations before retrying.'
     ].join('\n')
   )
 })
