@@ -88,6 +88,22 @@ test('points incompatible SQLite migration versions to its schema migrations', (
   )
 })
 
+test('does not classify a schema incompatibility without metadata as SQLite', () => {
+  const error = Object.assign(new Error('event journal schema is incompatible'), {
+    code: 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE'
+  })
+
+  expect(formatDatabaseStartupFailure(error)).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  event journal schema is incompatible',
+      '',
+      'Hint: Check `SHIPS_N_CARGO_POSTGRESQL_URL` and run `npm run db:setup` before retrying.'
+    ].join('\n')
+  )
+})
+
 test('shows each refused PostgreSQL connection when an aggregate failure has no message', () => {
   const error = new AggregateError([
     Object.assign(new Error('connect ECONNREFUSED ::1:5432'), { code: 'ECONNREFUSED' }),
