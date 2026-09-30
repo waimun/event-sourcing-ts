@@ -227,6 +227,16 @@ test('cannot load a container while the ship is at sea', async () => {
   })
 })
 
+test('hides an unexpected request parsing error', async () => {
+  const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
+  const controller = new LoadContainerController(useCase)
+  vi.spyOn(console, 'error').mockImplementation(vi.fn())
+
+  const response = await controller.loadContainer(null as never)
+
+  expect(response).toMatchObject({ status: 500, error: opaqueApplicationErrorMessage })
+})
+
 test('hides an unexpected application result', async () => {
   const useCase = new LoadContainerUseCase(new InMemoryEventJournal(new Name('test-journal')))
   const controller = new LoadContainerController(useCase)
