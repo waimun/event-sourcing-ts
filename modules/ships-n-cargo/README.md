@@ -50,4 +50,5 @@ SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
    invalid.
 
 The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
-request to `/` to verify that it is running.
+request to `/` to verify that it is running. See the [OpenAPI contract](src/adapters/inbound/http/openapi.yaml)
+for the available endpoints and request and response schemas.

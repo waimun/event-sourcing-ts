@@ -1,0 +1,674 @@
+openapi: 3.1.0
+info:
+  title: Ships and Cargo API
+  version: 1.0.0
+  description: HTTP API for registering ships and managing their cargo and voyages.
+tags:
+  - name: health
+  - name: ships
+paths:
+  /:
+    get:
+      tags: [health]
+      summary: Check that the API is running
+      operationId: ping
+      responses:
+        '200':
+          description: The API is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+  /api/v1/:
+    get:
+      tags: [health]
+      summary: Check that API version 1 is running
+      operationId: pingV1
+      responses:
+        '200':
+          description: API version 1 is running.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+  /api/v1/ships/{shipId}/history:
+    get:
+      tags: [ships]
+      summary: Get a ship's history
+      operationId: getShipHistory
+      parameters:
+        - $ref: '#/components/parameters/ShipId'
+      responses:
+        '200':
+          description: The ship's event history.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipHistoryResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/register:
+    post:
+      tags: [ships]
+      summary: Register a ship
+      operationId: registerShip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RegisterShipRequest'
+      responses:
+        '201':
+          description: The ship was registered. The body contains the generated ID when no ID was supplied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RegisterShipResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/load-container:
+    post:
+      tags: [ships]
+      summary: Load a container onto a ship
+      operationId: loadContainer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoadContainerRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/unload-container:
+    post:
+      tags: [ships]
+      summary: Unload a container from a ship
+      operationId: unloadContainer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UnloadContainerRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/plan-voyage:
+    post:
+      tags: [ships]
+      summary: Plan a voyage for a ship
+      operationId: planVoyage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanVoyageRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/change-voyage-destination:
+    post:
+      tags: [ships]
+      summary: Change a planned voyage's destination
+      operationId: changeVoyageDestination
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChangeVoyageDestinationRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/cancel-voyage:
+    post:
+      tags: [ships]
+      summary: Cancel a planned voyage
+      operationId: cancelVoyage
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CancelVoyageRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/sail:
+    post:
+      tags: [ships]
+      summary: Set sail on a planned voyage
+      operationId: sailShip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShipCommandRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/divert:
+    post:
+      tags: [ships]
+      summary: Divert a ship at sea
+      operationId: divertShip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DivertShipRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/dock:
+    post:
+      tags: [ships]
+      summary: Dock a ship at its voyage destination
+      operationId: dockShip
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DockShipRequest'
+      responses:
+        '200':
+          $ref: '#/components/responses/CommandSucceeded'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '409':
+          $ref: '#/components/responses/ConflictError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+components:
+  parameters:
+    ShipId:
+      name: shipId
+      in: path
+      required: true
+      description: The ship identifier.
+      schema:
+        $ref: '#/components/schemas/Identifier'
+  responses:
+    CommandSucceeded:
+      description: The command succeeded.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CommandResponse'
+    ValidationError:
+      description: The request was malformed or failed validation.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ValidationErrorResponse'
+    NotFoundError:
+      description: The ship or requested resource was not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/NotFoundErrorResponse'
+    ConflictError:
+      description: The command conflicts with the ship's current state or another command.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ConflictErrorResponse'
+    InternalError:
+      description: The command could not be completed because of an internal error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/InternalErrorResponse'
+  schemas:
+    Identifier:
+      type: string
+      minLength: 1
+      maxLength: 36
+      pattern: '^[a-zA-Z0-9-]+$'
+      examples: [atlantic-carrier]
+    Name:
+      type: string
+      minLength: 3
+      maxLength: 50
+      pattern: '^[a-zA-Z0-9_ -]+$'
+    Country:
+      type: string
+      description: >-
+        A case-insensitive country code. Supported codes are US, CA, FR, AR, TR, SG, and AU;
+        responses use uppercase codes.
+      minLength: 2
+      maxLength: 2
+      examples: [US]
+    VoyageChangeReason:
+      type: string
+      minLength: 1
+      maxLength: 500
+    Port:
+      type: object
+      additionalProperties: false
+      required: [name, country]
+      properties:
+        name:
+          $ref: '#/components/schemas/Name'
+        country:
+          $ref: '#/components/schemas/Country'
+    RegisterShipRequest:
+      type: object
+      additionalProperties: false
+      required: [name, port]
+      properties:
+        id:
+          description: Omit this property to have the API generate an identifier.
+          $ref: '#/components/schemas/Identifier'
+        name:
+          $ref: '#/components/schemas/Name'
+        port:
+          $ref: '#/components/schemas/Port'
+    LoadContainerRequest:
+      type: object
+      additionalProperties: false
+      required: [id, containerId, cargoReference, description]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        containerId:
+          $ref: '#/components/schemas/Identifier'
+        cargoReference:
+          $ref: '#/components/schemas/Identifier'
+        description:
+          $ref: '#/components/schemas/Name'
+    UnloadContainerRequest:
+      type: object
+      additionalProperties: false
+      required: [id, containerId]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        containerId:
+          $ref: '#/components/schemas/Identifier'
+    PlanVoyageRequest:
+      type: object
+      additionalProperties: false
+      required: [id, destination]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        destination:
+          $ref: '#/components/schemas/Port'
+    ChangeVoyageDestinationRequest:
+      type: object
+      additionalProperties: false
+      required: [id, destination, reason]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        destination:
+          $ref: '#/components/schemas/Port'
+        reason:
+          $ref: '#/components/schemas/VoyageChangeReason'
+    CancelVoyageRequest:
+      type: object
+      additionalProperties: false
+      required: [id, reason]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        reason:
+          $ref: '#/components/schemas/VoyageChangeReason'
+    ShipCommandRequest:
+      type: object
+      additionalProperties: false
+      required: [id]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+    DivertShipRequest:
+      type: object
+      additionalProperties: false
+      required: [id, destination, reason]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        destination:
+          $ref: '#/components/schemas/Port'
+        reason:
+          $ref: '#/components/schemas/VoyageChangeReason'
+    DockShipRequest:
+      type: object
+      additionalProperties: false
+      required: [id, port]
+      properties:
+        id:
+          $ref: '#/components/schemas/Identifier'
+        port:
+          $ref: '#/components/schemas/Port'
+    PingResponse:
+      type: object
+      additionalProperties: false
+      required: [status, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 200
+        dateTime:
+          type: string
+          format: date-time
+    CommandResponse:
+      type: object
+      additionalProperties: false
+      required: [status, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 200
+        dateTime:
+          type: string
+          format: date-time
+    RegisterShipResponse:
+      type: object
+      additionalProperties: false
+      required: [status, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 201
+        dateTime:
+          type: string
+          format: date-time
+        body:
+          type: object
+          additionalProperties: false
+          required: [id]
+          properties:
+            id:
+              $ref: '#/components/schemas/Identifier'
+    ErrorResponse:
+      type: object
+      additionalProperties: false
+      required: [status, error, dateTime]
+      properties:
+        status:
+          type: integer
+        error:
+          type: string
+        dateTime:
+          type: string
+          format: date-time
+    ValidationErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            status:
+              type: integer
+              const: 400
+    NotFoundErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            status:
+              type: integer
+              const: 404
+    ConflictErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            status:
+              type: integer
+              const: 409
+    InternalErrorResponse:
+      allOf:
+        - $ref: '#/components/schemas/ErrorResponse'
+        - type: object
+          properties:
+            status:
+              type: integer
+              const: 500
+    ShipHistoryResponse:
+      type: object
+      additionalProperties: false
+      required: [status, body, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 200
+        dateTime:
+          type: string
+          format: date-time
+        body:
+          $ref: '#/components/schemas/ShipHistory'
+    ShipHistory:
+      type: object
+      additionalProperties: false
+      required: [shipId, history]
+      properties:
+        shipId:
+          $ref: '#/components/schemas/Identifier'
+        history:
+          type: array
+          items:
+            oneOf:
+              - $ref: '#/components/schemas/ShipRegisteredHistoryEntry'
+              - $ref: '#/components/schemas/ShipArrivedHistoryEntry'
+              - $ref: '#/components/schemas/ShipDepartedHistoryEntry'
+              - $ref: '#/components/schemas/VoyagePlannedHistoryEntry'
+              - $ref: '#/components/schemas/VoyageDivertedHistoryEntry'
+              - $ref: '#/components/schemas/VoyageDestinationChangedHistoryEntry'
+              - $ref: '#/components/schemas/VoyageCancelledHistoryEntry'
+              - $ref: '#/components/schemas/ContainerLoadedHistoryEntry'
+              - $ref: '#/components/schemas/ContainerUnloadedHistoryEntry'
+            discriminator:
+              propertyName: kind
+    ShipRegisteredHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, name, port]
+      properties:
+        kind:
+          type: string
+          const: ship-registered
+        occurredAt:
+          type: string
+          format: date-time
+        name:
+          $ref: '#/components/schemas/Name'
+        port:
+          $ref: '#/components/schemas/Port'
+    ShipArrivedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, port]
+      properties:
+        kind:
+          type: string
+          const: ship-arrived
+        occurredAt:
+          type: string
+          format: date-time
+        port:
+          $ref: '#/components/schemas/Port'
+    ShipDepartedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt]
+      properties:
+        kind:
+          type: string
+          const: ship-departed
+        occurredAt:
+          type: string
+          format: date-time
+    VoyagePlannedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, origin, destination]
+      properties:
+        kind:
+          type: string
+          const: voyage-planned
+        occurredAt:
+          type: string
+          format: date-time
+        origin:
+          $ref: '#/components/schemas/Port'
+        destination:
+          $ref: '#/components/schemas/Port'
+    VoyageDivertedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, previousDestination, destination, reason]
+      properties:
+        kind:
+          type: string
+          const: voyage-diverted
+        occurredAt:
+          type: string
+          format: date-time
+        previousDestination:
+          $ref: '#/components/schemas/Port'
+        destination:
+          $ref: '#/components/schemas/Port'
+        reason:
+          type: string
+    VoyageDestinationChangedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, previousDestination, destination, reason]
+      properties:
+        kind:
+          type: string
+          const: voyage-destination-changed
+        occurredAt:
+          type: string
+          format: date-time
+        previousDestination:
+          $ref: '#/components/schemas/Port'
+        destination:
+          $ref: '#/components/schemas/Port'
+        reason:
+          type: string
+    VoyageCancelledHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, origin, destination, reason]
+      properties:
+        kind:
+          type: string
+          const: voyage-cancelled
+        occurredAt:
+          type: string
+          format: date-time
+        origin:
+          $ref: '#/components/schemas/Port'
+        destination:
+          $ref: '#/components/schemas/Port'
+        reason:
+          type: string
+    ContainerLoadedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, containerId, cargoReference, description]
+      properties:
+        kind:
+          type: string
+          const: container-loaded
+        occurredAt:
+          type: string
+          format: date-time
+        containerId:
+          $ref: '#/components/schemas/Identifier'
+        cargoReference:
+          $ref: '#/components/schemas/Identifier'
+        description:
+          $ref: '#/components/schemas/Name'
+    ContainerUnloadedHistoryEntry:
+      type: object
+      additionalProperties: false
+      required: [kind, occurredAt, containerId, cargoReference, description]
+      properties:
+        kind:
+          type: string
+          const: container-unloaded
+        occurredAt:
+          type: string
+          format: date-time
+        containerId:
+          $ref: '#/components/schemas/Identifier'
+        cargoReference:
+          $ref: '#/components/schemas/Identifier'
+        description:
+          $ref: '#/components/schemas/Name'
