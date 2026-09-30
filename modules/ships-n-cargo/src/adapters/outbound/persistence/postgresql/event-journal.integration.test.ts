@@ -12,7 +12,7 @@ import { PostgreSqlEventJournal } from './event-journal'
 import { migrateEventJournalSchema } from './event-journal-migrations'
 import { EVENT_JOURNAL_CONSTRAINTS } from './event-journal-schema'
 
-const connectionString = process.env.TEST_DATABASE_URL
+const connectionString = process.env.TEST_POSTGRESQL_URL
 const databaseDescribe = connectionString === undefined ? describe.skip : describe
 const port = () => new Port(new PortName('Kingston'), new Country('US'))
 const registration = (id: string, name = 'King Roy') => new ShipRegistered(id, name, port())
