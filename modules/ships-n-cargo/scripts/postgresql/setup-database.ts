@@ -1,6 +1,5 @@
 import { Pool } from 'pg'
 import { migrateEventJournalSchema } from '../../src/adapters/outbound/persistence/postgresql/event-journal-migrations'
-import { verifyEventJournalSchema } from '../../src/adapters/outbound/persistence/postgresql/event-journal-schema'
 import { formatDatabaseSetupFailure } from '../../src/bootstrap/startup-failure'
 
 const connectionString = process.env.SHIPS_N_CARGO_POSTGRESQL_URL
@@ -12,7 +11,6 @@ if (connectionString === undefined || connectionString.trim() === '') {
   const pool = new Pool({ connectionString })
   try {
     await migrateEventJournalSchema(pool)
-    await verifyEventJournalSchema(pool)
     console.log('ships_n_cargo.event_journal is ready')
   } catch (error) {
     console.error(formatDatabaseSetupFailure(error))

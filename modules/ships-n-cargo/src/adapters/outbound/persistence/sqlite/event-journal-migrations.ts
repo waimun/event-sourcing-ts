@@ -1,5 +1,6 @@
 import { readFileSync } from 'node:fs'
 import type { DatabaseSync } from 'node:sqlite'
+import { pendingMigrations } from '../migration-versions'
 
 interface MigrationRow {
   version: number
@@ -24,11 +25,9 @@ export const migrateEventJournalSchema = (database: DatabaseSync): void => {
     const rows = database
       .prepare('SELECT version FROM event_journal_migrations ORDER BY version ASC')
       .all() as unknown as MigrationRow[]
-    const appliedVersions = new Set(rows.map(({ version }) => version))
+    const appliedVersions = rows.map(({ version }) => version)
 
-    for (const migration of migrations) {
-      if (appliedVersions.has(migration.version)) continue
-
+    for (const migration of pendingMigrations('SQLite', migrations, appliedVersions)) {
       database.exec(readFileSync(migration.source, 'utf8'))
       database
         .prepare('INSERT INTO event_journal_migrations (version) VALUES (?)')

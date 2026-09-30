@@ -1,5 +1,6 @@
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, expect, test } from 'vitest'
+import { EventJournalSchemaIncompatible } from '../errors/event-journal'
 import { migrateEventJournalSchema } from './event-journal-migrations'
 
 const databases: DatabaseSync[] = []
@@ -28,6 +29,21 @@ test('applies the numbered migration once and records its version', () => {
   expect(
     value.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name").all()
   ).toEqual([{ name: 'event_journal' }, { name: 'event_journal_migrations' }])
+})
+
+test('rejects applied versions that are not a prefix of the bundled migrations', () => {
+  const value = database()
+  value.exec(`
+    CREATE TABLE event_journal_migrations (
+      version INTEGER PRIMARY KEY
+    ) STRICT;
+    INSERT INTO event_journal_migrations (version) VALUES (2);
+  `)
+
+  expect(() => migrateEventJournalSchema(value)).toThrow(EventJournalSchemaIncompatible)
+  expect(value.prepare('SELECT version FROM event_journal_migrations').all()).toEqual([
+    { version: 2 }
+  ])
 })
 
 test('rolls back the ledger when the migration cannot be applied', () => {

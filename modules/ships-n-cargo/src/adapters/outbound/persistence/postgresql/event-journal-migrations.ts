@@ -1,5 +1,6 @@
 import { readFile } from 'node:fs/promises'
 import type { Pool, PoolClient, QueryResultRow } from 'pg'
+import { pendingMigrations } from '../migration-versions'
 
 interface MigrationRow extends QueryResultRow {
   version: number
@@ -38,11 +39,9 @@ export const migrateEventJournalSchema = async (pool: Pool): Promise<void> => {
       FROM ships_n_cargo.event_journal_migrations
       ORDER BY version ASC
     `)
-    const appliedVersions = new Set(result.rows.map(({ version }) => version))
+    const appliedVersions = result.rows.map(({ version }) => version)
 
-    for (const migration of migrations) {
-      if (appliedVersions.has(migration.version)) continue
-
+    for (const migration of pendingMigrations('PostgreSQL', migrations, appliedVersions)) {
       const sql = await readFile(migration.source, 'utf8')
       await client.query(sql)
       await client.query(

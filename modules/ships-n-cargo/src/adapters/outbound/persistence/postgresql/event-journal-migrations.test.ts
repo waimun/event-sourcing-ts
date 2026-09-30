@@ -1,5 +1,6 @@
 import type { Pool, PoolClient, QueryResult, QueryResultRow } from 'pg'
 import { expect, test, vi } from 'vitest'
+import type { EventJournalSchemaIncompatible } from '../errors/event-journal'
 import { migrateEventJournalSchema } from './event-journal-migrations'
 
 const result = <TRow extends QueryResultRow>(rows: TRow[] = []): QueryResult<TRow> => ({
@@ -58,6 +59,21 @@ test('does not reapply an already recorded migration', async () => {
     expect.anything()
   )
   expect(query).toHaveBeenLastCalledWith('COMMIT')
+})
+
+test('rejects applied versions that are not a prefix of the bundled migrations', async () => {
+  const { client, query, release } = migrationClient([2])
+
+  await expect(migrateEventJournalSchema(poolFor(client))).rejects.toMatchObject({
+    code: 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE',
+    meta: {
+      database: 'PostgreSQL',
+      details: 'applied migration versions [2] are not a prefix of bundled versions [1]'
+    }
+  } satisfies Partial<EventJournalSchemaIncompatible>)
+
+  expect(query).toHaveBeenLastCalledWith('ROLLBACK')
+  expect(release).toHaveBeenCalledOnce()
 })
 
 test('rolls back a failed migration and releases the client', async () => {

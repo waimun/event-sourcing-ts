@@ -65,6 +65,15 @@ const isSqliteCannotOpenFailure = (error: unknown): boolean =>
       candidate.errcode === 14
   )
 
+const isSqliteSchemaFailure = (error: unknown): boolean =>
+  hasNestedErrorMatching(error, (candidate) => {
+    if (!('code' in candidate) || candidate.code !== 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE')
+      return false
+    if (!('meta' in candidate) || typeof candidate.meta !== 'object' || candidate.meta === null)
+      return false
+    return 'database' in candidate.meta && candidate.meta.database === 'SQLite'
+  })
+
 const formatFailure = (title: string, error: unknown, hint: string): string =>
   `${title}\n\n${indented(messageFrom(error))}\n\nHint: ${hint}`
 
@@ -74,7 +83,7 @@ export const formatDatabaseStartupFailure = (error: unknown): string => {
     hint = 'Check the event-journal environment settings before retrying.'
   } else if (isSqliteCannotOpenFailure(error)) {
     hint = 'Check `SHIPS_N_CARGO_SQLITE_PATH` and access to its parent directory before retrying.'
-  } else if (hasCode(error, 'ERR_SQLITE_ERROR')) {
+  } else if (hasCode(error, 'ERR_SQLITE_ERROR') || isSqliteSchemaFailure(error)) {
     hint = 'Check the SQLite database and its schema migrations before retrying.'
   } else {
     hint = databaseHint(
