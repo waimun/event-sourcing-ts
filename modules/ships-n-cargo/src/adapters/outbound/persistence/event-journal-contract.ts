@@ -50,6 +50,26 @@ export const eventJournalContract = (makeJournal: JournalFactory): void => {
       })
     })
 
+    test('preserves numeric stream order beyond version nine', async () => {
+      const journal = await makeJournal()
+      const firstTenEvents = Array.from({ length: 10 }, (_, index) =>
+        registration('ship-1', `Registration ${index + 1}`)
+      )
+      const eleventhEvent = registration('ship-1', 'Registration 11')
+
+      await journal.append('ship-1', 0, firstTenEvents)
+
+      await expect(journal.eventsByAggregate('ship-1')).resolves.toEqual({
+        events: firstTenEvents,
+        version: 10
+      })
+      await expect(journal.append('ship-1', 10, [eleventhEvent])).resolves.toBeUndefined()
+      await expect(journal.eventsByAggregate('ship-1')).resolves.toEqual({
+        events: [...firstTenEvents, eleventhEvent],
+        version: 11
+      })
+    })
+
     test('keeps aggregate streams and versions independent', async () => {
       const journal = await makeJournal()
       const firstRegistration = registration('ship-1')
