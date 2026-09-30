@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { EventJournalSchemaIncompatible } from '../adapters/outbound/persistence/errors/event-journal'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
 import {
   formatDatabaseSetupFailure,
@@ -64,6 +65,23 @@ test('does not blame the SQLite path for other SQLite failures', () => {
       'Server startup failed',
       '',
       '  near "BROKEN": syntax error',
+      '',
+      'Hint: Check the SQLite database and its schema migrations before retrying.'
+    ].join('\n')
+  )
+})
+
+test('points incompatible SQLite migration versions to its schema migrations', () => {
+  const error = new EventJournalSchemaIncompatible(
+    'SQLite',
+    'applied migration versions [2] are not a prefix of bundled versions [1]'
+  )
+
+  expect(formatDatabaseStartupFailure(error)).toBe(
+    [
+      'Server startup failed',
+      '',
+      '  SQLite event journal schema is incompatible: applied migration versions [2] are not a prefix of bundled versions [1]',
       '',
       'Hint: Check the SQLite database and its schema migrations before retrying.'
     ].join('\n')

@@ -2,7 +2,7 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
-import { afterAll, beforeAll, expect, test } from 'vitest'
+import { afterAll, beforeAll, expect, test, vi } from 'vitest'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
 import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import { Country } from '../../../../domain/country'
@@ -38,6 +38,22 @@ afterAll(async () => {
 })
 
 eventJournalContract(() => journalAt(databasePath()))
+
+test('closes the database before rethrowing a constructor setup failure', () => {
+  const path = databasePath()
+  const incompatibleDatabase = new DatabaseSync(path)
+  incompatibleDatabase.exec('CREATE TABLE event_journal (aggregate_id TEXT PRIMARY KEY) STRICT')
+  incompatibleDatabase.close()
+  const close = vi.spyOn(DatabaseSync.prototype, 'close')
+
+  try {
+    expect(() => journalAt(path)).toThrow()
+    expect(close).toHaveBeenCalledOnce()
+    expect((close.mock.instances[0] as DatabaseSync).isOpen).toBe(false)
+  } finally {
+    close.mockRestore()
+  }
+})
 
 test('replays events after closing and reopening the same database file', async () => {
   const path = databasePath()

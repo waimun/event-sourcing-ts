@@ -4,7 +4,6 @@ import { join } from 'node:path'
 import type { Pool, QueryResult, QueryResultRow } from 'pg'
 import { expect, test, vi } from 'vitest'
 import { EventJournalSchemaIncompatible } from '../adapters/outbound/persistence/errors/event-journal'
-import { EVENT_JOURNAL_CONSTRAINTS } from '../adapters/outbound/persistence/postgresql/event-journal-schema'
 import { createDefaultApplication } from './composition-root'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
 import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
@@ -17,54 +16,16 @@ const result = <TRow extends QueryResultRow>(rows: TRow[] = []): QueryResult<TRo
   rows
 })
 
-const compatibleColumns = [
-  {
-    column_name: 'aggregate_id',
-    data_type: 'text',
-    is_nullable: 'NO',
-    is_identity: 'NO',
-    identity_generation: null
-  },
-  {
-    column_name: 'version',
-    data_type: 'bigint',
-    is_nullable: 'NO',
-    is_identity: 'NO',
-    identity_generation: null
-  },
-  {
-    column_name: 'event_payload',
-    data_type: 'text',
-    is_nullable: 'NO',
-    is_identity: 'NO',
-    identity_generation: null
-  }
-]
-
-const compatibleConstraints = [
-  {
-    constraint_definition: 'PRIMARY KEY (aggregate_id, version)',
-    constraint_name: EVENT_JOURNAL_CONSTRAINTS.streamPosition,
-    constraint_type: 'PRIMARY KEY',
-    columns: ['aggregate_id', 'version']
-  },
-  {
-    constraint_definition: 'CHECK ((version > 0))',
-    constraint_name: EVENT_JOURNAL_CONSTRAINTS.positiveVersion,
-    constraint_type: 'CHECK',
-    columns: ['version']
-  }
-]
-
-const fakePool = (columnRows = compatibleColumns) => {
-  const query = vi
-    .fn()
-    .mockResolvedValueOnce(result(columnRows))
-    .mockResolvedValueOnce(result(compatibleConstraints))
+const fakePool = (appliedVersions: number[] = []) => {
+  const query = vi.fn()
   const migrationQuery = vi
     .fn()
     .mockImplementation((sql: string) =>
-      Promise.resolve(sql.includes('SELECT version') ? result([]) : result())
+      Promise.resolve(
+        sql.includes('SELECT version')
+          ? result(appliedVersions.map((version) => ({ version })))
+          : result()
+      )
     )
   const release = vi.fn()
   const connect = vi.fn().mockResolvedValue({ query: migrationQuery, release })
@@ -161,7 +122,7 @@ test('rejects simultaneous PostgreSQL and SQLite settings as ambiguous', async (
   ).rejects.toThrow(EventJournalConfigurationInvalid)
 })
 
-test('migrates and verifies PostgreSQL before returning the application runtime', async () => {
+test('migrates PostgreSQL before returning the application runtime', async () => {
   const { end, migrationQuery, pool, query, release } = fakePool()
   const { construct, PoolConstructor } = fakePoolConstructor(pool)
 
@@ -177,7 +138,7 @@ test('migrates and verifies PostgreSQL before returning the application runtime'
     expect.stringContaining('CREATE TABLE ships_n_cargo.event_journal')
   )
   expect(release).toHaveBeenCalledOnce()
-  expect(query).toHaveBeenCalledTimes(2)
+  expect(query).not.toHaveBeenCalled()
   expect(runtime.application).toBeDefined()
   await runtime.close()
   expect(end).toHaveBeenCalledOnce()
@@ -192,11 +153,8 @@ test('rejects an empty PostgreSQL connection string instead of falling back to m
   expect(construct).not.toHaveBeenCalled()
 })
 
-test('closes PostgreSQL and prevents startup when the schema is incompatible', async () => {
-  const columnsWithoutPayload = compatibleColumns.filter(
-    ({ column_name }) => column_name !== 'event_payload'
-  )
-  const { end, pool } = fakePool(columnsWithoutPayload)
+test('closes PostgreSQL and prevents startup when migration versions are incompatible', async () => {
+  const { end, pool } = fakePool([2])
 
   await expect(
     createDefaultApplication(
