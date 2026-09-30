@@ -12,13 +12,14 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
 1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
 2. `npm run build`
 
-### Testing
+### Testing notes
 
-- `npm test` runs the unit suite with coverage enforcement.
-- `TEST_DATABASE_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run test:integration`
-  runs the PostgreSQL integration suite against an existing test database. The integration suite
-  drops and recreates the `ships_n_cargo` schema, so do not point it at a database containing data
-  you need.
+- `npm run build` includes the unit suite with coverage enforcement; use `npm test` to run it
+  separately.
+- `TEST_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run test:integration`
+  runs the database integration suite. Its PostgreSQL tests use the existing test database and
+  drop and recreate the `ships_n_cargo` schema, so do not point it at a database containing data
+  you need. Its SQLite tests create their own temporary databases.
 
 ## 🐘 PostgreSQL setup (optional)
 
