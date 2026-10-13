@@ -223,3 +223,51 @@ test('validates batch size before acquiring a connection', async () => {
   })
   expect(connect).not.toHaveBeenCalled()
 })
+
+test('queries overviews by id, status, and current port', async () => {
+  const rows = [
+    {
+      current_port_country: 'US',
+      current_port_name: 'Miami',
+      name: 'Sea Queen',
+      ship_id: 'ship-2',
+      status: 'at-port'
+    }
+  ]
+  const query = vi.fn().mockResolvedValue(result(rows))
+  const projection = new PostgreSqlShipOverviewProjection({ query } as unknown as Pool)
+
+  await expect(projection.overviewFor('ship-2')).resolves.toEqual({
+    currentPort: { country: 'US', name: 'Miami' },
+    name: 'Sea Queen',
+    shipId: 'ship-2',
+    status: 'at-port'
+  })
+  expect(query).toHaveBeenLastCalledWith(expect.stringContaining('WHERE ship_id = $1'), ['ship-2'])
+
+  await expect(projection.overviewsMatching({ status: 'at-port' })).resolves.toHaveLength(1)
+  expect(query).toHaveBeenLastCalledWith(expect.stringContaining('WHERE status = $1'), ['at-port'])
+
+  const atMiami = await projection.overviewsMatching({
+    currentPort: { country: 'US', name: 'Miami' }
+  })
+  expect(atMiami).toHaveLength(1)
+  expect(Object.isFrozen(atMiami)).toBe(true)
+  expect(query).toHaveBeenLastCalledWith(
+    expect.stringContaining('WHERE current_port_name = $1 AND current_port_country = $2'),
+    ['Miami', 'US']
+  )
+})
+
+test('returns no overview for an unknown id and wraps overview query failures', async () => {
+  const query = vi.fn().mockResolvedValueOnce(result()).mockRejectedValue(new Error('unavailable'))
+  const projection = new PostgreSqlShipOverviewProjection({ query } as unknown as Pool)
+
+  await expect(projection.overviewFor('missing')).resolves.toBeUndefined()
+  await expect(projection.overviewsMatching({ status: 'at-sea' })).rejects.toMatchObject({
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+  await expect(projection.overviewFor('ship-1')).rejects.toMatchObject({
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+})

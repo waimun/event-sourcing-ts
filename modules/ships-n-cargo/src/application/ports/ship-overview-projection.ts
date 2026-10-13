@@ -22,3 +22,12 @@ export interface ShipOverviewProjectionBatch {
 export interface ShipOverviewProjection {
   projectNextBatch: (batchSize: number) => Promise<ShipOverviewProjectionBatch>
 }
+
+export type ShipOverviewFilter =
+  | { readonly status: ShipOverviewStatus }
+  | { readonly currentPort: ShipOverviewPort }
+
+export interface ShipOverviewQueries {
+  overviewFor: (shipId: string) => Promise<ShipOverview | undefined>
+  overviewsMatching: (filter: ShipOverviewFilter) => Promise<readonly ShipOverview[]>
+}

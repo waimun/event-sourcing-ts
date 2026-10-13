@@ -31,6 +31,62 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PingResponse'
+  /api/v1/ships:
+    get:
+      tags: [ships]
+      summary: List materialized ship overviews by status or current port
+      description: >-
+        Returns the eventually consistent ship overview read model. Provide either status, or both
+        portName and portCountry.
+      operationId: listShipOverviews
+      parameters:
+        - name: status
+          in: query
+          description: Ship status. Cannot be combined with a current-port filter.
+          schema:
+            $ref: '#/components/schemas/ShipOverviewStatus'
+        - name: portName
+          in: query
+          description: Current port name. Must be supplied with portCountry.
+          schema:
+            $ref: '#/components/schemas/Name'
+        - name: portCountry
+          in: query
+          description: Current port country. Must be supplied with portName.
+          schema:
+            $ref: '#/components/schemas/Country'
+      responses:
+        '200':
+          description: Matching ship overviews, ordered by ship ID.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipOverviewListResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '500':
+          $ref: '#/components/responses/InternalError'
+  /api/v1/ships/{shipId}:
+    get:
+      tags: [ships]
+      summary: Get a materialized ship overview
+      description: Returns the eventually consistent ship overview read model without replaying the aggregate.
+      operationId: getShipOverview
+      parameters:
+        - $ref: '#/components/parameters/ShipId'
+      responses:
+        '200':
+          description: The ship overview.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShipOverviewResponse'
+        '400':
+          $ref: '#/components/responses/ValidationError'
+        '404':
+          $ref: '#/components/responses/NotFoundError'
+        '500':
+          $ref: '#/components/responses/InternalError'
   /api/v1/ships/{shipId}/history:
     get:
       tags: [ships]
@@ -511,6 +567,56 @@ components:
           format: date-time
         body:
           $ref: '#/components/schemas/ShipHistory'
+    ShipOverviewStatus:
+      type: string
+      enum: [at-port, at-sea]
+    ShipOverview:
+      type: object
+      additionalProperties: false
+      required: [shipId, name, status]
+      properties:
+        shipId:
+          $ref: '#/components/schemas/Identifier'
+        name:
+          $ref: '#/components/schemas/Name'
+        status:
+          $ref: '#/components/schemas/ShipOverviewStatus'
+        currentPort:
+          description: Present only when status is at-port.
+          $ref: '#/components/schemas/Port'
+    ShipOverviewResponse:
+      type: object
+      additionalProperties: false
+      required: [status, body, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 200
+        dateTime:
+          type: string
+          format: date-time
+        body:
+          $ref: '#/components/schemas/ShipOverview'
+    ShipOverviewListResponse:
+      type: object
+      additionalProperties: false
+      required: [status, body, dateTime]
+      properties:
+        status:
+          type: integer
+          const: 200
+        dateTime:
+          type: string
+          format: date-time
+        body:
+          type: object
+          additionalProperties: false
+          required: [ships]
+          properties:
+            ships:
+              type: array
+              items:
+                $ref: '#/components/schemas/ShipOverview'
     ShipHistory:
       type: object
       additionalProperties: false

@@ -205,3 +205,54 @@ test('wraps database failures and closes idempotently', async () => {
   })
   expect(() => projection.close()).not.toThrow()
 })
+
+test('queries overviews by id, status, and current port in ship-id order', async () => {
+  const path = databasePath()
+  const journal = journalAt(path)
+  await journal.append('ship-2', 0, [new ShipRegistered('ship-2', 'Sea Queen', port('Miami'))])
+  await journal.append('ship-1', 0, [
+    new ShipRegistered('ship-1', 'King Roy', port('Miami')),
+    new ShipDeparted('ship-1')
+  ])
+  await journal.append('ship-3', 0, [new ShipRegistered('ship-3', 'Ocean Ray', port('Miami'))])
+  const projection = projectionAt(path)
+  await projection.projectNextBatch(10)
+
+  await expect(projection.overviewFor('ship-1')).resolves.toEqual({
+    name: 'King Roy',
+    shipId: 'ship-1',
+    status: 'at-sea'
+  })
+  await expect(projection.overviewFor('missing')).resolves.toBeUndefined()
+  await expect(projection.overviewsMatching({ status: 'at-port' })).resolves.toEqual([
+    {
+      currentPort: { country: 'US', name: 'Miami' },
+      name: 'Sea Queen',
+      shipId: 'ship-2',
+      status: 'at-port'
+    },
+    {
+      currentPort: { country: 'US', name: 'Miami' },
+      name: 'Ocean Ray',
+      shipId: 'ship-3',
+      status: 'at-port'
+    }
+  ])
+  const atMiami = await projection.overviewsMatching({
+    currentPort: { country: 'US', name: 'Miami' }
+  })
+  expect(atMiami.map(({ shipId }) => shipId)).toEqual(['ship-2', 'ship-3'])
+  expect(Object.isFrozen(atMiami)).toBe(true)
+})
+
+test('wraps database failures from overview queries', async () => {
+  const projection = projectionAt(databasePath())
+  projection.close()
+
+  await expect(projection.overviewFor('ship-1')).rejects.toMatchObject({
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+  await expect(projection.overviewsMatching({ status: 'at-port' })).rejects.toMatchObject({
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+})

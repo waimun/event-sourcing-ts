@@ -6,6 +6,7 @@ import { createApplication } from '../../../../bootstrap/composition-root'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
 import { EventJournalShipHistoryProjection } from '../../../outbound/projections/event-journal-ship-history'
+import { InMemoryShipOverviewProjection } from '../../../outbound/projections/in-memory-ship-overview'
 
 type HttpResponse = {
   body: unknown
@@ -14,13 +15,16 @@ type HttpResponse = {
 
 let port: number
 let server: Server
+let shipOverviewProjection: InMemoryShipOverviewProjection
 
 beforeAll(async () => {
   const eventJournal = new InMemoryEventJournal(new Name('http-workflow-test'))
+  shipOverviewProjection = new InMemoryShipOverviewProjection(eventJournal)
   server = createApplication({
     eventJournal,
     generateId: () => 'generated-ship-id',
-    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal)
+    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal),
+    shipOverviewQueries: shipOverviewProjection
   }).listen(0, '127.0.0.1')
   await once(server, 'listening')
   port = (server.address() as AddressInfo).port
@@ -270,6 +274,42 @@ test('injected dependencies support a deterministic register, sail, and dock wor
     },
     status: 200
   })
+
+  await shipOverviewProjection.projectNextBatch(100)
+
+  const overview = await send('GET', '/api/v1/ships/generated-ship-id')
+  expect(overview).toEqual({
+    body: {
+      body: {
+        currentPort: { country: 'CA', name: 'Belmont' },
+        name: 'King Roy',
+        shipId: 'generated-ship-id',
+        status: 'at-port'
+      },
+      dateTime: expect.any(String),
+      status: 200
+    },
+    status: 200
+  })
+
+  const atBelmont = await send('GET', '/api/v1/ships?portName=Belmont&portCountry=ca')
+  expect(atBelmont).toEqual({
+    body: {
+      body: {
+        ships: [
+          {
+            currentPort: { country: 'CA', name: 'Belmont' },
+            name: 'King Roy',
+            shipId: 'generated-ship-id',
+            status: 'at-port'
+          }
+        ]
+      },
+      dateTime: expect.any(String),
+      status: 200
+    },
+    status: 200
+  })
 })
 
 test('history for an unknown ship returns not found without exposing journal details', async () => {
@@ -282,5 +322,27 @@ test('history for an unknown ship returns not found without exposing journal det
       status: 404
     },
     status: 404
+  })
+})
+
+test('overview for an unknown ship returns not found', async () => {
+  const response = await send('GET', '/api/v1/ships/missing')
+
+  expect(response).toEqual({
+    body: {
+      dateTime: expect.any(String),
+      error: "Ship 'missing' does not exist",
+      status: 404
+    },
+    status: 404
+  })
+})
+
+test('listing ship overviews requires one supported filter', async () => {
+  const response = await send('GET', '/api/v1/ships')
+
+  expect(response).toMatchObject({
+    body: { error: 'Status or port is required', status: 400 },
+    status: 400
   })
 })

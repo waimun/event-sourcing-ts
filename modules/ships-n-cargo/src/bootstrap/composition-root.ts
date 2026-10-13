@@ -6,6 +6,8 @@ import { changeVoyageDestinationHandler } from '../adapters/inbound/http/api/cha
 import { divertShipHandler } from '../adapters/inbound/http/api/divert-ship'
 import { dockShipHandler } from '../adapters/inbound/http/api/dock-ship'
 import { getShipHistoryHandler } from '../adapters/inbound/http/api/get-ship-history'
+import { getShipOverviewHandler } from '../adapters/inbound/http/api/get-ship-overview'
+import { listShipOverviewsHandler } from '../adapters/inbound/http/api/list-ship-overviews'
 import { loadContainerHandler } from '../adapters/inbound/http/api/load-container'
 import { planVoyageHandler } from '../adapters/inbound/http/api/plan-voyage'
 import { registerShipHandler } from '../adapters/inbound/http/api/register-ship'
@@ -13,6 +15,8 @@ import { sailShipHandler } from '../adapters/inbound/http/api/sail-ship'
 import { unloadContainerHandler } from '../adapters/inbound/http/api/unload-container'
 import { createControllers } from '../adapters/inbound/http/controllers'
 import { GetShipHistoryController } from '../adapters/inbound/http/controllers/get-ship-history'
+import { GetShipOverviewController } from '../adapters/inbound/http/controllers/get-ship-overview'
+import { ListShipOverviewsController } from '../adapters/inbound/http/controllers/list-ship-overviews'
 import { generateId } from '../adapters/inbound/http/generate-id'
 import { InMemoryEventJournal } from '../adapters/outbound/persistence/in-memory-event-journal'
 import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgresql/event-journal'
@@ -24,8 +28,13 @@ import { PostgreSqlShipOverviewProjection } from '../adapters/outbound/projectio
 import { SqliteShipOverviewProjection } from '../adapters/outbound/projections/sqlite-ship-overview'
 import type { EventJournal } from '../application/ports/event-journal'
 import type { ShipHistoryProjection } from '../application/ports/ship-history-projection'
-import type { ShipOverviewProjection } from '../application/ports/ship-overview-projection'
+import type {
+  ShipOverviewProjection,
+  ShipOverviewQueries
+} from '../application/ports/ship-overview-projection'
 import { GetShipHistoryUseCase } from '../application/use-cases/get-ship-history/use-case'
+import { GetShipOverviewUseCase } from '../application/use-cases/get-ship-overview/use-case'
+import { ListShipOverviewsUseCase } from '../application/use-cases/list-ship-overviews/use-case'
 import type { DomainEvent } from '../domain/events/domain-event'
 import { Name } from '../shared/domain/name'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
@@ -48,7 +57,9 @@ interface ClosableEventJournal extends EventJournal<string, DomainEvent> {
 
 type SqliteEventJournalFactory = (databasePath: string) => ClosableEventJournal
 
-interface ClosableShipOverviewProjection extends ShipOverviewProjection {
+interface ShipOverviewReadModel extends ShipOverviewProjection, ShipOverviewQueries {}
+
+interface ClosableShipOverviewProjection extends ShipOverviewReadModel {
   close: () => void
 }
 
@@ -72,20 +83,30 @@ export type ApplicationDependencies = {
   eventJournal: EventJournal<string, DomainEvent>
   generateId: () => string
   shipHistoryProjection: ShipHistoryProjection
+  shipOverviewQueries: ShipOverviewQueries
 }
 
 export const createApplication = ({
   eventJournal,
   generateId,
-  shipHistoryProjection
+  shipHistoryProjection,
+  shipOverviewQueries
 }: ApplicationDependencies): Application => {
   const controllers = createControllers(eventJournal)
   const getShipHistory = new GetShipHistoryController(
     new GetShipHistoryUseCase(shipHistoryProjection)
   )
+  const getShipOverview = new GetShipOverviewController(
+    new GetShipOverviewUseCase(shipOverviewQueries)
+  )
+  const listShipOverviews = new ListShipOverviewsController(
+    new ListShipOverviewsUseCase(shipOverviewQueries)
+  )
 
   return createHttpApplication({
     getShipHistory: getShipHistoryHandler(getShipHistory),
+    getShipOverview: getShipOverviewHandler(getShipOverview),
+    listShipOverviews: listShipOverviewsHandler(listShipOverviews),
     registerShip: registerShipHandler(controllers.registerShip, generateId),
     cancelVoyage: cancelVoyageHandler(controllers.cancelVoyage),
     changeVoyageDestination: changeVoyageDestinationHandler(controllers.changeVoyageDestination),
@@ -98,16 +119,20 @@ export const createApplication = ({
   })
 }
 
-const applicationFor = (eventJournal: EventJournal<string, DomainEvent>): Application =>
+const applicationFor = (
+  eventJournal: EventJournal<string, DomainEvent>,
+  shipOverviewQueries: ShipOverviewQueries
+): Application =>
   createApplication({
     eventJournal,
     generateId,
-    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal)
+    shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal),
+    shipOverviewQueries
   })
 
 const runtimeFor = (
   eventJournal: EventJournal<string, DomainEvent>,
-  projection: ShipOverviewProjection,
+  projection: ShipOverviewReadModel,
   projectionLifecycle: (projection: ShipOverviewProjection) => ProjectionLifecycle,
   closeResources: () => void | Promise<void> = () => undefined,
   closeProjection: () => void = () => undefined
@@ -116,7 +141,7 @@ const runtimeFor = (
   let closing: Promise<void> | undefined
 
   return {
-    application: applicationFor(eventJournal),
+    application: applicationFor(eventJournal, projection),
     close: () => {
       closing ??= (async () => {
         try {

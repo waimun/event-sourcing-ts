@@ -2,8 +2,10 @@ import { DatabaseSync } from 'node:sqlite'
 import type { PositionedEvent } from '../../../application/ports/event-journal'
 import type {
   ShipOverview,
+  ShipOverviewFilter,
   ShipOverviewProjection,
   ShipOverviewProjectionBatch,
+  ShipOverviewQueries,
   ShipOverviewStatus
 } from '../../../application/ports/ship-overview-projection'
 import { eventPayloadHandler } from '../../../domain/events'
@@ -48,7 +50,7 @@ const overviewFrom = (row: OverviewRow): ShipOverview =>
     status: row.status
   })
 
-export class SqliteShipOverviewProjection implements ShipOverviewProjection {
+export class SqliteShipOverviewProjection implements ShipOverviewProjection, ShipOverviewQueries {
   private readonly database: DatabaseSync
 
   constructor(databasePath: string) {
@@ -149,6 +151,46 @@ export class SqliteShipOverviewProjection implements ShipOverviewProjection {
         }
       }
       if (error instanceof BaseError) throw error
+      throw new ShipOverviewProjectionUnavailable(error)
+    }
+  }
+
+  async overviewFor(shipId: string): Promise<ShipOverview | undefined> {
+    try {
+      const row = this.database
+        .prepare(
+          `SELECT ship_id, name, status, current_port_name, current_port_country
+           FROM ship_overview
+           WHERE ship_id = ?`
+        )
+        .get(shipId) as unknown as OverviewRow | undefined
+      return row === undefined ? undefined : overviewFrom(row)
+    } catch (error) {
+      throw new ShipOverviewProjectionUnavailable(error)
+    }
+  }
+
+  async overviewsMatching(filter: ShipOverviewFilter): Promise<readonly ShipOverview[]> {
+    try {
+      const rows = ('status' in filter
+        ? this.database
+            .prepare(
+              `SELECT ship_id, name, status, current_port_name, current_port_country
+                 FROM ship_overview
+                 WHERE status = ?
+                 ORDER BY ship_id ASC`
+            )
+            .all(filter.status)
+        : this.database
+            .prepare(
+              `SELECT ship_id, name, status, current_port_name, current_port_country
+                 FROM ship_overview
+                 WHERE current_port_name = ? AND current_port_country = ?
+                 ORDER BY ship_id ASC`
+            )
+            .all(filter.currentPort.name, filter.currentPort.country)) as unknown as OverviewRow[]
+      return Object.freeze(rows.map(overviewFrom))
+    } catch (error) {
       throw new ShipOverviewProjectionUnavailable(error)
     }
   }
