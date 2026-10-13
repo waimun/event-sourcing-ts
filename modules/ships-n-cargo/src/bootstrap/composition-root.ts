@@ -19,13 +19,21 @@ import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgre
 import { migrateEventJournalSchema } from '../adapters/outbound/persistence/postgresql/event-journal-migrations'
 import { SqliteEventJournal } from '../adapters/outbound/persistence/sqlite/event-journal'
 import { EventJournalShipHistoryProjection } from '../adapters/outbound/projections/event-journal-ship-history'
+import { InMemoryShipOverviewProjection } from '../adapters/outbound/projections/in-memory-ship-overview'
+import { PostgreSqlShipOverviewProjection } from '../adapters/outbound/projections/postgresql-ship-overview'
+import { SqliteShipOverviewProjection } from '../adapters/outbound/projections/sqlite-ship-overview'
 import type { EventJournal } from '../application/ports/event-journal'
 import type { ShipHistoryProjection } from '../application/ports/ship-history-projection'
+import type { ShipOverviewProjection } from '../application/ports/ship-overview-projection'
 import { GetShipHistoryUseCase } from '../application/use-cases/get-ship-history/use-case'
 import type { DomainEvent } from '../domain/events/domain-event'
 import { Name } from '../shared/domain/name'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
 import { PostgreSqlConnectionStringInvalid } from './errors/postgresql-connection-string-invalid'
+import {
+  type ReportProjectionFailure,
+  ShipOverviewProjectionLifecycle
+} from './ship-overview-projection-lifecycle'
 
 interface RuntimeEnvironment {
   SHIPS_N_CARGO_POSTGRESQL_URL?: string
@@ -40,9 +48,24 @@ interface ClosableEventJournal extends EventJournal<string, DomainEvent> {
 
 type SqliteEventJournalFactory = (databasePath: string) => ClosableEventJournal
 
+interface ClosableShipOverviewProjection extends ShipOverviewProjection {
+  close: () => void
+}
+
+interface ProjectionLifecycle {
+  start: (reportFailure: ReportProjectionFailure) => void
+  stop: () => Promise<void>
+}
+
+interface ProjectionRuntimeFactories {
+  projectionLifecycle?: (projection: ShipOverviewProjection) => ProjectionLifecycle
+  sqliteShipOverviewProjection?: (databasePath: string) => ClosableShipOverviewProjection
+}
+
 export interface ApplicationRuntime {
   application: Application
   close: () => Promise<void>
+  start: (reportProjectionFailure: ReportProjectionFailure) => void
 }
 
 export type ApplicationDependencies = {
@@ -82,12 +105,45 @@ const applicationFor = (eventJournal: EventJournal<string, DomainEvent>): Applic
     shipHistoryProjection: new EventJournalShipHistoryProjection(eventJournal)
   })
 
-const memoryRuntime = (): ApplicationRuntime => {
-  const eventJournal = new InMemoryEventJournal(new Name('ships-n-cargo'))
+const runtimeFor = (
+  eventJournal: EventJournal<string, DomainEvent>,
+  projection: ShipOverviewProjection,
+  projectionLifecycle: (projection: ShipOverviewProjection) => ProjectionLifecycle,
+  closeResources: () => void | Promise<void> = () => undefined,
+  closeProjection: () => void = () => undefined
+): ApplicationRuntime => {
+  const lifecycle = projectionLifecycle(projection)
+  let closing: Promise<void> | undefined
+
   return {
     application: applicationFor(eventJournal),
-    close: async () => undefined
+    close: () => {
+      closing ??= (async () => {
+        try {
+          await lifecycle.stop()
+        } finally {
+          try {
+            closeProjection()
+          } finally {
+            await closeResources()
+          }
+        }
+      })()
+      return closing
+    },
+    start: (reportProjectionFailure) => lifecycle.start(reportProjectionFailure)
   }
+}
+
+const memoryRuntime = (
+  projectionLifecycle: (projection: ShipOverviewProjection) => ProjectionLifecycle
+): ApplicationRuntime => {
+  const eventJournal = new InMemoryEventJournal(new Name('ships-n-cargo'))
+  return runtimeFor(
+    eventJournal,
+    new InMemoryShipOverviewProjection(eventJournal),
+    projectionLifecycle
+  )
 }
 
 const selectedEventJournal = (environment: RuntimeEnvironment): EventJournalSelection => {
@@ -108,10 +164,17 @@ export const createDefaultApplication = async (
   environment: RuntimeEnvironment = process.env,
   PoolConstructor: typeof Pool = Pool,
   sqliteEventJournalFactory: SqliteEventJournalFactory = (databasePath) =>
-    new SqliteEventJournal(databasePath)
+    new SqliteEventJournal(databasePath),
+  projectionRuntimeFactories: ProjectionRuntimeFactories = {}
 ): Promise<ApplicationRuntime> => {
+  const projectionLifecycle =
+    projectionRuntimeFactories.projectionLifecycle ??
+    ((projection: ShipOverviewProjection) => new ShipOverviewProjectionLifecycle(projection))
+  const sqliteShipOverviewProjection =
+    projectionRuntimeFactories.sqliteShipOverviewProjection ??
+    ((databasePath: string) => new SqliteShipOverviewProjection(databasePath))
   const selection = selectedEventJournal(environment)
-  if (selection === 'memory') return memoryRuntime()
+  if (selection === 'memory') return memoryRuntime(projectionLifecycle)
 
   if (selection === 'sqlite') {
     const databasePath = environment.SHIPS_N_CARGO_SQLITE_PATH
@@ -121,10 +184,20 @@ export const createDefaultApplication = async (
       )
     }
     const eventJournal = sqliteEventJournalFactory(databasePath.trim())
-    return {
-      application: applicationFor(eventJournal),
-      close: async () => eventJournal.close()
+    let projection: ClosableShipOverviewProjection
+    try {
+      projection = sqliteShipOverviewProjection(databasePath.trim())
+    } catch (error) {
+      eventJournal.close()
+      throw error
     }
+    return runtimeFor(
+      eventJournal,
+      projection,
+      projectionLifecycle,
+      () => eventJournal.close(),
+      () => projection.close()
+    )
   }
 
   const connectionString = environment.SHIPS_N_CARGO_POSTGRESQL_URL
@@ -144,8 +217,10 @@ export const createDefaultApplication = async (
   }
 
   const eventJournal = new PostgreSqlEventJournal(pool)
-  return {
-    application: applicationFor(eventJournal),
-    close: () => pool.end()
-  }
+  return runtimeFor(
+    eventJournal,
+    new PostgreSqlShipOverviewProjection(pool),
+    projectionLifecycle,
+    () => pool.end()
+  )
 }

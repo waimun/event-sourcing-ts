@@ -54,36 +54,65 @@ const fakePoolConstructor = (pool: Pool) => {
   return { construct, PoolConstructor }
 }
 
+const fakeProjectionLifecycle = (order?: string[]) => {
+  const start = vi.fn()
+  const stop = vi.fn(async () => {
+    order?.push('projection stopped')
+  })
+  const projectionLifecycle = vi.fn(() => ({ start, stop }))
+  return { projectionLifecycle, start, stop }
+}
+
 test('uses the in-memory journal by default without creating a PostgreSQL pool', async () => {
   const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
+  const { projectionLifecycle, start, stop } = fakeProjectionLifecycle()
 
-  const runtime = await createDefaultApplication({}, PoolConstructor)
+  const runtime = await createDefaultApplication({}, PoolConstructor, undefined, {
+    projectionLifecycle
+  })
 
   expect(runtime.application).toBeDefined()
   expect(construct).not.toHaveBeenCalled()
+  const reportFailure = vi.fn()
+  runtime.start(reportFailure)
+  expect(start).toHaveBeenCalledWith(reportFailure)
   await expect(runtime.close()).resolves.toBeUndefined()
+  expect(stop).toHaveBeenCalledOnce()
 })
 
-test('selects and closes a file-backed SQLite journal from its configured path', async () => {
+test('stops and closes a file-backed SQLite projection before closing its journal', async () => {
   const { construct, PoolConstructor } = fakePoolConstructor(fakePool().pool)
-  const close = vi.fn()
+  const order: string[] = []
+  const close = vi.fn(() => order.push('journal closed'))
   const sqliteEventJournalFactory = vi.fn(() => ({
     append: vi.fn(),
     eventsByAggregate: vi.fn(),
     close
   })) as never
+  const closeProjection = vi.fn(() => order.push('projection closed'))
+  const sqliteShipOverviewProjection = vi.fn(() => ({
+    close: closeProjection,
+    projectNextBatch: vi.fn()
+  }))
+  const { projectionLifecycle, stop } = fakeProjectionLifecycle(order)
 
   const runtime = await createDefaultApplication(
     { SHIPS_N_CARGO_SQLITE_PATH: '  ./ships.sqlite  ' },
     PoolConstructor,
-    sqliteEventJournalFactory
+    sqliteEventJournalFactory,
+    { projectionLifecycle, sqliteShipOverviewProjection }
   )
 
   expect(sqliteEventJournalFactory).toHaveBeenCalledWith('./ships.sqlite')
+  expect(sqliteShipOverviewProjection).toHaveBeenCalledWith('./ships.sqlite')
   expect(construct).not.toHaveBeenCalled()
   expect(runtime.application).toBeDefined()
   await runtime.close()
+  await runtime.close()
+  expect(stop).toHaveBeenCalledOnce()
+  expect(closeProjection).toHaveBeenCalledOnce()
   expect(close).toHaveBeenCalledOnce()
+  expect(order).toEqual(['projection stopped', 'projection closed', 'journal closed'])
 })
 
 test('constructs the built-in SQLite adapter for the default SQLite factory', async () => {
@@ -125,10 +154,13 @@ test('rejects simultaneous PostgreSQL and SQLite settings as ambiguous', async (
 test('migrates PostgreSQL before returning the application runtime', async () => {
   const { end, migrationQuery, pool, query, release } = fakePool()
   const { construct, PoolConstructor } = fakePoolConstructor(pool)
+  const { projectionLifecycle, stop } = fakeProjectionLifecycle()
 
   const runtime = await createDefaultApplication(
     { SHIPS_N_CARGO_POSTGRESQL_URL: 'postgresql://database/ships' },
-    PoolConstructor
+    PoolConstructor,
+    undefined,
+    { projectionLifecycle }
   )
 
   expect(construct).toHaveBeenCalledWith({
@@ -141,7 +173,33 @@ test('migrates PostgreSQL before returning the application runtime', async () =>
   expect(query).not.toHaveBeenCalled()
   expect(runtime.application).toBeDefined()
   await runtime.close()
+  expect(stop).toHaveBeenCalledOnce()
   expect(end).toHaveBeenCalledOnce()
+})
+
+test('closes a SQLite journal when its ship overview projection cannot be created', async () => {
+  const projectionFailure = new Error('projection setup failed')
+  const close = vi.fn()
+  const { PoolConstructor } = fakePoolConstructor(fakePool().pool)
+  const sqliteEventJournalFactory = vi.fn(() => ({
+    append: vi.fn(),
+    eventsByAggregate: vi.fn(),
+    close
+  })) as never
+
+  await expect(
+    createDefaultApplication(
+      { SHIPS_N_CARGO_SQLITE_PATH: './ships.sqlite' },
+      PoolConstructor,
+      sqliteEventJournalFactory,
+      {
+        sqliteShipOverviewProjection: vi.fn(() => {
+          throw projectionFailure
+        })
+      }
+    )
+  ).rejects.toBe(projectionFailure)
+  expect(close).toHaveBeenCalledOnce()
 })
 
 test('rejects an empty PostgreSQL connection string instead of falling back to memory', async () => {

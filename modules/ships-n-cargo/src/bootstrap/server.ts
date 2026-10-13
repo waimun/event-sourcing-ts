@@ -7,14 +7,16 @@ const port = 3000
 
 try {
   const runtime = await createDefaultApplication()
+  runtime.start((error) => console.error('Ship overview projection failed', error))
+  const reportShutdownFailure = (error: unknown): void => {
+    console.error(error)
+    process.exitCode = 1
+  }
   const server = runtime.application.listen(port)
   const shutdown = createGracefulShutdown({
     closeResources: runtime.close,
     httpServer: server,
-    reportFailure: (error) => {
-      console.error(error)
-      process.exitCode = 1
-    }
+    reportFailure: reportShutdownFailure
   })
   registerShutdownSignals(shutdown)
 
