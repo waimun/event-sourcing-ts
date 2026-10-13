@@ -8,12 +8,10 @@ CREATE TABLE event_journal (
   PRIMARY KEY (aggregate_id, version)
 ) STRICT;
 
-INSERT INTO event_journal (aggregate_id, version, global_position, event_payload)
-SELECT
-  aggregate_id,
-  version,
-  ROW_NUMBER() OVER (ORDER BY aggregate_id, version),
-  event_payload
+-- A version-one journal must be empty. Omitting the required position makes a
+-- non-empty source fail and roll back instead of assigning an invented order.
+INSERT INTO event_journal (aggregate_id, version, event_payload)
+SELECT aggregate_id, version, event_payload
 FROM event_journal_before_global_feed;
 
 DROP TABLE event_journal_before_global_feed;
@@ -24,5 +22,4 @@ CREATE TABLE event_journal_position (
 ) STRICT;
 
 INSERT INTO event_journal_position (singleton, next_position)
-SELECT 1, COALESCE(MAX(global_position), 0) + 1
-FROM event_journal;
+VALUES (1, 1);

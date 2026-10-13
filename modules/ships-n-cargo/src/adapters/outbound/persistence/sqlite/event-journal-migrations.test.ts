@@ -64,7 +64,7 @@ test('rolls back the ledger when the migration cannot be applied', () => {
   ).toBeUndefined()
 })
 
-test('backfills globally positioned existing rows and advances the counter', () => {
+test('rejects a non-empty version-one journal without changing its data', () => {
   const value = database()
   value.exec(`
     CREATE TABLE event_journal_migrations (
@@ -78,27 +78,21 @@ test('backfills globally positioned existing rows and advances the counter', () 
       PRIMARY KEY (aggregate_id, version)
     ) STRICT;
     INSERT INTO event_journal (aggregate_id, version, event_payload) VALUES
-      ('ship-2', 1, '{}'),
-      ('ship-1', 2, '{}'),
       ('ship-1', 1, '{}');
   `)
 
-  migrateEventJournalSchema(value)
+  expect(() => migrateEventJournalSchema(value)).toThrow()
 
   expect(
     value
       .prepare(
-        `SELECT aggregate_id, version, global_position
+        `SELECT aggregate_id, version, event_payload
          FROM event_journal
-         ORDER BY global_position`
+         ORDER BY aggregate_id, version`
       )
       .all()
-  ).toEqual([
-    { aggregate_id: 'ship-1', version: 1, global_position: 1 },
-    { aggregate_id: 'ship-1', version: 2, global_position: 2 },
-    { aggregate_id: 'ship-2', version: 1, global_position: 3 }
-  ])
-  expect(value.prepare('SELECT * FROM event_journal_position').all()).toEqual([
-    { singleton: 1, next_position: 4 }
+  ).toEqual([{ aggregate_id: 'ship-1', version: 1, event_payload: '{}' }])
+  expect(value.prepare('SELECT version FROM event_journal_migrations').all()).toEqual([
+    { version: 1 }
   ])
 })

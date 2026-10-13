@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { Pool, type QueryResultRow } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
@@ -134,6 +135,38 @@ databaseDescribe('PostgreSQL event journal', () => {
          FROM ships_n_cargo.event_journal_position`
       )
     ).resolves.toMatchObject({ rows: [{ singleton: true, next_position: '1' }] })
+  })
+
+  test('rejects a non-empty version-one journal without changing its data', async () => {
+    await pool.query('DROP SCHEMA ships_n_cargo CASCADE')
+    await pool.query('CREATE SCHEMA ships_n_cargo')
+    await pool.query(`
+      CREATE TABLE ships_n_cargo.event_journal_migrations (
+        version INTEGER PRIMARY KEY
+      );
+      INSERT INTO ships_n_cargo.event_journal_migrations (version) VALUES (1);
+    `)
+    await pool.query(
+      await readFile(new URL('./schema/001-event-journal.sql', import.meta.url), 'utf8')
+    )
+    await pool.query(
+      `INSERT INTO ships_n_cargo.event_journal (aggregate_id, version, event_payload)
+       VALUES ('ship-1', 1, '{}')`
+    )
+
+    await expect(migrateEventJournalSchema(pool)).rejects.toThrow()
+
+    await expect(
+      pool.query(
+        `SELECT aggregate_id, version::text AS version, event_payload
+         FROM ships_n_cargo.event_journal`
+      )
+    ).resolves.toMatchObject({
+      rows: [{ aggregate_id: 'ship-1', event_payload: '{}', version: '1' }]
+    })
+    await expect(
+      pool.query('SELECT version FROM ships_n_cargo.event_journal_migrations')
+    ).resolves.toMatchObject({ rows: [{ version: 1 }] })
   })
 
   test('replays in version order after the journal and its pool are replaced', async () => {
