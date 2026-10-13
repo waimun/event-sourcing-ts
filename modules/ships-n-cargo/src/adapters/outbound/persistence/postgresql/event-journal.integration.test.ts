@@ -28,7 +28,7 @@ interface ConstraintRow extends QueryResultRow {
   columns: string[]
   constraint_definition: string
   constraint_name: string
-  constraint_type: 'PRIMARY KEY' | 'CHECK'
+  constraint_type: 'PRIMARY KEY' | 'CHECK' | 'UNIQUE'
 }
 
 databaseDescribe('PostgreSQL event journal', () => {
@@ -55,7 +55,7 @@ databaseDescribe('PostgreSQL event journal', () => {
 
     await expect(
       pool.query('SELECT version FROM ships_n_cargo.event_journal_migrations ORDER BY version')
-    ).resolves.toMatchObject({ rows: [{ version: 1 }] })
+    ).resolves.toMatchObject({ rows: [{ version: 1 }, { version: 2 }] })
 
     const columns = await pool.query<ColumnRow>(`
       SELECT column_name, data_type, is_nullable, is_identity
@@ -66,7 +66,13 @@ databaseDescribe('PostgreSQL event journal', () => {
     expect(columns.rows).toEqual([
       { column_name: 'aggregate_id', data_type: 'text', is_nullable: 'NO', is_identity: 'NO' },
       { column_name: 'version', data_type: 'bigint', is_nullable: 'NO', is_identity: 'NO' },
-      { column_name: 'event_payload', data_type: 'text', is_nullable: 'NO', is_identity: 'NO' }
+      { column_name: 'event_payload', data_type: 'text', is_nullable: 'NO', is_identity: 'NO' },
+      {
+        column_name: 'global_position',
+        data_type: 'bigint',
+        is_nullable: 'NO',
+        is_identity: 'NO'
+      }
     ])
 
     const constraints = await pool.query<ConstraintRow>(`
@@ -75,6 +81,7 @@ databaseDescribe('PostgreSQL event journal', () => {
         CASE journal_constraint.contype
           WHEN 'p' THEN 'PRIMARY KEY'
           WHEN 'c' THEN 'CHECK'
+          WHEN 'u' THEN 'UNIQUE'
         END AS constraint_type,
         ARRAY(
           SELECT attribute.attname::text
@@ -96,6 +103,18 @@ databaseDescribe('PostgreSQL event journal', () => {
     `)
     expect(constraints.rows).toEqual([
       {
+        columns: ['global_position'],
+        constraint_definition: 'CHECK ((global_position > 0))',
+        constraint_name: EVENT_JOURNAL_CONSTRAINTS.positiveGlobalPosition,
+        constraint_type: 'CHECK'
+      },
+      {
+        columns: ['global_position'],
+        constraint_definition: 'UNIQUE (global_position)',
+        constraint_name: EVENT_JOURNAL_CONSTRAINTS.globalPosition,
+        constraint_type: 'UNIQUE'
+      },
+      {
         columns: ['aggregate_id', 'version'],
         constraint_definition: 'PRIMARY KEY (aggregate_id, version)',
         constraint_name: EVENT_JOURNAL_CONSTRAINTS.streamPosition,
@@ -108,6 +127,13 @@ databaseDescribe('PostgreSQL event journal', () => {
         constraint_type: 'CHECK'
       }
     ])
+
+    await expect(
+      pool.query(
+        `SELECT singleton, next_position::text AS next_position
+         FROM ships_n_cargo.event_journal_position`
+      )
+    ).resolves.toMatchObject({ rows: [{ singleton: true, next_position: '1' }] })
   })
 
   test('replays in version order after the journal and its pool are replaced', async () => {
@@ -149,6 +175,34 @@ databaseDescribe('PostgreSQL event journal', () => {
       events: [],
       version: 0
     })
+    await expect(journal.globalHeadPosition()).resolves.toBe(0n)
+
+    const successfulEvent = registration('ship-2')
+    await journal.append('ship-2', 0, [successfulEvent])
+    await expect(journal.globalEventsAfter(0n, 10)).resolves.toEqual([
+      { aggregateId: 'ship-2', event: successfulEvent, position: 1n, streamVersion: 1 }
+    ])
+  })
+
+  test('preserves global positions beyond the JavaScript safe-integer range', async () => {
+    await pool.query(
+      `UPDATE ships_n_cargo.event_journal_position
+       SET next_position = 9007199254740993`
+    )
+    const journal = new PostgreSqlEventJournal(pool)
+    const event = registration('ship-1')
+
+    await journal.append('ship-1', 0, [event])
+
+    await expect(journal.globalHeadPosition()).resolves.toBe(9_007_199_254_740_993n)
+    await expect(journal.globalEventsAfter(9_007_199_254_740_992n, 1)).resolves.toEqual([
+      {
+        aggregateId: 'ship-1',
+        event,
+        position: 9_007_199_254_740_993n,
+        streamVersion: 1
+      }
+    ])
   })
 
   test('allows only one of two competing version-zero appends', async () => {
@@ -164,5 +218,12 @@ databaseDescribe('PostgreSQL event journal', () => {
     const rejected = attempts.find(({ status }) => status === 'rejected')
     expect(rejected).toMatchObject({ reason: expect.any(JournalVersionConflict) })
     expect(await first.eventsByAggregate('ship-1')).toMatchObject({ version: 1 })
+    await expect(first.globalHeadPosition()).resolves.toBe(1n)
+
+    const nextEvent = registration('ship-2')
+    await first.append('ship-2', 0, [nextEvent])
+    await expect(first.globalEventsAfter(1n, 1)).resolves.toEqual([
+      { aggregateId: 'ship-2', event: nextEvent, position: 2n, streamVersion: 1 }
+    ])
   })
 })

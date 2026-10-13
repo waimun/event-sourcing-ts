@@ -1,6 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import type { JournalVersionConflict } from '../../../application/errors/journal-version-conflict'
-import type { EventJournal } from '../../../application/ports/event-journal'
+import type { EventJournal, GlobalEventFeed } from '../../../application/ports/event-journal'
 import { Country } from '../../../domain/country'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
@@ -10,12 +10,15 @@ import { PortName } from '../../../domain/port-name'
 import {
   AggregateIdMismatch,
   EventIsRequired,
-  InvalidExpectedVersion
+  InvalidExpectedVersion,
+  InvalidGlobalFeedBatchSize,
+  InvalidGlobalPosition,
+  MAX_GLOBAL_FEED_BATCH_SIZE
 } from './errors/event-journal'
 
 type JournalFactory = () =>
-  | EventJournal<string, DomainEvent>
-  | Promise<EventJournal<string, DomainEvent>>
+  | (EventJournal<string, DomainEvent> & GlobalEventFeed<string, DomainEvent>)
+  | Promise<EventJournal<string, DomainEvent> & GlobalEventFeed<string, DomainEvent>>
 
 const port = () => new Port(new PortName('Kingston'), new Country('US'))
 const arrival = (id: string) => new ShipArrived(id, port())
@@ -170,6 +173,98 @@ export const eventJournalContract = (makeJournal: JournalFactory): void => {
       expect(Object.isFrozen(firstRead.events)).toBe(true)
       expect(Object.isFrozen(firstRead.events[0])).toBe(true)
       expect(() => (firstRead.events as DomainEvent[]).push(arrival('ship-1'))).toThrow(TypeError)
+    })
+
+    test('starts with an empty global feed at position zero', async () => {
+      const journal = await makeJournal()
+
+      await expect(journal.globalHeadPosition()).resolves.toBe(0n)
+      await expect(journal.globalEventsAfter(0n, 10)).resolves.toEqual([])
+    })
+
+    test('assigns consecutive global positions in append order across streams', async () => {
+      const journal = await makeJournal()
+      const first = registration('ship-1')
+      const second = arrival('ship-1')
+      const third = registration('ship-2')
+
+      await journal.append('ship-1', 0, [first, second])
+      await journal.append('ship-2', 0, [third])
+
+      await expect(journal.globalHeadPosition()).resolves.toBe(3n)
+      const entries = await journal.globalEventsAfter(0n, 10)
+      expect(entries).toEqual([
+        { aggregateId: 'ship-1', event: first, position: 1n, streamVersion: 1 },
+        { aggregateId: 'ship-1', event: second, position: 2n, streamVersion: 2 },
+        { aggregateId: 'ship-2', event: third, position: 3n, streamVersion: 1 }
+      ])
+      expect(Object.isFrozen(entries)).toBe(true)
+      expect(entries.every((entry) => Object.isFrozen(entry))).toBe(true)
+      expect(entries.every((entry) => Object.isFrozen(entry.event))).toBe(true)
+    })
+
+    test('reads the global feed in bounded pages after an exclusive position', async () => {
+      const journal = await makeJournal()
+      const events = Array.from({ length: 11 }, (_, index) =>
+        registration('ship-1', `Registration ${index + 1}`)
+      )
+      await journal.append('ship-1', 0, events)
+
+      const firstPage = await journal.globalEventsAfter(0n, 10)
+      const secondPage = await journal.globalEventsAfter(firstPage[9].position, 10)
+
+      expect(firstPage.map(({ position }) => position)).toEqual(
+        Array.from({ length: 10 }, (_, index) => BigInt(index + 1))
+      )
+      expect(secondPage).toEqual([
+        {
+          aggregateId: 'ship-1',
+          event: events[10],
+          position: 11n,
+          streamVersion: 11
+        }
+      ])
+    })
+
+    test('does not consume global positions when an append fails', async () => {
+      const journal = await makeJournal()
+      const first = registration('ship-1')
+      const second = registration('ship-2')
+      await journal.append('ship-1', 0, [first])
+
+      await expect(journal.append('ship-1', 0, [arrival('ship-1')])).rejects.toMatchObject({
+        code: 'JOURNAL_VERSION_CONFLICT'
+      })
+      await journal.append('ship-2', 0, [second])
+
+      await expect(journal.globalEventsAfter(0n, 10)).resolves.toEqual([
+        { aggregateId: 'ship-1', event: first, position: 1n, streamVersion: 1 },
+        { aggregateId: 'ship-2', event: second, position: 2n, streamVersion: 1 }
+      ])
+    })
+
+    test('returns fresh event snapshots from the global feed', async () => {
+      const journal = await makeJournal()
+      const event = registration('ship-1')
+      await journal.append('ship-1', 0, [event])
+
+      const firstRead = await journal.globalEventsAfter(0n, 1)
+      const secondRead = await journal.globalEventsAfter(0n, 1)
+
+      expect(firstRead[0].event).not.toBe(event)
+      expect(secondRead[0].event).not.toBe(firstRead[0].event)
+      expect(secondRead).toEqual(firstRead)
+    })
+
+    test('rejects invalid global feed cursors and batch sizes', async () => {
+      const journal = await makeJournal()
+
+      await expect(journal.globalEventsAfter(-1n, 1)).rejects.toThrow(InvalidGlobalPosition)
+      for (const batchSize of [0, -1, 0.5, MAX_GLOBAL_FEED_BATCH_SIZE + 1]) {
+        await expect(journal.globalEventsAfter(0n, batchSize)).rejects.toThrow(
+          InvalidGlobalFeedBatchSize
+        )
+      }
     })
   })
 }
