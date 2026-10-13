@@ -46,12 +46,16 @@ test('applies the pending numbered migration and records its version', async () 
     'INSERT INTO ships_n_cargo.event_journal_migrations (version) VALUES ($1)',
     [2]
   )
+  expect(query).toHaveBeenCalledWith(
+    'INSERT INTO ships_n_cargo.event_journal_migrations (version) VALUES ($1)',
+    [3]
+  )
   expect(query).toHaveBeenLastCalledWith('COMMIT')
   expect(release).toHaveBeenCalledOnce()
 })
 
 test('does not reapply an already recorded migration', async () => {
-  const { client, query } = migrationClient([1, 2])
+  const { client, query } = migrationClient([1, 2, 3])
 
   await migrateEventJournalSchema(poolFor(client))
 
@@ -72,7 +76,7 @@ test('rejects applied versions that are not a prefix of the bundled migrations',
     code: 'EVENT_JOURNAL_SCHEMA_INCOMPATIBLE',
     meta: {
       database: 'PostgreSQL',
-      details: 'applied migration versions [2] are not a prefix of bundled versions [1, 2]'
+      details: 'applied migration versions [2] are not a prefix of bundled versions [1, 2, 3]'
     }
   } satisfies Partial<EventJournalSchemaIncompatible>)
 
