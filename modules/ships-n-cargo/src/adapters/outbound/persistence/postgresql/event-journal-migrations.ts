@@ -10,6 +10,10 @@ const migrations = [
   {
     version: 1,
     source: new URL('./schema/001-event-journal.sql', import.meta.url)
+  },
+  {
+    version: 2,
+    source: new URL('./schema/002-global-feed.sql', import.meta.url)
   }
 ] as const
 

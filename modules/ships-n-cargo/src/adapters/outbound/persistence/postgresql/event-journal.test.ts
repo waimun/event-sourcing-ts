@@ -4,6 +4,7 @@ import type { JournalVersionConflict } from '../../../../application/errors/jour
 import type { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import { Country } from '../../../../domain/country'
 import { EventSerializerNotFound } from '../../../../domain/errors/event-payload-handler'
+import { eventPayloadHandler } from '../../../../domain/events'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
 import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
@@ -182,7 +183,13 @@ describe('eventsByAggregate', () => {
 describe('append', () => {
   test('writes a multi-event append with consecutive versions in one transaction', async () => {
     const pool = makePool()
-    const client = makeClient(result(), result([{ version: '2' }]), result(), result())
+    const client = makeClient(
+      result(),
+      result([{ version: '2' }]),
+      result([{ position: '7' }]),
+      result(),
+      result()
+    )
     vi.spyOn(pool, 'connect').mockResolvedValue(client as never)
     const events = [arrival('ship-1'), arrival('ship-1')]
 
@@ -196,10 +203,15 @@ describe('append', () => {
     )
     expect(client.query).toHaveBeenNthCalledWith(
       3,
-      expect.stringContaining('VALUES ($1, $2, $3), ($4, $5, $6)'),
-      ['ship-1', 3, expect.any(String), 'ship-1', 4, expect.any(String)]
+      expect.stringContaining('UPDATE ships_n_cargo.event_journal_position'),
+      [2]
     )
-    expect(client.query).toHaveBeenNthCalledWith(4, 'COMMIT')
+    expect(client.query).toHaveBeenNthCalledWith(
+      4,
+      expect.stringContaining('VALUES ($1, $2, $3, $4), ($5, $6, $7, $8)'),
+      ['ship-1', 3, '7', expect.any(String), 'ship-1', 4, '8', expect.any(String)]
+    )
+    expect(client.query).toHaveBeenNthCalledWith(5, 'COMMIT')
     expect(client.release).toHaveBeenCalledOnce()
   })
 
@@ -263,6 +275,7 @@ describe('append', () => {
     vi.mocked(client.query)
       .mockResolvedValueOnce(result() as never)
       .mockResolvedValueOnce(result() as never)
+      .mockResolvedValueOnce(result([{ position: '1' }]) as never)
       .mockRejectedValueOnce(race)
       .mockResolvedValueOnce(result() as never)
     vi.spyOn(pool, 'connect').mockResolvedValue(client as never)
@@ -283,6 +296,7 @@ describe('append', () => {
     vi.mocked(client.query)
       .mockResolvedValueOnce(result() as never)
       .mockResolvedValueOnce(result() as never)
+      .mockResolvedValueOnce(result([{ position: '1' }]) as never)
       .mockRejectedValueOnce(cause)
       .mockResolvedValueOnce(result() as never)
     vi.spyOn(pool, 'connect').mockResolvedValue(client as never)
@@ -309,6 +323,7 @@ describe('append', () => {
     vi.mocked(client.query)
       .mockResolvedValueOnce(result() as never)
       .mockResolvedValueOnce(result() as never)
+      .mockResolvedValueOnce(result([{ position: '1' }]) as never)
       .mockRejectedValueOnce(race)
       .mockResolvedValueOnce(result() as never)
     vi.spyOn(pool, 'connect').mockResolvedValueOnce(client as never)
@@ -318,5 +333,99 @@ describe('append', () => {
     await expect(
       new PostgreSqlEventJournal(pool).append('ship-1', 0, [arrival('ship-1')])
     ).rejects.toMatchObject({ cause: versionFailure })
+  })
+})
+
+describe('global feed', () => {
+  test('reads positioned events after the cursor in numeric database order', async () => {
+    const pool = makePool()
+    const registered = registration('ship-1')
+    const arrived = arrival('ship-2')
+    vi.spyOn(pool, 'query').mockResolvedValue(
+      result([
+        {
+          aggregate_id: 'ship-1',
+          event_payload: eventPayloadHandler.serialize(registered),
+          global_position: '10',
+          version: '7'
+        },
+        {
+          aggregate_id: 'ship-2',
+          event_payload: eventPayloadHandler.serialize(arrived),
+          global_position: '11',
+          version: '3'
+        }
+      ]) as never
+    )
+
+    const entries = await new PostgreSqlEventJournal(pool).globalEventsAfter(9n, 2)
+
+    expect(entries).toEqual([
+      { aggregateId: 'ship-1', event: registered, position: 10n, streamVersion: 7 },
+      { aggregateId: 'ship-2', event: arrived, position: 11n, streamVersion: 3 }
+    ])
+    expect(Object.isFrozen(entries)).toBe(true)
+    expect(pool.query).toHaveBeenCalledWith(
+      expect.stringContaining('ORDER BY journal.global_position ASC'),
+      ['9', 2]
+    )
+  })
+
+  test('reports the committed global head without losing bigint precision', async () => {
+    const pool = makePool()
+    vi.spyOn(pool, 'query').mockResolvedValue(result([{ position: '9007199254740993' }]) as never)
+
+    await expect(new PostgreSqlEventJournal(pool).globalHeadPosition()).resolves.toBe(
+      9_007_199_254_740_993n
+    )
+  })
+
+  test.each([
+    {
+      operation: 'globalEventsAfter',
+      invoke: (journal: PostgreSqlEventJournal) => journal.globalEventsAfter(0n, 1)
+    },
+    {
+      operation: 'globalHeadPosition',
+      invoke: (journal: PostgreSqlEventJournal) => journal.globalHeadPosition()
+    }
+  ])(
+    'classifies $operation query failures as infrastructure failures',
+    async ({ operation, invoke }) => {
+      const pool = makePool()
+      const cause = new Error('connection lost')
+      vi.spyOn(pool, 'query').mockRejectedValue(cause)
+
+      await expect(invoke(new PostgreSqlEventJournal(pool))).rejects.toMatchObject({
+        code: 'EVENT_JOURNAL_UNAVAILABLE',
+        meta: { operation },
+        cause
+      })
+    }
+  )
+
+  test('does not disguise global-feed deserialization invariants as database failures', async () => {
+    const pool = makePool()
+    vi.spyOn(pool, 'query').mockResolvedValue(
+      result([
+        {
+          aggregate_id: 'ship-1',
+          event_payload: JSON.stringify({
+            type: 'UnknownEvent',
+            schemaVersion: 1,
+            aggregateId: 'ship-1',
+            occurredAt: '2024-01-02T03:04:05.000Z',
+            recordedAt: '2024-01-03T04:05:06.000Z',
+            data: {}
+          }),
+          global_position: '1',
+          version: '1'
+        }
+      ]) as never
+    )
+
+    await expect(new PostgreSqlEventJournal(pool).globalEventsAfter(0n, 1)).rejects.toThrow(
+      EventSerializerNotFound
+    )
   })
 })

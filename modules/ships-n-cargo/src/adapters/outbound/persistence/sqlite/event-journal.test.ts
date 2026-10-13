@@ -101,6 +101,38 @@ test('rolls back every event when one row in a multi-event append fails', async 
     journal.append('ship-1', 0, [registration('ship-1'), new ShipArrived('ship-1', port())])
   ).rejects.toThrow(EventJournalUnavailable)
   await expect(journal.eventsByAggregate('ship-1')).resolves.toEqual({ events: [], version: 0 })
+  await expect(journal.globalHeadPosition()).resolves.toBe(0n)
+
+  const successfulEvent = registration('ship-2')
+  await journal.append('ship-2', 0, [successfulEvent])
+  await expect(journal.globalEventsAfter(0n, 10)).resolves.toEqual([
+    { aggregateId: 'ship-2', event: successfulEvent, position: 1n, streamVersion: 1 }
+  ])
+})
+
+test('preserves global positions beyond the JavaScript safe-integer range', async () => {
+  const path = databasePath()
+  const journal = journalAt(path)
+  journal.close()
+  const database = new DatabaseSync(path)
+  database
+    .prepare('UPDATE event_journal_position SET next_position = ?')
+    .run(9_007_199_254_740_993n)
+  database.close()
+
+  const reopened = journalAt(path)
+  const event = registration('ship-1')
+  await reopened.append('ship-1', 0, [event])
+
+  await expect(reopened.globalHeadPosition()).resolves.toBe(9_007_199_254_740_993n)
+  await expect(reopened.globalEventsAfter(9_007_199_254_740_992n, 1)).resolves.toEqual([
+    {
+      aggregateId: 'ship-1',
+      event,
+      position: 9_007_199_254_740_993n,
+      streamVersion: 1
+    }
+  ])
 })
 
 test('classifies database operation failures as journal infrastructure failures', async () => {
@@ -110,6 +142,14 @@ test('classifies database operation failures as journal infrastructure failures'
   await expect(journal.eventsByAggregate('ship-1')).rejects.toMatchObject({
     code: 'EVENT_JOURNAL_UNAVAILABLE',
     meta: { operation: 'eventsByAggregate' }
+  })
+  await expect(journal.globalEventsAfter(0n, 1)).rejects.toMatchObject({
+    code: 'EVENT_JOURNAL_UNAVAILABLE',
+    meta: { operation: 'globalEventsAfter' }
+  })
+  await expect(journal.globalHeadPosition()).rejects.toMatchObject({
+    code: 'EVENT_JOURNAL_UNAVAILABLE',
+    meta: { operation: 'globalHeadPosition' }
   })
   await expect(journal.append('ship-1', 0, [registration('ship-1')])).rejects.toMatchObject({
     code: 'EVENT_JOURNAL_UNAVAILABLE',
@@ -122,9 +162,14 @@ test('does not disguise deserialization invariants as database failures', async 
   journalAt(path).close()
   const database = new DatabaseSync(path)
   database
-    .prepare('INSERT INTO event_journal (aggregate_id, version, event_payload) VALUES (?, ?, ?)')
+    .prepare(
+      `INSERT INTO event_journal
+         (aggregate_id, version, global_position, event_payload)
+       VALUES (?, ?, ?, ?)`
+    )
     .run(
       'ship-1',
+      1,
       1,
       JSON.stringify({
         type: 'UnknownEvent',
@@ -138,4 +183,5 @@ test('does not disguise deserialization invariants as database failures', async 
   database.close()
 
   await expect(journalAt(path).eventsByAggregate('ship-1')).rejects.toThrow(EventSerializerNotFound)
+  await expect(journalAt(path).globalEventsAfter(0n, 1)).rejects.toThrow(EventSerializerNotFound)
 })

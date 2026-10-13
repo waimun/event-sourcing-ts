@@ -1,6 +1,10 @@
 import { InfrastructureError } from '../../../shared/errors/kernel'
 
-export type EventJournalOperation = 'append' | 'eventsByAggregate'
+export type EventJournalOperation =
+  | 'append'
+  | 'eventsByAggregate'
+  | 'globalEventsAfter'
+  | 'globalHeadPosition'
 
 export class EventJournalUnavailable extends InfrastructureError {
   constructor(operation: EventJournalOperation, cause: unknown) {

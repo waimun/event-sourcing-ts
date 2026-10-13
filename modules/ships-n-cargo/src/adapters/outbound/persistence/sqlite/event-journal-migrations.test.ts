@@ -24,11 +24,16 @@ test('applies the numbered migration once and records its version', () => {
   migrateEventJournalSchema(value)
 
   expect(value.prepare('SELECT version FROM event_journal_migrations').all()).toEqual([
-    { version: 1 }
+    { version: 1 },
+    { version: 2 }
   ])
   expect(
     value.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name").all()
-  ).toEqual([{ name: 'event_journal' }, { name: 'event_journal_migrations' }])
+  ).toEqual([
+    { name: 'event_journal' },
+    { name: 'event_journal_migrations' },
+    { name: 'event_journal_position' }
+  ])
 })
 
 test('rejects applied versions that are not a prefix of the bundled migrations', () => {
@@ -57,4 +62,43 @@ test('rolls back the ledger when the migration cannot be applied', () => {
       .prepare("SELECT name FROM sqlite_schema WHERE type = 'table' AND name = ?")
       .get('event_journal_migrations')
   ).toBeUndefined()
+})
+
+test('backfills globally positioned existing rows and advances the counter', () => {
+  const value = database()
+  value.exec(`
+    CREATE TABLE event_journal_migrations (
+      version INTEGER PRIMARY KEY
+    ) STRICT;
+    INSERT INTO event_journal_migrations (version) VALUES (1);
+    CREATE TABLE event_journal (
+      aggregate_id TEXT NOT NULL,
+      version INTEGER NOT NULL CHECK (version > 0),
+      event_payload TEXT NOT NULL,
+      PRIMARY KEY (aggregate_id, version)
+    ) STRICT;
+    INSERT INTO event_journal (aggregate_id, version, event_payload) VALUES
+      ('ship-2', 1, '{}'),
+      ('ship-1', 2, '{}'),
+      ('ship-1', 1, '{}');
+  `)
+
+  migrateEventJournalSchema(value)
+
+  expect(
+    value
+      .prepare(
+        `SELECT aggregate_id, version, global_position
+         FROM event_journal
+         ORDER BY global_position`
+      )
+      .all()
+  ).toEqual([
+    { aggregate_id: 'ship-1', version: 1, global_position: 1 },
+    { aggregate_id: 'ship-1', version: 2, global_position: 2 },
+    { aggregate_id: 'ship-2', version: 1, global_position: 3 }
+  ])
+  expect(value.prepare('SELECT * FROM event_journal_position').all()).toEqual([
+    { singleton: 1, next_position: 4 }
+  ])
 })
