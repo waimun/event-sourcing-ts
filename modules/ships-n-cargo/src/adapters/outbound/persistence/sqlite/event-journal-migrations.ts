@@ -14,6 +14,10 @@ const migrations = [
   {
     version: 2,
     source: new URL('./schema/002-global-feed.sql', import.meta.url)
+  },
+  {
+    version: 3,
+    source: new URL('./schema/003-ship-overview.sql', import.meta.url)
   }
 ] as const
 

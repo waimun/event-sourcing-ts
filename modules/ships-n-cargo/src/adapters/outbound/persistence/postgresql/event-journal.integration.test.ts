@@ -5,9 +5,11 @@ import { JournalVersionConflict } from '../../../../application/errors/journal-v
 import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
 import { Country } from '../../../../domain/country'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
+import { ShipDeparted } from '../../../../domain/events/ship-departed'
 import { ShipRegistered } from '../../../../domain/events/ship-registered'
 import { Port } from '../../../../domain/port'
 import { PortName } from '../../../../domain/port-name'
+import { PostgreSqlShipOverviewProjection } from '../../projections/postgresql-ship-overview'
 import { eventJournalContract } from '../event-journal-contract'
 import { PostgreSqlEventJournal } from './event-journal'
 import { migrateEventJournalSchema } from './event-journal-migrations'
@@ -56,7 +58,7 @@ databaseDescribe('PostgreSQL event journal', () => {
 
     await expect(
       pool.query('SELECT version FROM ships_n_cargo.event_journal_migrations ORDER BY version')
-    ).resolves.toMatchObject({ rows: [{ version: 1 }, { version: 2 }] })
+    ).resolves.toMatchObject({ rows: [{ version: 1 }, { version: 2 }, { version: 3 }] })
 
     const columns = await pool.query<ColumnRow>(`
       SELECT column_name, data_type, is_nullable, is_identity
@@ -258,5 +260,61 @@ databaseDescribe('PostgreSQL event journal', () => {
     await expect(first.globalEventsAfter(1n, 1)).resolves.toEqual([
       { aggregateId: 'ship-2', event: nextEvent, position: 2n, streamVersion: 1 }
     ])
+  })
+
+  test('serializes competing ship-overview batches through the checkpoint row', async () => {
+    const journal = new PostgreSqlEventJournal(pool)
+    await journal.append('ship-1', 0, [registration('ship-1'), new ShipDeparted('ship-1')])
+    const first = new PostgreSqlShipOverviewProjection(pool)
+    const second = new PostgreSqlShipOverviewProjection(pool)
+
+    const batches = await Promise.all([first.projectNextBatch(1), second.projectNextBatch(1)])
+
+    expect(batches.map(({ checkpoint }) => checkpoint).sort()).toEqual([1n, 2n])
+    await expect(
+      pool.query(
+        `SELECT ship_id, name, status, current_port_name, current_port_country
+         FROM ships_n_cargo.ship_overview`
+      )
+    ).resolves.toMatchObject({
+      rows: [
+        {
+          current_port_country: null,
+          current_port_name: null,
+          name: 'King Roy',
+          ship_id: 'ship-1',
+          status: 'at-sea'
+        }
+      ]
+    })
+  })
+
+  test('rolls back the ship overview when checkpoint advancement fails', async () => {
+    const journal = new PostgreSqlEventJournal(pool)
+    await journal.append('ship-1', 0, [registration('ship-1')])
+    await pool.query(`
+      CREATE FUNCTION ships_n_cargo.reject_checkpoint() RETURNS trigger
+      LANGUAGE plpgsql AS $$
+      BEGIN
+        RAISE EXCEPTION 'test checkpoint rejection';
+      END
+      $$;
+      CREATE TRIGGER reject_checkpoint
+      BEFORE UPDATE ON ships_n_cargo.ship_overview_checkpoint
+      FOR EACH ROW EXECUTE FUNCTION ships_n_cargo.reject_checkpoint();
+    `)
+
+    await expect(
+      new PostgreSqlShipOverviewProjection(pool).projectNextBatch(1)
+    ).rejects.toMatchObject({ code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE' })
+    await expect(pool.query('SELECT * FROM ships_n_cargo.ship_overview')).resolves.toMatchObject({
+      rows: []
+    })
+    await expect(
+      pool.query(
+        `SELECT position::text AS position
+         FROM ships_n_cargo.ship_overview_checkpoint`
+      )
+    ).resolves.toMatchObject({ rows: [{ position: '0' }] })
   })
 })

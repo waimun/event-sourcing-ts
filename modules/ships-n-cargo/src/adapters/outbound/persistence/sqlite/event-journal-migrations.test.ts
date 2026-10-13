@@ -25,14 +25,20 @@ test('applies the numbered migration once and records its version', () => {
 
   expect(value.prepare('SELECT version FROM event_journal_migrations').all()).toEqual([
     { version: 1 },
-    { version: 2 }
+    { version: 2 },
+    { version: 3 }
   ])
   expect(
     value.prepare("SELECT name FROM sqlite_schema WHERE type = 'table' ORDER BY name").all()
   ).toEqual([
     { name: 'event_journal' },
     { name: 'event_journal_migrations' },
-    { name: 'event_journal_position' }
+    { name: 'event_journal_position' },
+    { name: 'ship_overview' },
+    { name: 'ship_overview_checkpoint' }
+  ])
+  expect(value.prepare('SELECT * FROM ship_overview_checkpoint').all()).toEqual([
+    { position: 0, singleton: 1 }
   ])
 })
 
