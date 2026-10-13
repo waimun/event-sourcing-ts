@@ -1,13 +1,15 @@
 import type { GlobalEventFeed, GlobalPosition } from '../../../application/ports/event-journal'
 import type {
   ShipOverview,
+  ShipOverviewFilter,
   ShipOverviewProjection,
-  ShipOverviewProjectionBatch
+  ShipOverviewProjectionBatch,
+  ShipOverviewQueries
 } from '../../../application/ports/ship-overview-projection'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { applyShipOverviewEvent, copyShipOverview } from './ship-overview'
 
-export class InMemoryShipOverviewProjection implements ShipOverviewProjection {
+export class InMemoryShipOverviewProjection implements ShipOverviewProjection, ShipOverviewQueries {
   private checkpoint: GlobalPosition = 0n
   private overviews = new Map<string, ShipOverview>()
 
@@ -30,8 +32,22 @@ export class InMemoryShipOverviewProjection implements ShipOverviewProjection {
     return Object.freeze({ checkpoint, projectedEventCount: entries.length })
   }
 
-  overviewForTesting(shipId: string): ShipOverview | undefined {
+  async overviewFor(shipId: string): Promise<ShipOverview | undefined> {
     const overview = this.overviews.get(shipId)
     return overview === undefined ? undefined : copyShipOverview(overview)
+  }
+
+  async overviewsMatching(filter: ShipOverviewFilter): Promise<readonly ShipOverview[]> {
+    return Object.freeze(
+      [...this.overviews.values()]
+        .filter((overview) =>
+          'status' in filter
+            ? overview.status === filter.status
+            : overview.currentPort?.name === filter.currentPort.name &&
+              overview.currentPort.country === filter.currentPort.country
+        )
+        .sort((left, right) => left.shipId.localeCompare(right.shipId))
+        .map(copyShipOverview)
+    )
   }
 }

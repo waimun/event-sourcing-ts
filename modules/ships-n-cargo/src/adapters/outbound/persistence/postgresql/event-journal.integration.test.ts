@@ -289,6 +289,34 @@ databaseDescribe('PostgreSQL event journal', () => {
     })
   })
 
+  test('queries materialized ship overviews without replaying aggregate streams', async () => {
+    const journal = new PostgreSqlEventJournal(pool)
+    await journal.append('ship-2', 0, [registration('ship-2', 'Sea Queen')])
+    await journal.append('ship-1', 0, [registration('ship-1'), new ShipDeparted('ship-1')])
+    const projection = new PostgreSqlShipOverviewProjection(pool)
+    await projection.projectNextBatch(10)
+
+    await expect(projection.overviewFor('ship-1')).resolves.toEqual({
+      name: 'King Roy',
+      shipId: 'ship-1',
+      status: 'at-sea'
+    })
+    await expect(projection.overviewFor('missing')).resolves.toBeUndefined()
+    await expect(projection.overviewsMatching({ status: 'at-sea' })).resolves.toEqual([
+      { name: 'King Roy', shipId: 'ship-1', status: 'at-sea' }
+    ])
+    await expect(
+      projection.overviewsMatching({ currentPort: { country: 'US', name: 'Kingston' } })
+    ).resolves.toEqual([
+      {
+        currentPort: { country: 'US', name: 'Kingston' },
+        name: 'Sea Queen',
+        shipId: 'ship-2',
+        status: 'at-port'
+      }
+    ])
+  })
+
   test('rolls back the ship overview when checkpoint advancement fails', async () => {
     const journal = new PostgreSqlEventJournal(pool)
     await journal.append('ship-1', 0, [registration('ship-1')])

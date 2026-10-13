@@ -92,6 +92,8 @@ test('stops and closes a file-backed SQLite projection before closing its journa
   const closeProjection = vi.fn(() => order.push('projection closed'))
   const sqliteShipOverviewProjection = vi.fn(() => ({
     close: closeProjection,
+    overviewFor: vi.fn(),
+    overviewsMatching: vi.fn(),
     projectNextBatch: vi.fn()
   }))
   const { projectionLifecycle, stop } = fakeProjectionLifecycle(order)

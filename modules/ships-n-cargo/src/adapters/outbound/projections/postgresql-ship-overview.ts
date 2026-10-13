@@ -2,8 +2,10 @@ import type { Pool, PoolClient, QueryResultRow } from 'pg'
 import type { PositionedEvent } from '../../../application/ports/event-journal'
 import type {
   ShipOverview,
+  ShipOverviewFilter,
   ShipOverviewProjection,
   ShipOverviewProjectionBatch,
+  ShipOverviewQueries,
   ShipOverviewStatus
 } from '../../../application/ports/ship-overview-projection'
 import { eventPayloadHandler } from '../../../domain/events'
@@ -88,7 +90,9 @@ const storeOverview = async (client: PoolClient, overview: ShipOverview): Promis
   )
 }
 
-export class PostgreSqlShipOverviewProjection implements ShipOverviewProjection {
+export class PostgreSqlShipOverviewProjection
+  implements ShipOverviewProjection, ShipOverviewQueries
+{
   constructor(private readonly pool: Pool) {}
 
   async projectNextBatch(batchSize: number): Promise<ShipOverviewProjectionBatch> {
@@ -159,6 +163,44 @@ export class PostgreSqlShipOverviewProjection implements ShipOverviewProjection 
       throw new ShipOverviewProjectionUnavailable(error)
     } finally {
       client.release()
+    }
+  }
+
+  async overviewFor(shipId: string): Promise<ShipOverview | undefined> {
+    try {
+      const result = await this.pool.query<OverviewRow>(
+        `SELECT ship_id, name, status, current_port_name, current_port_country
+         FROM ships_n_cargo.ship_overview
+         WHERE ship_id = $1`,
+        [shipId]
+      )
+      return result.rows[0] === undefined ? undefined : overviewFrom(result.rows[0])
+    } catch (error) {
+      throw new ShipOverviewProjectionUnavailable(error)
+    }
+  }
+
+  async overviewsMatching(filter: ShipOverviewFilter): Promise<readonly ShipOverview[]> {
+    try {
+      const result =
+        'status' in filter
+          ? await this.pool.query<OverviewRow>(
+              `SELECT ship_id, name, status, current_port_name, current_port_country
+               FROM ships_n_cargo.ship_overview
+               WHERE status = $1
+               ORDER BY ship_id ASC`,
+              [filter.status]
+            )
+          : await this.pool.query<OverviewRow>(
+              `SELECT ship_id, name, status, current_port_name, current_port_country
+               FROM ships_n_cargo.ship_overview
+               WHERE current_port_name = $1 AND current_port_country = $2
+               ORDER BY ship_id ASC`,
+              [filter.currentPort.name, filter.currentPort.country]
+            )
+      return Object.freeze(result.rows.map(overviewFrom))
+    } catch (error) {
+      throw new ShipOverviewProjectionUnavailable(error)
     }
   }
 }
