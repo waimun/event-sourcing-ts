@@ -1,9 +1,9 @@
 import type { Pool, PoolClient, QueryResultRow } from 'pg'
 import type { PositionedEvent } from '../../../application/ports/event-journal'
 import type {
+  RebuildableShipOverviewProjection,
   ShipOverview,
   ShipOverviewFilter,
-  ShipOverviewProjection,
   ShipOverviewProjectionBatch,
   ShipOverviewQueries,
   ShipOverviewStatus
@@ -91,9 +91,40 @@ const storeOverview = async (client: PoolClient, overview: ShipOverview): Promis
 }
 
 export class PostgreSqlShipOverviewProjection
-  implements ShipOverviewProjection, ShipOverviewQueries
+  implements RebuildableShipOverviewProjection, ShipOverviewQueries
 {
   constructor(private readonly pool: Pool) {}
+
+  async resetForRebuild(): Promise<void> {
+    let client: PoolClient
+    try {
+      client = await this.pool.connect()
+    } catch (error) {
+      throw new ShipOverviewProjectionUnavailable(error)
+    }
+
+    try {
+      await client.query('BEGIN')
+      await client.query(
+        `SELECT checkpoint.position
+         FROM ships_n_cargo.ship_overview_checkpoint AS checkpoint
+         WHERE checkpoint.singleton = TRUE
+         FOR UPDATE`
+      )
+      await client.query('DELETE FROM ships_n_cargo.ship_overview')
+      await client.query(
+        `UPDATE ships_n_cargo.ship_overview_checkpoint
+         SET position = 0
+         WHERE singleton = TRUE`
+      )
+      await client.query('COMMIT')
+    } catch (error) {
+      await rollback(client)
+      throw new ShipOverviewProjectionUnavailable(error)
+    } finally {
+      client.release()
+    }
+  }
 
   async projectNextBatch(batchSize: number): Promise<ShipOverviewProjectionBatch> {
     validateGlobalFeedRead(0n, batchSize)

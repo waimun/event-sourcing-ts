@@ -23,6 +23,10 @@ export interface ShipOverviewProjection {
   projectNextBatch: (batchSize: number) => Promise<ShipOverviewProjectionBatch>
 }
 
+export interface RebuildableShipOverviewProjection extends ShipOverviewProjection {
+  resetForRebuild: () => Promise<void>
+}
+
 export type ShipOverviewFilter =
   | { readonly status: ShipOverviewStatus }
   | { readonly currentPort: ShipOverviewPort }

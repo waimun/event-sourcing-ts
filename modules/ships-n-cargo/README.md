@@ -33,6 +33,24 @@ The application applies the same pending migrations during startup, so this comm
 to prepare the database separately. It is safe to rerun and reports an error when the resulting
 `ships_n_cargo.event_journal` table is incompatible.
 
+## ♻️ Rebuilding the ship overview
+
+The ship overview is disposable derived data. Rebuild it from the complete event journal by setting
+exactly one persistent database and running the operator command:
+
+```sh
+SHIPS_N_CARGO_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run projection:rebuild-ship-overview
+```
+
+```sh
+SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm run projection:rebuild-ship-overview
+```
+
+The command clears the overview and resets its checkpoint before replaying the same event handlers
+used by continuous projection. Overview queries can return incomplete results while the replay is
+running, so stop the application or otherwise remove read traffic when a consistent view is needed
+throughout the rebuild.
+
 ## 🪶 SQLite setup (optional)
 
 SQLite uses the built-in Node.js 24 SQLite module and applies its pending schema migrations
