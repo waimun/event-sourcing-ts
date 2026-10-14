@@ -33,6 +33,15 @@ The application applies the same pending migrations during startup, so this comm
 to prepare the database separately. It is safe to rerun and reports an error when the resulting
 `ships_n_cargo.event_journal` table is incompatible.
 
+## 🪶 SQLite setup (optional)
+
+SQLite uses the built-in Node.js 24 SQLite module and applies its pending schema migrations
+automatically. Provide a file path when starting the application:
+
+```sh
+SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
+```
+
 ## ♻️ Rebuilding the ship overview
 
 The ship overview is disposable derived data. Rebuild it from the complete event journal by setting
@@ -47,18 +56,54 @@ SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm run projection:rebuild-sh
 ```
 
 The command clears the overview and resets its checkpoint before replaying the same event handlers
-used by continuous projection. Overview queries can return incomplete results while the replay is
-running, so stop the application or otherwise remove read traffic when a consistent view is needed
-throughout the rebuild.
+used by continuous projection. It is safe to rerun, including when the journal or projection is
+empty. Overview queries can return incomplete results while the replay is running, so stop the
+application or otherwise remove read traffic from every instance when a consistent view is needed
+throughout the rebuild. Command handling and journal-backed ship-history reads do not depend on the
+overview.
 
-## 🪶 SQLite setup (optional)
+## 📊 Projection consistency and lag
 
-SQLite uses the built-in Node.js 24 SQLite module and applies its pending schema migrations
-automatically. Provide a file path when starting the application:
+Commands commit events to the journal before the ship overview processes them. The overview
+endpoints are therefore eventually consistent: immediately after a successful command they may
+briefly return the previous state. The background projector reads bounded batches and resumes from
+its durable checkpoint after a restart. PostgreSQL also locks that checkpoint while applying a
+batch, so multiple application instances cooperate rather than applying the same batch concurrently.
 
-```sh
-SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
+Projection lag is the journal's current head position minus the ship-overview checkpoint. A lag of
+zero means the overview has processed every committed event visible at the time of the query. The
+value counts journal events, not elapsed time; events that do not change an overview still advance
+its checkpoint. Inspect persistent environments with the corresponding query:
+
+```sql
+-- PostgreSQL
+SELECT journal.head_position,
+       checkpoint.position AS checkpoint_position,
+       journal.head_position - checkpoint.position AS lag
+FROM (
+  SELECT COALESCE(MAX(global_position), 0)::bigint AS head_position
+  FROM ships_n_cargo.event_journal
+) AS journal
+CROSS JOIN ships_n_cargo.ship_overview_checkpoint AS checkpoint;
 ```
+
+```sql
+-- SQLite
+SELECT journal.head_position,
+       checkpoint.position AS checkpoint_position,
+       journal.head_position - checkpoint.position AS lag
+FROM (
+  SELECT COALESCE(MAX(global_position), 0) AS head_position
+  FROM event_journal
+) AS journal
+CROSS JOIN ship_overview_checkpoint AS checkpoint;
+```
+
+If lag remains above zero, inspect application logs for `Ship overview projection failed`. The
+projector reports a failed batch, leaves its overview and checkpoint unchanged, and retries, so it
+does not require a rebuild for a transient failure. Use the rebuild command when the derived data
+itself must be replaced or repaired. In-memory state is intentionally ephemeral and has no durable
+lag to inspect across restarts.
 
 ## 🚀 Running locally
 

@@ -290,6 +290,25 @@ databaseDescribe('PostgreSQL event journal', () => {
     })
   })
 
+  test('resumes the ship overview from its durable checkpoint after projector replacement', async () => {
+    const journal = new PostgreSqlEventJournal(pool)
+    await journal.append('ship-1', 0, [registration('ship-1')])
+    await new PostgreSqlShipOverviewProjection(pool).projectNextBatch(1)
+    await journal.append('ship-1', 1, [new ShipDeparted('ship-1')])
+
+    const replacement = new PostgreSqlShipOverviewProjection(pool)
+
+    await expect(replacement.projectNextBatch(1)).resolves.toEqual({
+      checkpoint: 2n,
+      projectedEventCount: 1
+    })
+    await expect(replacement.overviewFor('ship-1')).resolves.toEqual({
+      name: 'King Roy',
+      shipId: 'ship-1',
+      status: 'at-sea'
+    })
+  })
+
   test('queries materialized ship overviews without replaying aggregate streams', async () => {
     const journal = new PostgreSqlEventJournal(pool)
     await journal.append('ship-2', 0, [registration('ship-2', 'Sea Queen')])
@@ -333,6 +352,10 @@ databaseDescribe('PostgreSQL event journal', () => {
       checkpoint: 2n,
       projectedEventCount: 2
     })
+    await expect(rebuildShipOverview(projection)).resolves.toEqual({
+      checkpoint: 2n,
+      projectedEventCount: 2
+    })
     await expect(
       pool.query(
         `SELECT overview.ship_id, overview.name, overview.status,
@@ -345,7 +368,7 @@ databaseDescribe('PostgreSQL event journal', () => {
     })
   })
 
-  test('rolls back the ship overview when checkpoint advancement fails', async () => {
+  test('rolls back a failed batch and resumes from the unchanged checkpoint after recovery', async () => {
     const journal = new PostgreSqlEventJournal(pool)
     await journal.append('ship-1', 0, [registration('ship-1')])
     await pool.query(`
@@ -372,5 +395,20 @@ databaseDescribe('PostgreSQL event journal', () => {
          FROM ships_n_cargo.ship_overview_checkpoint`
       )
     ).resolves.toMatchObject({ rows: [{ position: '0' }] })
+
+    await pool.query('DROP TRIGGER reject_checkpoint ON ships_n_cargo.ship_overview_checkpoint')
+    await pool.query('DROP FUNCTION ships_n_cargo.reject_checkpoint()')
+
+    const replacement = new PostgreSqlShipOverviewProjection(pool)
+    await expect(replacement.projectNextBatch(1)).resolves.toEqual({
+      checkpoint: 1n,
+      projectedEventCount: 1
+    })
+    await expect(replacement.overviewFor('ship-1')).resolves.toEqual({
+      currentPort: { country: 'US', name: 'Kingston' },
+      name: 'King Roy',
+      shipId: 'ship-1',
+      status: 'at-port'
+    })
   })
 })
