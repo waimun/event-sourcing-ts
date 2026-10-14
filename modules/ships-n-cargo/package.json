@@ -22,6 +22,7 @@
     "test:integration": "vitest run --project integration",
     "build": "npm run lint && npm run typecheck && npm test",
     "db:setup": "tsx scripts/postgresql/setup-database.ts",
+    "projection:rebuild-ship-overview": "tsx scripts/rebuild-ship-overview.ts",
     "start": "tsx src/bootstrap/server.ts"
   },
   "dependencies": {

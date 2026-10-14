@@ -1,9 +1,9 @@
 import { DatabaseSync } from 'node:sqlite'
 import type { PositionedEvent } from '../../../application/ports/event-journal'
 import type {
+  RebuildableShipOverviewProjection,
   ShipOverview,
   ShipOverviewFilter,
-  ShipOverviewProjection,
   ShipOverviewProjectionBatch,
   ShipOverviewQueries,
   ShipOverviewStatus
@@ -50,7 +50,9 @@ const overviewFrom = (row: OverviewRow): ShipOverview =>
     status: row.status
   })
 
-export class SqliteShipOverviewProjection implements ShipOverviewProjection, ShipOverviewQueries {
+export class SqliteShipOverviewProjection
+  implements RebuildableShipOverviewProjection, ShipOverviewQueries
+{
   private readonly database: DatabaseSync
 
   constructor(databasePath: string) {
@@ -61,6 +63,27 @@ export class SqliteShipOverviewProjection implements ShipOverviewProjection, Shi
     } catch (error) {
       this.database.close()
       throw error
+    }
+  }
+
+  async resetForRebuild(): Promise<void> {
+    let transactionStarted = false
+
+    try {
+      this.database.exec('BEGIN IMMEDIATE')
+      transactionStarted = true
+      this.database.exec('DELETE FROM ship_overview')
+      this.database.exec('UPDATE ship_overview_checkpoint SET position = 0 WHERE singleton = 1')
+      this.database.exec('COMMIT')
+    } catch (error) {
+      if (transactionStarted) {
+        try {
+          this.database.exec('ROLLBACK')
+        } catch {
+          // Preserve the projection failure when the database cannot roll back.
+        }
+      }
+      throw new ShipOverviewProjectionUnavailable(error)
     }
   }
 

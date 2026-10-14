@@ -3,6 +3,7 @@ import { Pool, type QueryResultRow } from 'pg'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
 import { JournalVersionConflict } from '../../../../application/errors/journal-version-conflict'
 import { EventJournalUnavailable } from '../../../../application/ports/errors/event-journal-unavailable'
+import { rebuildShipOverview } from '../../../../application/rebuild-ship-overview'
 import { Country } from '../../../../domain/country'
 import { ShipArrived } from '../../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../../domain/events/ship-departed'
@@ -315,6 +316,33 @@ databaseDescribe('PostgreSQL event journal', () => {
         status: 'at-port'
       }
     ])
+  })
+
+  test('rebuilds the ship overview and checkpoint from the complete journal', async () => {
+    const journal = new PostgreSqlEventJournal(pool)
+    await journal.append('ship-1', 0, [registration('ship-1'), new ShipDeparted('ship-1')])
+    const projection = new PostgreSqlShipOverviewProjection(pool)
+    await projection.projectNextBatch(1)
+    await pool.query(
+      `INSERT INTO ships_n_cargo.ship_overview
+         (ship_id, name, status, current_port_name, current_port_country)
+       VALUES ('stale-ship', 'Stale', 'at-port', 'Nowhere', 'US')`
+    )
+
+    await expect(rebuildShipOverview(projection)).resolves.toEqual({
+      checkpoint: 2n,
+      projectedEventCount: 2
+    })
+    await expect(
+      pool.query(
+        `SELECT overview.ship_id, overview.name, overview.status,
+                checkpoint.position::text AS checkpoint
+         FROM ships_n_cargo.ship_overview AS overview
+         CROSS JOIN ships_n_cargo.ship_overview_checkpoint AS checkpoint`
+      )
+    ).resolves.toMatchObject({
+      rows: [{ checkpoint: '2', name: 'King Roy', ship_id: 'ship-1', status: 'at-sea' }]
+    })
   })
 
   test('rolls back the ship overview when checkpoint advancement fails', async () => {

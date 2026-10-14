@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest'
+import { rebuildShipOverview } from '../../../application/rebuild-ship-overview'
 import { Country } from '../../../domain/country'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
@@ -115,4 +116,24 @@ test('queries overviews by status or current port in ship-id order', async () =>
   expect(Object.isFrozen(atMiami)).toBe(true)
   expect(Object.isFrozen(atMiami[0])).toBe(true)
   await expect(projection.overviewFor('missing')).resolves.toBeUndefined()
+})
+
+test('rebuilds the overview and checkpoint from the complete feed', async () => {
+  const events = journal()
+  await events.append('ship-1', 0, [
+    new ShipRegistered('ship-1', 'King Roy', port()),
+    new ShipDeparted('ship-1')
+  ])
+  const projection = new InMemoryShipOverviewProjection(events)
+  await projection.projectNextBatch(1)
+
+  await expect(rebuildShipOverview(projection)).resolves.toEqual({
+    checkpoint: 2n,
+    projectedEventCount: 2
+  })
+  await expect(projection.overviewFor('ship-1')).resolves.toEqual({
+    name: 'King Roy',
+    shipId: 'ship-1',
+    status: 'at-sea'
+  })
 })

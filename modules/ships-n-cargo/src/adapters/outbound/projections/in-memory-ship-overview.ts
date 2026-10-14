@@ -1,19 +1,26 @@
 import type { GlobalEventFeed, GlobalPosition } from '../../../application/ports/event-journal'
 import type {
+  RebuildableShipOverviewProjection,
   ShipOverview,
   ShipOverviewFilter,
-  ShipOverviewProjection,
   ShipOverviewProjectionBatch,
   ShipOverviewQueries
 } from '../../../application/ports/ship-overview-projection'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { applyShipOverviewEvent, copyShipOverview } from './ship-overview'
 
-export class InMemoryShipOverviewProjection implements ShipOverviewProjection, ShipOverviewQueries {
+export class InMemoryShipOverviewProjection
+  implements RebuildableShipOverviewProjection, ShipOverviewQueries
+{
   private checkpoint: GlobalPosition = 0n
   private overviews = new Map<string, ShipOverview>()
 
   constructor(private readonly feed: GlobalEventFeed<string, DomainEvent>) {}
+
+  async resetForRebuild(): Promise<void> {
+    this.overviews = new Map()
+    this.checkpoint = 0n
+  }
 
   async projectNextBatch(batchSize: number): Promise<ShipOverviewProjectionBatch> {
     const entries = await this.feed.globalEventsAfter(this.checkpoint, batchSize)

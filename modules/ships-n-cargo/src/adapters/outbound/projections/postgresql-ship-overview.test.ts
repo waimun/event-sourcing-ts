@@ -271,3 +271,47 @@ test('returns no overview for an unknown id and wraps overview query failures', 
     code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
   })
 })
+
+test('resets the durable overview and checkpoint under the checkpoint lock', async () => {
+  const query = vi.fn().mockResolvedValue(result())
+  const { projection, release } = projectionWith(query)
+
+  await expect(projection.resetForRebuild()).resolves.toBeUndefined()
+
+  expect(query).toHaveBeenNthCalledWith(1, 'BEGIN')
+  expect(query).toHaveBeenNthCalledWith(2, expect.stringContaining('FOR UPDATE'))
+  expect(query).toHaveBeenNthCalledWith(3, 'DELETE FROM ships_n_cargo.ship_overview')
+  expect(query).toHaveBeenNthCalledWith(
+    4,
+    expect.stringContaining('UPDATE ships_n_cargo.ship_overview_checkpoint')
+  )
+  expect(query).toHaveBeenLastCalledWith('COMMIT')
+  expect(release).toHaveBeenCalledOnce()
+})
+
+test('wraps reset connection and transaction failures', async () => {
+  const connectionFailure = new Error('connection failed')
+  const unavailable = new PostgreSqlShipOverviewProjection({
+    connect: vi.fn().mockRejectedValue(connectionFailure)
+  } as unknown as Pool)
+
+  await expect(unavailable.resetForRebuild()).rejects.toMatchObject({
+    cause: connectionFailure,
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+
+  const queryFailure = new Error('delete failed')
+  const query = vi.fn().mockImplementation((sql: string) => {
+    if (sql === 'ROLLBACK') return Promise.reject(new Error('rollback failed'))
+    if (sql === 'DELETE FROM ships_n_cargo.ship_overview') return Promise.reject(queryFailure)
+    return Promise.resolve(result())
+  })
+  const { projection, release } = projectionWith(query)
+
+  await expect(projection.resetForRebuild()).rejects.toMatchObject({
+    cause: queryFailure,
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+  expect(query).toHaveBeenLastCalledWith('ROLLBACK')
+  expect(release).toHaveBeenCalledOnce()
+})

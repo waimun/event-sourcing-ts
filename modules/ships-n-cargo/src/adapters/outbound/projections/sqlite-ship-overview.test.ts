@@ -3,6 +3,7 @@ import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { afterEach, expect, test } from 'vitest'
+import { rebuildShipOverview } from '../../../application/rebuild-ship-overview'
 import { Country } from '../../../domain/country'
 import { ShipArrived } from '../../../domain/events/ship-arrived'
 import { ShipDeparted } from '../../../domain/events/ship-departed'
@@ -255,4 +256,68 @@ test('wraps database failures from overview queries', async () => {
   await expect(projection.overviewsMatching({ status: 'at-port' })).rejects.toMatchObject({
     code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
   })
+})
+
+test('rebuilds the durable overview and checkpoint from the complete journal', async () => {
+  const path = databasePath()
+  const journal = journalAt(path)
+  await journal.append('ship-1', 0, [
+    new ShipRegistered('ship-1', 'King Roy', port()),
+    new ShipDeparted('ship-1')
+  ])
+  const projection = projectionAt(path)
+  await projection.projectNextBatch(1)
+
+  inspect(path)
+    .prepare(
+      `INSERT INTO ship_overview
+         (ship_id, name, status, current_port_name, current_port_country)
+       VALUES ('stale-ship', 'Stale', 'at-port', 'Nowhere', 'US')`
+    )
+    .run()
+
+  await expect(rebuildShipOverview(projection)).resolves.toEqual({
+    checkpoint: 2n,
+    projectedEventCount: 2
+  })
+  expect(
+    inspect(path)
+      .prepare(
+        `SELECT ship_id, name, status,
+                (SELECT CAST(position AS TEXT) FROM ship_overview_checkpoint) AS checkpoint
+         FROM ship_overview
+         ORDER BY ship_id`
+      )
+      .all()
+  ).toEqual([{ checkpoint: '2', name: 'King Roy', ship_id: 'ship-1', status: 'at-sea' }])
+})
+
+test('rolls back a rebuild reset when the checkpoint cannot be reset', async () => {
+  const path = databasePath()
+  const journal = journalAt(path)
+  await journal.append('ship-1', 0, [new ShipRegistered('ship-1', 'King Roy', port())])
+  const projection = projectionAt(path)
+  await projection.projectNextBatch(1)
+  inspect(path).exec(`
+    CREATE TRIGGER reject_checkpoint_reset
+    BEFORE UPDATE ON ship_overview_checkpoint
+    BEGIN
+      SELECT RAISE(ABORT, 'test rejection');
+    END;
+  `)
+
+  await expect(projection.resetForRebuild()).rejects.toMatchObject({
+    code: 'SHIP_OVERVIEW_PROJECTION_UNAVAILABLE'
+  })
+
+  expect(
+    inspect(path)
+      .prepare(
+        `SELECT overview.ship_id,
+                checkpoint.position AS checkpoint
+         FROM ship_overview AS overview
+         CROSS JOIN ship_overview_checkpoint AS checkpoint`
+      )
+      .get()
+  ).toEqual({ checkpoint: 1, ship_id: 'ship-1' })
 })
