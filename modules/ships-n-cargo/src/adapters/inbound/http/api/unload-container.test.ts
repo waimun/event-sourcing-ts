@@ -6,14 +6,14 @@ import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { IdNotAllowed } from '../../../../shared/domain/id'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
-import { createControllers } from '../controllers'
+import { createCommandControllers } from '../controllers'
 import { loadContainerHandler } from './load-container'
 import { registerShipHandler } from './register-ship'
 import { unloadContainerHandler } from './unload-container'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
-const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
+const controllers = createCommandControllers(new InMemoryEventJournal(new Name('test-journal')))
 const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
 const loadContainer = loadContainerHandler(controllers.loadContainer)
 const unloadContainer = unloadContainerHandler(controllers.unloadContainer)

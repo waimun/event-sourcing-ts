@@ -13,10 +13,10 @@ import { planVoyageHandler } from '../adapters/inbound/http/api/plan-voyage'
 import { registerShipHandler } from '../adapters/inbound/http/api/register-ship'
 import { sailShipHandler } from '../adapters/inbound/http/api/sail-ship'
 import { unloadContainerHandler } from '../adapters/inbound/http/api/unload-container'
-import { createControllers } from '../adapters/inbound/http/controllers'
-import { GetShipHistoryController } from '../adapters/inbound/http/controllers/get-ship-history'
-import { GetShipOverviewController } from '../adapters/inbound/http/controllers/get-ship-overview'
-import { ListShipOverviewsController } from '../adapters/inbound/http/controllers/list-ship-overviews'
+import {
+  createCommandControllers,
+  createQueryControllers
+} from '../adapters/inbound/http/controllers'
 import { generateId } from '../adapters/inbound/http/generate-id'
 import { InMemoryEventJournal } from '../adapters/outbound/persistence/in-memory-event-journal'
 import { PostgreSqlEventJournal } from '../adapters/outbound/persistence/postgresql/event-journal'
@@ -32,9 +32,6 @@ import type {
   ShipOverviewProjection,
   ShipOverviewQueries
 } from '../application/ports/ship-overview-projection'
-import { GetShipHistoryUseCase } from '../application/use-cases/get-ship-history/use-case'
-import { GetShipOverviewUseCase } from '../application/use-cases/get-ship-overview/use-case'
-import { ListShipOverviewsUseCase } from '../application/use-cases/list-ship-overviews/use-case'
 import type { DomainEvent } from '../domain/events/domain-event'
 import { Name } from '../shared/domain/name'
 import { EventJournalConfigurationInvalid } from './errors/event-journal-configuration-invalid'
@@ -92,30 +89,24 @@ export const createApplication = ({
   shipHistoryProjection,
   shipOverviewQueries
 }: ApplicationDependencies): Application => {
-  const controllers = createControllers(eventJournal)
-  const getShipHistory = new GetShipHistoryController(
-    new GetShipHistoryUseCase(shipHistoryProjection)
-  )
-  const getShipOverview = new GetShipOverviewController(
-    new GetShipOverviewUseCase(shipOverviewQueries)
-  )
-  const listShipOverviews = new ListShipOverviewsController(
-    new ListShipOverviewsUseCase(shipOverviewQueries)
-  )
+  const commandControllers = createCommandControllers(eventJournal)
+  const queryControllers = createQueryControllers({ shipHistoryProjection, shipOverviewQueries })
 
   return createHttpApplication({
-    getShipHistory: getShipHistoryHandler(getShipHistory),
-    getShipOverview: getShipOverviewHandler(getShipOverview),
-    listShipOverviews: listShipOverviewsHandler(listShipOverviews),
-    registerShip: registerShipHandler(controllers.registerShip, generateId),
-    cancelVoyage: cancelVoyageHandler(controllers.cancelVoyage),
-    changeVoyageDestination: changeVoyageDestinationHandler(controllers.changeVoyageDestination),
-    divertShip: divertShipHandler(controllers.divertShip),
-    dockShip: dockShipHandler(controllers.dockShip),
-    loadContainer: loadContainerHandler(controllers.loadContainer),
-    planVoyage: planVoyageHandler(controllers.planVoyage),
-    sailShip: sailShipHandler(controllers.sailShip),
-    unloadContainer: unloadContainerHandler(controllers.unloadContainer)
+    getShipHistory: getShipHistoryHandler(queryControllers.getShipHistory),
+    getShipOverview: getShipOverviewHandler(queryControllers.getShipOverview),
+    listShipOverviews: listShipOverviewsHandler(queryControllers.listShipOverviews),
+    registerShip: registerShipHandler(commandControllers.registerShip, generateId),
+    cancelVoyage: cancelVoyageHandler(commandControllers.cancelVoyage),
+    changeVoyageDestination: changeVoyageDestinationHandler(
+      commandControllers.changeVoyageDestination
+    ),
+    divertShip: divertShipHandler(commandControllers.divertShip),
+    dockShip: dockShipHandler(commandControllers.dockShip),
+    loadContainer: loadContainerHandler(commandControllers.loadContainer),
+    planVoyage: planVoyageHandler(commandControllers.planVoyage),
+    sailShip: sailShipHandler(commandControllers.sailShip),
+    unloadContainer: unloadContainerHandler(commandControllers.unloadContainer)
   })
 }
 
