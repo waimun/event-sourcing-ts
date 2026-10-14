@@ -21,6 +21,17 @@ This module currently supports [Node.js](https://nodejs.org/en/about/releases) 2
   drop and recreate the `ships_n_cargo` schema, so do not point it at a database containing data
   you need. Its SQLite tests create their own temporary databases.
 
+## 🚀 Running locally
+
+1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
+2. Run `npm start` for an in-memory event journal. Set `SHIPS_N_CARGO_POSTGRESQL_URL` or
+   `SHIPS_N_CARGO_SQLITE_PATH` to use the corresponding persistent adapter; setting both is
+   invalid.
+
+The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
+request to `/` to verify that it is running. See the [OpenAPI contract](src/adapters/inbound/http/openapi.yaml)
+for the available endpoints and request and response schemas.
+
 ## 🐘 PostgreSQL setup (optional)
 
 Provision a PostgreSQL database, then apply and verify its pending schema migrations:
@@ -41,26 +52,6 @@ automatically. Provide a file path when starting the application:
 ```sh
 SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm start
 ```
-
-## ♻️ Rebuilding the ship overview
-
-The ship overview is disposable derived data. Rebuild it from the complete event journal by setting
-exactly one persistent database and running the operator command:
-
-```sh
-SHIPS_N_CARGO_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run projection:rebuild-ship-overview
-```
-
-```sh
-SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm run projection:rebuild-ship-overview
-```
-
-The command clears the overview and resets its checkpoint before replaying the same event handlers
-used by continuous projection. It is safe to rerun, including when the journal or projection is
-empty. Overview queries can return incomplete results while the replay is running, so stop the
-application or otherwise remove read traffic from every instance when a consistent view is needed
-throughout the rebuild. Command handling and journal-backed ship-history reads do not depend on the
-overview.
 
 ## 📊 Projection consistency and lag
 
@@ -105,13 +96,21 @@ does not require a rebuild for a transient failure. Use the rebuild command when
 itself must be replaced or repaired. In-memory state is intentionally ephemeral and has no durable
 lag to inspect across restarts.
 
-## 🚀 Running locally
+## ♻️ Rebuilding the ship overview
 
-1. `npm ci` **Clean install &mdash; if ./node_modules is not present.**
-2. Run `npm start` for an in-memory event journal. Set `SHIPS_N_CARGO_POSTGRESQL_URL` or
-   `SHIPS_N_CARGO_SQLITE_PATH` to use the corresponding persistent adapter; setting both is
-   invalid.
+The ship overview is disposable derived data. Rebuild it from the complete event journal by setting
+exactly one persistent database and running the operator command:
 
-The API listens at [http://localhost:3000](http://localhost:3000). Send a `GET`
-request to `/` to verify that it is running. See the [OpenAPI contract](src/adapters/inbound/http/openapi.yaml)
-for the available endpoints and request and response schemas.
+```sh
+SHIPS_N_CARGO_POSTGRESQL_URL='postgresql://<user>:<password>@<host>:<port>/<database>' npm run projection:rebuild-ship-overview
+```
+
+```sh
+SHIPS_N_CARGO_SQLITE_PATH='./ships-n-cargo.sqlite' npm run projection:rebuild-ship-overview
+```
+
+The command clears the overview and resets its checkpoint before replaying the same event handlers
+used by continuous projection. It is safe to rerun, including when the journal or projection is
+empty. While a rebuild is running, queries backed by the ship overview may return incomplete
+results. Pause those queries across all application instances if clients must not observe the
+rebuild in progress.
