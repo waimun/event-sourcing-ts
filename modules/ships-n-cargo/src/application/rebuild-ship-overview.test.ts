@@ -49,3 +49,25 @@ test('does not replay when clearing the projection fails', async () => {
   await expect(rebuildShipOverview(projection)).rejects.toBe(resetFailure)
   expect(projection.projectNextBatch).not.toHaveBeenCalled()
 })
+
+test('starts again from a fresh reset when an interrupted replay is rerun', async () => {
+  const replayFailure = new Error('projection interrupted')
+  const resetForRebuild = vi.fn()
+  const projectNextBatch = vi
+    .fn<RebuildableShipOverviewProjection['projectNextBatch']>()
+    .mockResolvedValueOnce({
+      checkpoint: 100n,
+      projectedEventCount: shipOverviewRebuildBatchSize
+    })
+    .mockRejectedValueOnce(replayFailure)
+    .mockResolvedValueOnce({ checkpoint: 2n, projectedEventCount: 2 })
+  const projection = { projectNextBatch, resetForRebuild }
+
+  await expect(rebuildShipOverview(projection)).rejects.toBe(replayFailure)
+  await expect(rebuildShipOverview(projection)).resolves.toEqual({
+    checkpoint: 2n,
+    projectedEventCount: 2
+  })
+  expect(resetForRebuild).toHaveBeenCalledTimes(2)
+  expect(projectNextBatch).toHaveBeenCalledTimes(3)
+})

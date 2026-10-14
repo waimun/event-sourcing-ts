@@ -280,6 +280,10 @@ test('rebuilds the durable overview and checkpoint from the complete journal', a
     checkpoint: 2n,
     projectedEventCount: 2
   })
+  await expect(rebuildShipOverview(projection)).resolves.toEqual({
+    checkpoint: 2n,
+    projectedEventCount: 2
+  })
   expect(
     inspect(path)
       .prepare(
@@ -292,7 +296,7 @@ test('rebuilds the durable overview and checkpoint from the complete journal', a
   ).toEqual([{ checkpoint: '2', name: 'King Roy', ship_id: 'ship-1', status: 'at-sea' }])
 })
 
-test('rolls back a rebuild reset when the checkpoint cannot be reset', async () => {
+test('preserves the previous view when reset fails and can rebuild after recovery', async () => {
   const path = databasePath()
   const journal = journalAt(path)
   await journal.append('ship-1', 0, [new ShipRegistered('ship-1', 'King Roy', port())])
@@ -320,4 +324,21 @@ test('rolls back a rebuild reset when the checkpoint cannot be reset', async () 
       )
       .get()
   ).toEqual({ checkpoint: 1, ship_id: 'ship-1' })
+
+  inspect(path).exec('DROP TRIGGER reject_checkpoint_reset')
+
+  await expect(rebuildShipOverview(projection)).resolves.toEqual({
+    checkpoint: 1n,
+    projectedEventCount: 1
+  })
+  expect(
+    inspect(path)
+      .prepare(
+        `SELECT overview.ship_id,
+                CAST(checkpoint.position AS TEXT) AS checkpoint
+         FROM ship_overview AS overview
+         CROSS JOIN ship_overview_checkpoint AS checkpoint`
+      )
+      .get()
+  ).toEqual({ checkpoint: '1', ship_id: 'ship-1' })
 })
