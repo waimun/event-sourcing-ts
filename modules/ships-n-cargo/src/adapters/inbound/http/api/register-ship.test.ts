@@ -2,12 +2,12 @@ import type { Request, Response, Send } from 'express'
 import { beforeEach, expect, test, vi } from 'vitest'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
-import { createControllers } from '../controllers'
+import { createCommandControllers } from '../controllers'
 import { registerShipHandler } from './register-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
-const controllers = createControllers(new InMemoryEventJournal(new Name('test-journal')))
+const controllers = createCommandControllers(new InMemoryEventJournal(new Name('test-journal')))
 const registerShip = registerShipHandler(controllers.registerShip, () => 'generated-id')
 const port = { name: 'Kingston', country: 'US' }
 

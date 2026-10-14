@@ -3,14 +3,16 @@ import { beforeEach, expect, test, vi } from 'vitest'
 import { IsRequired } from '../../../../shared/domain/errors/is-required'
 import { Name } from '../../../../shared/domain/name'
 import { InMemoryEventJournal } from '../../../outbound/persistence/in-memory-event-journal'
-import { createControllers } from '../controllers'
+import { createCommandControllers } from '../controllers'
 import { changeVoyageDestinationHandler } from './change-voyage-destination'
 import { planVoyageHandler } from './plan-voyage'
 import { registerShipHandler } from './register-ship'
 
 const req: Partial<Request> = {}
 const res: Partial<Response> = {}
-const controllers = createControllers(new InMemoryEventJournal(new Name('change-test-journal')))
+const controllers = createCommandControllers(
+  new InMemoryEventJournal(new Name('change-test-journal'))
+)
 const registerShip = registerShipHandler(controllers.registerShip, () => 'change-generated-id')
 const planVoyage = planVoyageHandler(controllers.planVoyage)
 const changeVoyageDestination = changeVoyageDestinationHandler(controllers.changeVoyageDestination)
