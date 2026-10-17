@@ -62,7 +62,10 @@ const excludedDirectoryNames = new Set([
 
 const isWithin = (file: string, root: string): boolean => {
   const pathFromRoot = relative(root, file)
-  return pathFromRoot === '' || (!pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
+  return (
+    pathFromRoot === '' ||
+    (pathFromRoot !== '..' && !pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
+  )
 }
 
 const isAnalyzedSource = (fileName: string, sourceRoot: string): boolean => {
