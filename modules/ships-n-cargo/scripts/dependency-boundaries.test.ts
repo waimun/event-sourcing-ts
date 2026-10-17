@@ -72,7 +72,13 @@ beforeAll(() => {
   writeFixture('src/shared/invalid.ts', "export { value } from '../domain/model'")
   writeFixture('src/application/outside.ts', "export { outside } from '../../outside'")
   writeFixture('src/unassigned.ts', 'export const unassigned = true')
-  writeFixture('src/domain/ignored.test.ts', "export { value } from '../application/use-case'")
+  writeFixture('src/domain/invalid.test.ts', "export { value } from '../application/use-case'")
+  writeFixture(
+    'src/domain/fixtures/invalid.ts',
+    "export { value } from '../../application/use-case'"
+  )
+  writeFixture('src/domain/ignored.d.ts', "export { value } from '../application/use-case'")
+  writeFixture('src/domain/ignored.js', "export { value } from '../application/use-case'")
 })
 
 afterAll(() => {
@@ -155,9 +161,27 @@ test('fails closed when a relative module reference cannot be resolved', () => {
   )
 })
 
-test('keeps tests outside the governed production source policy', () => {
+test('enforces configured dependencies in tests and fixtures', () => {
+  expect(analyzeFixture()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        file: 'domain/fixtures/invalid.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'domain/invalid.test.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      })
+    ])
+  )
+})
+
+test('ignores declaration files and non-TypeScript inputs', () => {
   expect(analyzeFixture()).not.toEqual(
-    expect.arrayContaining([expect.objectContaining({ file: 'domain/ignored.test.ts' })])
+    expect.arrayContaining([
+      expect.objectContaining({ file: 'domain/ignored.d.ts' }),
+      expect.objectContaining({ file: 'domain/ignored.js' })
+    ])
   )
 })
 
