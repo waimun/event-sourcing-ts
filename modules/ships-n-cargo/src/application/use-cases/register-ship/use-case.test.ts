@@ -1,5 +1,4 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
 import type { DomainEvent } from '../../../domain/events/domain-event'
 import { Port } from '../../../domain/port'
@@ -8,6 +7,7 @@ import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { IdAlreadyExists } from '../../errors/id-already-exists'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
+import { InMemoryEventJournal } from '../../fixtures/in-memory-event-journal'
 import type { EventJournal } from '../../ports/event-journal'
 import { RegisterShipUseCase } from './use-case'
 

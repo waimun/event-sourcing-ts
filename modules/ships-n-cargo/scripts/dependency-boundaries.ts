@@ -51,15 +51,6 @@ interface ResolvedBoundary extends DependencyBoundary {
   root: string
 }
 
-const excludedDirectoryNames = new Set([
-  '__fixtures__',
-  '__tests__',
-  'fixture',
-  'fixtures',
-  'test',
-  'tests'
-])
-
 const isWithin = (file: string, root: string): boolean => {
   const pathFromRoot = relative(root, file)
   return (
@@ -70,16 +61,9 @@ const isWithin = (file: string, root: string): boolean => {
 
 const isAnalyzedSource = (fileName: string, sourceRoot: string): boolean => {
   if (!isWithin(fileName, sourceRoot)) return false
-  const pathFromSourceRoot = relative(sourceRoot, fileName)
-  const segments = pathFromSourceRoot.split(sep)
-  const name = segments.at(-1) ?? ''
+  const name = relative(sourceRoot, fileName).split(sep).at(-1) ?? ''
 
-  return (
-    !segments.some((segment) => excludedDirectoryNames.has(segment)) &&
-    !name.endsWith('.d.ts') &&
-    !/\.(?:fixture|spec|test)\.tsx?$/.test(name) &&
-    /\.tsx?$/.test(name)
-  )
+  return !name.endsWith('.d.ts') && /\.tsx?$/.test(name)
 }
 
 const resolveBoundaries = (

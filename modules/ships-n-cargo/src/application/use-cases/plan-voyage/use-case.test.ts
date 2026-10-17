@@ -1,5 +1,4 @@
 import { afterEach, expect, test, vi } from 'vitest'
-import { InMemoryEventJournal } from '../../../adapters/outbound/persistence/in-memory-event-journal'
 import { Country } from '../../../domain/country'
 import {
   ShipNotAtPort,
@@ -13,6 +12,7 @@ import { Id } from '../../../shared/domain/id'
 import { Name } from '../../../shared/domain/name'
 import { JournalVersionConflict } from '../../errors/journal-version-conflict'
 import { ShipNotFound } from '../../errors/ship-not-found'
+import { InMemoryEventJournal } from '../../fixtures/in-memory-event-journal'
 import { RegisterShipUseCase } from '../register-ship/use-case'
 import { SailShipUseCase } from '../sail-ship/use-case'
 import { PlanVoyageUseCase } from './use-case'
