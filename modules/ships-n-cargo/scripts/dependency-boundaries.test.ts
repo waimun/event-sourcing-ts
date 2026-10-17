@@ -45,12 +45,30 @@ beforeAll(() => {
   writeFixture('src/application/use-case.ts', "export { value } from '../domain/model'")
   writeFixture('src/adapters/adapter.ts', "export { value } from '../application/use-case'")
   writeFixture('src/bootstrap/main.ts', "export { value } from '../adapters/adapter'")
+  writeFixture(
+    'src/domain/computed-dynamic.ts',
+    "const modulePath = '../application/use-case'; void import(modulePath)"
+  )
+  writeFixture(
+    'src/domain/computed-import-type.ts',
+    "type ModulePath = '../application/use-case'; export type Application = typeof import(ModulePath)"
+  )
+  writeFixture(
+    'src/domain/computed-require.ts',
+    "declare const require: (path: string) => unknown; const modulePath = '../application/use-case'; require(modulePath)"
+  )
   writeFixture('src/domain/dynamic.ts', "void import('../application/use-case')")
   writeFixture('src/domain/invalid.ts', "export { value } from '../application/use-case'")
   writeFixture(
     'src/domain/import-type.ts',
     "export type Application = typeof import('../application/use-case')"
   )
+  writeFixture(
+    'src/domain/literal-require.ts',
+    "declare const require: (path: string) => unknown; require('../application/use-case')"
+  )
+  writeFixture('src/domain/static-template.ts', 'void import(`../application/use-case`)')
+  writeFixture('src/domain/unresolved.ts', "export { missing } from './missing'")
   writeFixture('src/shared/invalid.ts', "export { value } from '../domain/model'")
   writeFixture('src/application/outside.ts', "export { outside } from '../../outside'")
   writeFixture('src/unassigned.ts', 'export const unassigned = true')
@@ -61,39 +79,86 @@ afterAll(() => {
   rmSync(fixtureRoot, { recursive: true, force: true })
 })
 
-test('enforces inward dependencies and bounded-context isolation in production source', () => {
-  const diagnostics = checkDependencyBoundaries({
+const analyzeFixture = () =>
+  checkDependencyBoundaries({
     configFile: join(fixtureRoot, 'tsconfig.json'),
     sourceRoot,
     boundaries
   })
 
-  expect(diagnostics).toEqual([
-    expect.objectContaining({
-      file: 'application/outside.ts',
-      rule: dependencyBoundaryRules.outsideContext
-    }),
-    expect.objectContaining({
-      file: 'domain/dynamic.ts',
-      rule: dependencyBoundaryRules.forbiddenImport
-    }),
-    expect.objectContaining({
-      file: 'domain/import-type.ts',
-      rule: dependencyBoundaryRules.forbiddenImport
-    }),
-    expect.objectContaining({
-      file: 'domain/invalid.ts',
-      rule: dependencyBoundaryRules.forbiddenImport
-    }),
-    expect.objectContaining({
-      file: 'shared/invalid.ts',
-      rule: dependencyBoundaryRules.forbiddenImport
-    }),
-    expect.objectContaining({
-      file: 'unassigned.ts',
-      rule: dependencyBoundaryRules.unassignedSource
-    })
-  ])
+test('enforces inward dependencies and bounded-context isolation in production source', () => {
+  expect(analyzeFixture()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        file: 'application/outside.ts',
+        rule: dependencyBoundaryRules.outsideContext
+      }),
+      expect.objectContaining({
+        file: 'domain/import-type.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'domain/invalid.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'shared/invalid.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'unassigned.ts',
+        rule: dependencyBoundaryRules.unassignedSource
+      })
+    ])
+  )
+})
+
+test('fails closed for computed module references and checks static dynamic forms', () => {
+  expect(analyzeFixture()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        file: 'domain/computed-dynamic.ts',
+        rule: dependencyBoundaryRules.dynamicModuleReference
+      }),
+      expect.objectContaining({
+        file: 'domain/computed-import-type.ts',
+        rule: dependencyBoundaryRules.dynamicModuleReference
+      }),
+      expect.objectContaining({
+        file: 'domain/computed-require.ts',
+        rule: dependencyBoundaryRules.dynamicModuleReference
+      }),
+      expect.objectContaining({
+        file: 'domain/dynamic.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'domain/literal-require.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      }),
+      expect.objectContaining({
+        file: 'domain/static-template.ts',
+        rule: dependencyBoundaryRules.forbiddenImport
+      })
+    ])
+  )
+})
+
+test('fails closed when a relative module reference cannot be resolved', () => {
+  expect(analyzeFixture()).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        file: 'domain/unresolved.ts',
+        rule: dependencyBoundaryRules.unresolvedModuleReference
+      })
+    ])
+  )
+})
+
+test('keeps tests outside the governed production source policy', () => {
+  expect(analyzeFixture()).not.toEqual(
+    expect.arrayContaining([expect.objectContaining({ file: 'domain/ignored.test.ts' })])
+  )
 })
 
 test('rejects invalid boundary configuration', () => {
@@ -118,6 +183,24 @@ test('rejects invalid boundary configuration', () => {
   expect(() =>
     check([{ name: 'outside', path: '../outside', allowedDependencies: ['outside'] }])
   ).toThrow('Dependency boundary must be inside its source root: ../outside')
+  expect(() =>
+    check([
+      {
+        name: 'absolute',
+        path: join(sourceRoot, 'domain'),
+        allowedDependencies: ['absolute']
+      }
+    ])
+  ).toThrow(`Dependency boundary must be inside its source root: ${join(sourceRoot, 'domain')}`)
+  expect(() =>
+    check([
+      {
+        name: 'domain',
+        path: 'domain',
+        allowedDependencies: ['domain', 'domain']
+      }
+    ])
+  ).toThrow("Dependency boundary 'domain' duplicates allowed dependency 'domain'")
   expect(() =>
     check([
       { name: 'domain', path: 'domain', allowedDependencies: ['domain'] },
