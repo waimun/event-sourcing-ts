@@ -183,6 +183,9 @@ test('rejects invalid boundary configuration', () => {
   expect(() =>
     check([{ name: 'outside', path: '../outside', allowedDependencies: ['outside'] }])
   ).toThrow('Dependency boundary must be inside its source root: ../outside')
+  expect(() => check([{ name: 'parent', path: '..', allowedDependencies: ['parent'] }])).toThrow(
+    'Dependency boundary must be inside its source root: ..'
+  )
   expect(() =>
     check([
       {

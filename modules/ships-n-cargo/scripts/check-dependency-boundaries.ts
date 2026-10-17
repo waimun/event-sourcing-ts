@@ -31,7 +31,10 @@ interface ResolvedBoundedContext extends BoundedContextDependencyConfig {
 
 const isWithin = (file: string, root: string): boolean => {
   const pathFromRoot = relative(root, file)
-  return pathFromRoot === '' || (!pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
+  return (
+    pathFromRoot === '' ||
+    (pathFromRoot !== '..' && !pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
+  )
 }
 
 const resolveProjectPath = (projectRoot: string, path: string, label: string): string => {

@@ -99,6 +99,15 @@ test('rejects source roots and TypeScript configuration outside the project root
       { projectRoot: '/repository', check }
     )
   ).toThrow('TypeScript configuration must be inside the project root: ../tsconfig.json')
+  expect(() =>
+    runDependencyBoundaries(
+      {
+        configFile: 'tsconfig.json',
+        boundedContexts: [{ name: 'orders', sourceRoot: '..', boundaries: [boundary] }]
+      },
+      { projectRoot: '/repository', check }
+    )
+  ).toThrow("Bounded-context source root 'orders' must be inside the project root: ..")
   expect(check).not.toHaveBeenCalled()
 })
 
