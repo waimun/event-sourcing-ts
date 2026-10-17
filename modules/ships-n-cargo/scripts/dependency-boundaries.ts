@@ -9,18 +9,21 @@ import {
   isImportTypeNode,
   isKeywordExpression,
   isLiteralTypeNode,
+  isNoSubstitutionTemplateLiteral,
   isSourceFile,
   isStringLiteral,
   type Node,
   type SourceFile,
-  type StringLiteral,
+  type StringLiteralLikeNode,
   SyntaxKind
 } from 'typescript/unstable/ast'
 import { API, type Checker, type Program, type Project } from 'typescript/unstable/sync'
 
 export const dependencyBoundaryRules = {
+  dynamicModuleReference: 'dependency-boundaries/no-dynamic-module-reference',
   forbiddenImport: 'dependency-boundaries/no-forbidden-import',
   outsideContext: 'dependency-boundaries/no-outside-context-import',
+  unresolvedModuleReference: 'dependency-boundaries/no-unresolved-module-reference',
   unassignedSource: 'dependency-boundaries/unassigned-source'
 } as const
 
@@ -62,7 +65,7 @@ const isWithin = (file: string, root: string): boolean => {
   return pathFromRoot === '' || (!pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
 }
 
-const isProductionSource = (fileName: string, sourceRoot: string): boolean => {
+const isAnalyzedSource = (fileName: string, sourceRoot: string): boolean => {
   if (!isWithin(fileName, sourceRoot)) return false
   const pathFromSourceRoot = relative(sourceRoot, fileName)
   const segments = pathFromSourceRoot.split(sep)
@@ -92,7 +95,7 @@ const resolveBoundaries = (
     names.add(boundary.name)
 
     const root = resolve(sourceRoot, boundary.path)
-    if (!isWithin(root, sourceRoot)) {
+    if (isAbsolute(boundary.path) || !isWithin(root, sourceRoot)) {
       throw new Error(`Dependency boundary must be inside its source root: ${boundary.path}`)
     }
 
@@ -100,7 +103,15 @@ const resolveBoundaries = (
   })
 
   for (const boundary of resolved) {
+    const dependencies = new Set<string>()
     for (const dependency of boundary.allowedDependencies) {
+      if (dependencies.has(dependency)) {
+        throw new Error(
+          `Dependency boundary '${boundary.name}' duplicates allowed dependency '${dependency}'`
+        )
+      }
+      dependencies.add(dependency)
+
       if (!names.has(dependency)) {
         throw new Error(
           `Dependency boundary '${boundary.name}' allows unknown boundary '${dependency}'`
@@ -126,7 +137,8 @@ const boundaryFor = (
 ): ResolvedBoundary | undefined => boundaries.find((boundary) => isWithin(fileName, boundary.root))
 
 const importedSourceFile = (
-  moduleSpecifier: StringLiteral,
+  moduleSpecifier: StringLiteralLikeNode,
+  importingSourceFile: SourceFile,
   checker: Checker,
   project: Project
 ): SourceFile | undefined => {
@@ -135,43 +147,74 @@ const importedSourceFile = (
     const node = declaration.resolve(project)
     if (node !== undefined && isSourceFile(node)) return node
   }
+
+  if (moduleSpecifier.text.startsWith('.')) {
+    const importedPath = resolve(dirname(importingSourceFile.fileName), moduleSpecifier.text)
+    const importedPathWithoutExtension = importedPath.replace(/\.[cm]?[jt]sx?$/, '')
+
+    for (const fileName of project.program.getSourceFileNames()) {
+      const fileWithoutExtension = fileName.replace(/(?:\.d)?\.[cm]?[jt]sx?$/, '')
+      if (
+        fileWithoutExtension === importedPathWithoutExtension ||
+        fileWithoutExtension === resolve(importedPathWithoutExtension, 'index')
+      ) {
+        return project.program.getSourceFile(fileName)
+      }
+    }
+  }
+
   return undefined
 }
 
-const moduleSpecifierFor = (node: Node): StringLiteral | undefined => {
+interface ModuleReference {
+  node: Node
+  specifier?: StringLiteralLikeNode
+}
+
+const stringLiteralLike = (node: Node): node is StringLiteralLikeNode =>
+  isStringLiteral(node) || isNoSubstitutionTemplateLiteral(node)
+
+const moduleReferenceFor = (node: Node): ModuleReference | undefined => {
   if (
     (isImportDeclaration(node) || isExportDeclaration(node)) &&
     node.moduleSpecifier !== undefined &&
     isStringLiteral(node.moduleSpecifier)
   ) {
-    return node.moduleSpecifier
+    return { node: node.moduleSpecifier, specifier: node.moduleSpecifier }
   }
 
-  if (
-    isImportEqualsDeclaration(node) &&
-    isExternalModuleReference(node.moduleReference) &&
-    node.moduleReference.expression !== undefined &&
-    isStringLiteral(node.moduleReference.expression)
-  ) {
-    return node.moduleReference.expression
+  if (isImportEqualsDeclaration(node) && isExternalModuleReference(node.moduleReference)) {
+    const expression = node.moduleReference.expression
+    return {
+      node: expression ?? node.moduleReference,
+      specifier: expression !== undefined && isStringLiteral(expression) ? expression : undefined
+    }
   }
 
-  if (
-    isImportTypeNode(node) &&
-    isLiteralTypeNode(node.argument) &&
-    isStringLiteral(node.argument.literal)
-  ) {
-    return node.argument.literal
+  if (isImportTypeNode(node)) {
+    const argument = node.argument
+    return {
+      node: argument,
+      specifier:
+        isLiteralTypeNode(argument) && isStringLiteral(argument.literal)
+          ? argument.literal
+          : undefined
+    }
   }
 
   if (
     isCallExpression(node) &&
-    node.arguments.length === 1 &&
-    isStringLiteral(node.arguments[0]) &&
     ((isKeywordExpression(node.expression) && node.expression.kind === SyntaxKind.ImportKeyword) ||
       (isIdentifier(node.expression) && node.expression.text === 'require'))
   ) {
-    return node.arguments[0]
+    const argument = node.arguments[0]
+    return {
+      node: argument ?? node,
+      specifier:
+        node.arguments.length === 1 && argument !== undefined && stringLiteralLike(argument)
+          ? argument
+          : undefined
+    }
   }
 
   return undefined
@@ -207,7 +250,7 @@ const analyzeProgram = (
   const projectRoot = dirname(configFile)
 
   for (const fileName of [...program.getSourceFileNames()].sort()) {
-    if (!isProductionSource(fileName, sourceRoot)) continue
+    if (!isAnalyzedSource(fileName, sourceRoot)) continue
     const sourceFile = program.getSourceFile(fileName)
     if (sourceFile === undefined) continue
 
@@ -225,38 +268,59 @@ const analyzeProgram = (
     }
 
     const visit = (node: Node): undefined => {
-      const moduleSpecifier = moduleSpecifierFor(node)
+      const moduleReference = moduleReferenceFor(node)
 
-      if (moduleSpecifier !== undefined) {
-        const dependencyFile = importedSourceFile(moduleSpecifier, checker, project)
-        if (dependencyFile !== undefined) {
-          const dependencyBoundary = boundaryFor(dependencyFile.fileName, boundaries)
+      if (moduleReference !== undefined) {
+        const moduleSpecifier = moduleReference.specifier
+        if (moduleSpecifier === undefined) {
+          addDiagnostic(
+            diagnostics,
+            sourceRoot,
+            sourceFile,
+            moduleReference.node,
+            dependencyBoundaryRules.dynamicModuleReference,
+            'Module references must use exactly one static string literal.'
+          )
+        } else {
+          const dependencyFile = importedSourceFile(moduleSpecifier, sourceFile, checker, project)
+          if (dependencyFile !== undefined) {
+            const dependencyBoundary = boundaryFor(dependencyFile.fileName, boundaries)
 
-          if (
-            dependencyBoundary === undefined &&
-            (moduleSpecifier.text.startsWith('.') ||
-              (isWithin(dependencyFile.fileName, projectRoot) &&
-                !dependencyFile.fileName.split(sep).includes('node_modules')))
-          ) {
+            if (
+              dependencyBoundary === undefined &&
+              (moduleSpecifier.text.startsWith('.') ||
+                (isWithin(dependencyFile.fileName, projectRoot) &&
+                  !dependencyFile.fileName.split(sep).includes('node_modules')))
+            ) {
+              addDiagnostic(
+                diagnostics,
+                sourceRoot,
+                sourceFile,
+                moduleSpecifier,
+                dependencyBoundaryRules.outsideContext,
+                `Import '${moduleSpecifier.text}' resolves outside the configured bounded context.`
+              )
+            } else if (
+              dependencyBoundary !== undefined &&
+              !sourceBoundary.allowedDependencies.includes(dependencyBoundary.name)
+            ) {
+              addDiagnostic(
+                diagnostics,
+                sourceRoot,
+                sourceFile,
+                moduleSpecifier,
+                dependencyBoundaryRules.forbiddenImport,
+                `Boundary '${sourceBoundary.name}' must not depend on boundary '${dependencyBoundary.name}'.`
+              )
+            }
+          } else if (moduleSpecifier.text.startsWith('.')) {
             addDiagnostic(
               diagnostics,
               sourceRoot,
               sourceFile,
               moduleSpecifier,
-              dependencyBoundaryRules.outsideContext,
-              `Import '${moduleSpecifier.text}' resolves outside the configured bounded context.`
-            )
-          } else if (
-            dependencyBoundary !== undefined &&
-            !sourceBoundary.allowedDependencies.includes(dependencyBoundary.name)
-          ) {
-            addDiagnostic(
-              diagnostics,
-              sourceRoot,
-              sourceFile,
-              moduleSpecifier,
-              dependencyBoundaryRules.forbiddenImport,
-              `Boundary '${sourceBoundary.name}' must not depend on boundary '${dependencyBoundary.name}'.`
+              dependencyBoundaryRules.unresolvedModuleReference,
+              `Relative module reference '${moduleSpecifier.text}' could not be resolved.`
             )
           }
         }
@@ -294,7 +358,7 @@ export const checkDependencyBoundaries = ({
       if (
         !project.program
           .getSourceFileNames()
-          .some((fileName) => isProductionSource(fileName, absoluteSourceRoot))
+          .some((fileName) => isAnalyzedSource(fileName, absoluteSourceRoot))
       ) {
         throw new Error(
           `Bounded-context source root is not part of the TypeScript project: ${absoluteSourceRoot}`

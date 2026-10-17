@@ -1,4 +1,4 @@
-import { resolve } from 'node:path'
+import { isAbsolute, relative, resolve, sep } from 'node:path'
 import {
   checkDependencyBoundaries,
   type DependencyBoundary,
@@ -25,6 +25,60 @@ interface DependencyBoundariesLauncherOptions {
   report?: (diagnostic: string) => void
 }
 
+interface ResolvedBoundedContext extends BoundedContextDependencyConfig {
+  sourceRoot: string
+}
+
+const isWithin = (file: string, root: string): boolean => {
+  const pathFromRoot = relative(root, file)
+  return pathFromRoot === '' || (!pathFromRoot.startsWith(`..${sep}`) && !isAbsolute(pathFromRoot))
+}
+
+const resolveProjectPath = (projectRoot: string, path: string, label: string): string => {
+  const resolvedPath = resolve(projectRoot, path)
+  if (isAbsolute(path) || !isWithin(resolvedPath, projectRoot)) {
+    throw new Error(`${label} must be inside the project root: ${path}`)
+  }
+  return resolvedPath
+}
+
+const resolveContexts = (
+  projectRoot: string,
+  contexts: readonly BoundedContextDependencyConfig[]
+): ResolvedBoundedContext[] => {
+  const names = new Set<string>()
+  const resolved = contexts.map((context) => {
+    if (names.has(context.name)) {
+      throw new Error(`Bounded-context name is duplicated: ${context.name}`)
+    }
+    names.add(context.name)
+
+    return {
+      ...context,
+      sourceRoot: resolveProjectPath(
+        projectRoot,
+        context.sourceRoot,
+        `Bounded-context source root '${context.name}'`
+      )
+    }
+  })
+
+  for (const [index, context] of resolved.entries()) {
+    for (const candidate of resolved.slice(index + 1)) {
+      if (
+        isWithin(context.sourceRoot, candidate.sourceRoot) ||
+        isWithin(candidate.sourceRoot, context.sourceRoot)
+      ) {
+        throw new Error(
+          `Bounded-context source roots overlap: '${context.name}' and '${candidate.name}'`
+        )
+      }
+    }
+  }
+
+  return resolved
+}
+
 export const runDependencyBoundaries = (
   config: DependencyBoundariesConfig,
   {
@@ -38,11 +92,17 @@ export const runDependencyBoundaries = (
     throw new Error('Dependency boundaries configuration must declare at least one bounded context')
   }
 
-  const configFile = resolve(projectRoot, config.configFile)
-  const diagnostics = config.boundedContexts.flatMap((context) =>
+  const absoluteProjectRoot = resolve(projectRoot)
+  const configFile = resolveProjectPath(
+    absoluteProjectRoot,
+    config.configFile,
+    'TypeScript configuration'
+  )
+  const contexts = resolveContexts(absoluteProjectRoot, config.boundedContexts)
+  const diagnostics = contexts.flatMap((context) =>
     check({
       configFile,
-      sourceRoot: resolve(projectRoot, context.sourceRoot),
+      sourceRoot: context.sourceRoot,
       boundaries: context.boundaries
     }).map((diagnostic) => `[${context.name}] ${format(diagnostic)}`)
   )

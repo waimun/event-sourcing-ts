@@ -23,17 +23,15 @@ test('runs every explicitly configured bounded-context source root in order', ()
       projectRoot: '/repository',
       check: (options) => {
         checked.push(options)
-        return options.sourceRoot.includes('orders')
-          ? [
-              {
-                file: 'domain/order.ts',
-                line: 1,
-                column: 20,
-                rule: dependencyBoundaryRules.forbiddenImport,
-                message: "Boundary 'domain' must not depend on boundary 'adapters'."
-              }
-            ]
-          : []
+        return [
+          {
+            file: options.sourceRoot.includes('orders') ? 'domain/order.ts' : 'domain/cargo.ts',
+            line: 1,
+            column: 20,
+            rule: dependencyBoundaryRules.forbiddenImport,
+            message: "Boundary 'domain' must not depend on boundary 'adapters'."
+          }
+        ]
       },
       report: diagnostics.push.bind(diagnostics)
     })
@@ -52,7 +50,8 @@ test('runs every explicitly configured bounded-context source root in order', ()
     }
   ])
   expect(diagnostics).toEqual([
-    "[orders] domain/order.ts:1:20 [dependency-boundaries/no-forbidden-import] Boundary 'domain' must not depend on boundary 'adapters'."
+    "[orders] domain/order.ts:1:20 [dependency-boundaries/no-forbidden-import] Boundary 'domain' must not depend on boundary 'adapters'.",
+    "[cargo] domain/cargo.ts:1:20 [dependency-boundaries/no-forbidden-import] Boundary 'domain' must not depend on boundary 'adapters'."
   ])
 })
 
@@ -77,4 +76,58 @@ test('fails closed when no bounded contexts are configured', () => {
       { check: vi.fn(() => []) }
     )
   ).toThrow('Dependency boundaries configuration must declare at least one bounded context')
+})
+
+test('rejects source roots and TypeScript configuration outside the project root', () => {
+  const check = vi.fn(() => [])
+
+  expect(() =>
+    runDependencyBoundaries(
+      {
+        configFile: 'tsconfig.json',
+        boundedContexts: [{ name: 'orders', sourceRoot: '../orders/src', boundaries: [boundary] }]
+      },
+      { projectRoot: '/repository', check }
+    )
+  ).toThrow("Bounded-context source root 'orders' must be inside the project root: ../orders/src")
+  expect(() =>
+    runDependencyBoundaries(
+      {
+        configFile: '../tsconfig.json',
+        boundedContexts: [{ name: 'orders', sourceRoot: 'src', boundaries: [boundary] }]
+      },
+      { projectRoot: '/repository', check }
+    )
+  ).toThrow('TypeScript configuration must be inside the project root: ../tsconfig.json')
+  expect(check).not.toHaveBeenCalled()
+})
+
+test('rejects duplicate names and overlapping bounded-context source roots before analysis', () => {
+  const check = vi.fn(() => [])
+
+  expect(() =>
+    runDependencyBoundaries(
+      {
+        configFile: 'tsconfig.json',
+        boundedContexts: [
+          { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] },
+          { name: 'orders', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
+        ]
+      },
+      { projectRoot: '/repository', check }
+    )
+  ).toThrow('Bounded-context name is duplicated: orders')
+  expect(() =>
+    runDependencyBoundaries(
+      {
+        configFile: 'tsconfig.json',
+        boundedContexts: [
+          { name: 'orders', sourceRoot: 'contexts', boundaries: [boundary] },
+          { name: 'cargo', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
+        ]
+      },
+      { projectRoot: '/repository', check }
+    )
+  ).toThrow("Bounded-context source roots overlap: 'orders' and 'cargo'")
+  expect(check).not.toHaveBeenCalled()
 })
