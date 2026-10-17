@@ -14,7 +14,8 @@
   },
   "scripts": {
     "format": "biome check --write",
-    "lint": "biome ci --error-on-warnings && npm run lint:error-architecture",
+    "lint": "biome ci --error-on-warnings && npm run lint:error-architecture && npm run lint:dependency-boundaries",
+    "lint:dependency-boundaries": "node --import tsx scripts/check-dependency-boundaries.ts",
     "lint:error-architecture": "node --import tsx scripts/check-error-architecture.ts",
     "typecheck": "tsc --noEmit",
     "test": "npm run test:unit",
