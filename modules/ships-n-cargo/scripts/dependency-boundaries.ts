@@ -155,7 +155,7 @@ const importedSourceFile = (
 
 interface ModuleReference {
   node: Node
-  specifier?: StringLiteralLikeNode
+  specifier: StringLiteralLikeNode | undefined
 }
 
 const stringLiteralLike = (node: Node): node is StringLiteralLikeNode =>
