@@ -1,3 +1,6 @@
+import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
 import { expect, test, vi } from 'vitest'
 import {
   type DependencyBoundariesConfig,
@@ -6,13 +9,14 @@ import {
 import { type DependencyBoundariesOptions, dependencyBoundaryRules } from './dependency-boundaries'
 
 const boundary = { name: 'domain', path: 'domain', allowedDependencies: ['domain'] } as const
+const configuredDiscovery = { kind: 'configured' } as const
 
 test('runs every explicitly configured bounded-context source root in order', () => {
   const diagnostics: string[] = []
   const checked: DependencyBoundariesOptions[] = []
   const config = {
     configFile: 'tsconfig.json',
-    requiredSourceRoots: ['contexts/orders/src', 'contexts/cargo/src'],
+    contextDiscovery: configuredDiscovery,
     boundedContexts: [
       { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] },
       { name: 'cargo', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
@@ -61,7 +65,7 @@ test('returns success when every configured context is clean', () => {
     runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['contexts/orders/src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [
           { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] }
         ]
@@ -74,7 +78,7 @@ test('returns success when every configured context is clean', () => {
 test('fails closed when no bounded contexts are configured', () => {
   expect(() =>
     runDependencyBoundaries(
-      { configFile: 'tsconfig.json', requiredSourceRoots: ['src'], boundedContexts: [] },
+      { configFile: 'tsconfig.json', contextDiscovery: configuredDiscovery, boundedContexts: [] },
       { check: vi.fn(() => []) }
     )
   ).toThrow('Dependency boundaries configuration must declare at least one bounded context')
@@ -87,7 +91,7 @@ test('rejects source roots and TypeScript configuration outside the project root
     runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [{ name: 'orders', sourceRoot: '../orders/src', boundaries: [boundary] }]
       },
       { projectRoot: '/repository', check }
@@ -97,7 +101,7 @@ test('rejects source roots and TypeScript configuration outside the project root
     runDependencyBoundaries(
       {
         configFile: '../tsconfig.json',
-        requiredSourceRoots: ['src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [{ name: 'orders', sourceRoot: 'src', boundaries: [boundary] }]
       },
       { projectRoot: '/repository', check }
@@ -107,7 +111,7 @@ test('rejects source roots and TypeScript configuration outside the project root
     runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [{ name: 'orders', sourceRoot: '..', boundaries: [boundary] }]
       },
       { projectRoot: '/repository', check }
@@ -123,7 +127,7 @@ test('rejects duplicate names and overlapping bounded-context source roots befor
     runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['contexts/orders/src', 'contexts/cargo/src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [
           { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] },
           { name: 'orders', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
@@ -136,7 +140,7 @@ test('rejects duplicate names and overlapping bounded-context source roots befor
     runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['contexts', 'contexts/cargo/src'],
+        contextDiscovery: configuredDiscovery,
         boundedContexts: [
           { name: 'orders', sourceRoot: 'contexts', boundaries: [boundary] },
           { name: 'cargo', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
@@ -148,74 +152,101 @@ test('rejects duplicate names and overlapping bounded-context source roots befor
   expect(check).not.toHaveBeenCalled()
 })
 
-test('fails closed when a required source root is omitted from bounded-context configuration', () => {
+test('discovers child contexts and fails closed when one is omitted from configuration', () => {
   const check = vi.fn(() => [])
+  const projectRoot = mkdtempSync(join(tmpdir(), 'dependency-boundaries-launcher-'))
 
-  expect(() =>
-    runDependencyBoundaries(
-      {
-        configFile: 'tsconfig.json',
-        requiredSourceRoots: ['contexts/orders/src', 'contexts/cargo/src'],
-        boundedContexts: [
-          { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] }
-        ]
-      },
-      { projectRoot: '/repository', check }
+  try {
+    mkdirSync(join(projectRoot, 'contexts/orders/src'), { recursive: true })
+    mkdirSync(join(projectRoot, 'contexts/cargo/src'), { recursive: true })
+
+    expect(() =>
+      runDependencyBoundaries(
+        {
+          configFile: 'tsconfig.json',
+          contextDiscovery: { kind: 'children', root: 'contexts', sourcePath: 'src' },
+          boundedContexts: [
+            { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] }
+          ]
+        },
+        { projectRoot, check }
+      )
+    ).toThrow(
+      'Discovered bounded-context source root has no dependency-boundaries configuration: contexts/cargo/src'
     )
-  ).toThrow(
-    'Required bounded-context source root has no dependency-boundaries configuration: contexts/cargo/src'
-  )
-  expect(check).not.toHaveBeenCalled()
+    expect(check).not.toHaveBeenCalled()
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true })
+  }
 })
 
-test('rejects contexts outside the required source-root inventory', () => {
+test('rejects configured contexts outside discovered source roots', () => {
   const check = vi.fn(() => [])
+  const projectRoot = mkdtempSync(join(tmpdir(), 'dependency-boundaries-launcher-'))
 
-  expect(() =>
-    runDependencyBoundaries(
-      {
-        configFile: 'tsconfig.json',
-        requiredSourceRoots: ['contexts/orders/src'],
-        boundedContexts: [
-          { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] },
-          { name: 'cargo', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
-        ]
-      },
-      { projectRoot: '/repository', check }
-    )
-  ).toThrow("Bounded-context source root 'cargo' is not declared as required: contexts/cargo/src")
-  expect(check).not.toHaveBeenCalled()
+  try {
+    mkdirSync(join(projectRoot, 'contexts/orders/src'), { recursive: true })
+
+    expect(() =>
+      runDependencyBoundaries(
+        {
+          configFile: 'tsconfig.json',
+          contextDiscovery: { kind: 'children', root: 'contexts', sourcePath: 'src' },
+          boundedContexts: [
+            { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] },
+            { name: 'cargo', sourceRoot: 'contexts/cargo/src', boundaries: [boundary] }
+          ]
+        },
+        { projectRoot, check }
+      )
+    ).toThrow("Bounded-context source root 'cargo' was not discovered: contexts/cargo/src")
+    expect(check).not.toHaveBeenCalled()
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true })
+  }
 })
 
-test('rejects empty, duplicate, and external required source-root inventories', () => {
+test('rejects discovery roots outside the project', () => {
   const check = vi.fn(() => [])
   const context = { name: 'ships', sourceRoot: 'src', boundaries: [boundary] } as const
 
   expect(() =>
     runDependencyBoundaries(
-      { configFile: 'tsconfig.json', requiredSourceRoots: [], boundedContexts: [context] },
-      { projectRoot: '/repository', check }
-    )
-  ).toThrow('Dependency boundaries configuration must declare at least one required source root')
-  expect(() =>
-    runDependencyBoundaries(
       {
         configFile: 'tsconfig.json',
-        requiredSourceRoots: ['src', './src'],
+        contextDiscovery: { kind: 'children', root: '..' },
         boundedContexts: [context]
       },
       { projectRoot: '/repository', check }
     )
-  ).toThrow('Required bounded-context source root is duplicated: ./src')
-  expect(() =>
-    runDependencyBoundaries(
-      {
-        configFile: 'tsconfig.json',
-        requiredSourceRoots: ['../outside/src'],
-        boundedContexts: [context]
-      },
-      { projectRoot: '/repository', check }
-    )
-  ).toThrow('Required bounded-context source root must be inside the project root: ../outside/src')
+  ).toThrow('Bounded-context discovery root must be inside the project root: ..')
   expect(check).not.toHaveBeenCalled()
+})
+
+test('rejects source paths outside child contexts', () => {
+  const check = vi.fn(() => [])
+  const projectRoot = mkdtempSync(join(tmpdir(), 'dependency-boundaries-launcher-'))
+  const context = {
+    name: 'orders',
+    sourceRoot: 'contexts/orders/src',
+    boundaries: [boundary]
+  } as const
+
+  try {
+    mkdirSync(join(projectRoot, 'contexts/orders/src'), { recursive: true })
+
+    expect(() =>
+      runDependencyBoundaries(
+        {
+          configFile: 'tsconfig.json',
+          contextDiscovery: { kind: 'children', root: 'contexts', sourcePath: '..' },
+          boundedContexts: [context]
+        },
+        { projectRoot, check }
+      )
+    ).toThrow("Bounded-context source path for 'orders' must be inside its context root: ..")
+    expect(check).not.toHaveBeenCalled()
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true })
+  }
 })
