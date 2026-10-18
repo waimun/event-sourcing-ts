@@ -1,3 +1,4 @@
+import { readdirSync } from 'node:fs'
 import { isAbsolute, relative, resolve, sep } from 'node:path'
 import {
   checkDependencyBoundaries,
@@ -13,9 +14,13 @@ export interface BoundedContextDependencyConfig {
   boundaries: readonly DependencyBoundary[]
 }
 
+export type BoundedContextDiscovery =
+  | { kind: 'configured' }
+  | { kind: 'children'; root: string; sourcePath?: string }
+
 export interface DependencyBoundariesConfig {
   configFile: string
-  requiredSourceRoots: readonly string[]
+  contextDiscovery: BoundedContextDiscovery
   boundedContexts: readonly BoundedContextDependencyConfig[]
 }
 
@@ -31,7 +36,7 @@ interface ResolvedBoundedContext extends BoundedContextDependencyConfig {
   sourceRoot: string
 }
 
-interface ResolvedSourceRoot {
+interface DiscoveredSourceRoot {
   configuredPath: string
   absolutePath: string
 }
@@ -90,50 +95,54 @@ const resolveContexts = (
   return resolved
 }
 
-const resolveRequiredSourceRoots = (
+const discoverSourceRoots = (
   projectRoot: string,
-  sourceRoots: readonly string[]
-): ResolvedSourceRoot[] => {
-  if (sourceRoots.length === 0) {
-    throw new Error(
-      'Dependency boundaries configuration must declare at least one required source root'
-    )
-  }
+  discovery: Extract<BoundedContextDiscovery, { kind: 'children' }>
+): DiscoveredSourceRoot[] => {
+  const childrenRoot = resolveProjectPath(
+    projectRoot,
+    discovery.root,
+    'Bounded-context discovery root'
+  )
+  const sourcePath = discovery.sourcePath ?? '.'
 
-  const absolutePaths = new Set<string>()
-  return sourceRoots.map((configuredPath) => {
-    const absolutePath = resolveProjectPath(
-      projectRoot,
-      configuredPath,
-      'Required bounded-context source root'
-    )
-    if (absolutePaths.has(absolutePath)) {
-      throw new Error(`Required bounded-context source root is duplicated: ${configuredPath}`)
-    }
-    absolutePaths.add(absolutePath)
-    return { configuredPath, absolutePath }
-  })
+  return readdirSync(childrenRoot, { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .sort((left, right) => left.name.localeCompare(right.name))
+    .map((child) => {
+      const contextRoot = resolve(childrenRoot, child.name)
+      const absolutePath = resolve(contextRoot, sourcePath)
+      if (isAbsolute(sourcePath) || !isWithin(absolutePath, contextRoot)) {
+        throw new Error(
+          `Bounded-context source path for '${child.name}' must be inside its context root: ${sourcePath}`
+        )
+      }
+      return {
+        configuredPath: relative(projectRoot, absolutePath) || '.',
+        absolutePath
+      }
+    })
 }
 
-const validateRequiredSourceRoots = (
-  requiredSourceRoots: readonly ResolvedSourceRoot[],
+const validateDiscoveredSourceRoots = (
+  discoveredSourceRoots: readonly DiscoveredSourceRoot[],
   contexts: readonly ResolvedBoundedContext[]
 ): void => {
-  const requiredPaths = new Set(requiredSourceRoots.map(({ absolutePath }) => absolutePath))
+  const discoveredPaths = new Set(discoveredSourceRoots.map(({ absolutePath }) => absolutePath))
   const configuredPaths = new Set(contexts.map(({ sourceRoot }) => sourceRoot))
 
-  for (const requiredSourceRoot of requiredSourceRoots) {
-    if (!configuredPaths.has(requiredSourceRoot.absolutePath)) {
+  for (const discoveredSourceRoot of discoveredSourceRoots) {
+    if (!configuredPaths.has(discoveredSourceRoot.absolutePath)) {
       throw new Error(
-        `Required bounded-context source root has no dependency-boundaries configuration: ${requiredSourceRoot.configuredPath}`
+        `Discovered bounded-context source root has no dependency-boundaries configuration: ${discoveredSourceRoot.configuredPath}`
       )
     }
   }
 
   for (const context of contexts) {
-    if (!requiredPaths.has(context.sourceRoot)) {
+    if (!discoveredPaths.has(context.sourceRoot)) {
       throw new Error(
-        `Bounded-context source root '${context.name}' is not declared as required: ${context.configuredSourceRoot}`
+        `Bounded-context source root '${context.name}' was not discovered: ${context.configuredSourceRoot}`
       )
     }
   }
@@ -158,12 +167,11 @@ export const runDependencyBoundaries = (
     config.configFile,
     'TypeScript configuration'
   )
-  const requiredSourceRoots = resolveRequiredSourceRoots(
-    absoluteProjectRoot,
-    config.requiredSourceRoots
-  )
   const contexts = resolveContexts(absoluteProjectRoot, config.boundedContexts)
-  validateRequiredSourceRoots(requiredSourceRoots, contexts)
+  if (config.contextDiscovery.kind === 'children') {
+    const discoveredSourceRoots = discoverSourceRoots(absoluteProjectRoot, config.contextDiscovery)
+    validateDiscoveredSourceRoots(discoveredSourceRoots, contexts)
+  }
   const diagnostics = contexts.flatMap((context) =>
     check({
       configFile,

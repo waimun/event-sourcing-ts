@@ -2,7 +2,7 @@ import type { DependencyBoundariesConfig } from './check-dependency-boundaries'
 
 const config = {
   configFile: 'tsconfig.json',
-  requiredSourceRoots: ['src'],
+  contextDiscovery: { kind: 'configured' },
   boundedContexts: [
     {
       name: 'ships-n-cargo',
