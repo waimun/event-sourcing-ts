@@ -105,10 +105,22 @@ const discoverSourceRoots = (
     'Bounded-context discovery root'
   )
   const sourcePath = discovery.sourcePath ?? '.'
+  const entries = readdirSync(childrenRoot, { withFileTypes: true }).sort((left, right) =>
+    left.name.localeCompare(right.name)
+  )
+  const unassignedSource = entries.find(
+    (entry) => entry.isFile() && !entry.name.endsWith('.d.ts') && /\.tsx?$/.test(entry.name)
+  )
 
-  return readdirSync(childrenRoot, { withFileTypes: true })
+  if (unassignedSource !== undefined) {
+    const configuredPath = relative(projectRoot, resolve(childrenRoot, unassignedSource.name))
+    throw new Error(
+      `TypeScript source file in bounded-context discovery root does not belong to a discovered context: ${configuredPath}`
+    )
+  }
+
+  return entries
     .filter((entry) => entry.isDirectory())
-    .sort((left, right) => left.name.localeCompare(right.name))
     .map((child) => {
       const contextRoot = resolve(childrenRoot, child.name)
       const absolutePath = resolve(contextRoot, sourcePath)

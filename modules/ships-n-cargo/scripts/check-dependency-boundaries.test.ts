@@ -1,4 +1,4 @@
-import { mkdirSync, mkdtempSync, rmSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { expect, test, vi } from 'vitest'
@@ -175,6 +175,61 @@ test('discovers child contexts and fails closed when one is omitted from configu
       'Discovered bounded-context source root has no dependency-boundaries configuration: contexts/cargo/src'
     )
     expect(check).not.toHaveBeenCalled()
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true })
+  }
+})
+
+test('rejects TypeScript source files directly in a child-context discovery root', () => {
+  const check = vi.fn(() => [])
+  const projectRoot = mkdtempSync(join(tmpdir(), 'dependency-boundaries-launcher-'))
+
+  try {
+    mkdirSync(join(projectRoot, 'contexts/orders/src'), { recursive: true })
+    writeFileSync(join(projectRoot, 'contexts/orphan.ts'), '')
+
+    expect(() =>
+      runDependencyBoundaries(
+        {
+          configFile: 'tsconfig.json',
+          contextDiscovery: { kind: 'children', root: 'contexts', sourcePath: 'src' },
+          boundedContexts: [
+            { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] }
+          ]
+        },
+        { projectRoot, check }
+      )
+    ).toThrow(
+      'TypeScript source file in bounded-context discovery root does not belong to a discovered context: contexts/orphan.ts'
+    )
+    expect(check).not.toHaveBeenCalled()
+  } finally {
+    rmSync(projectRoot, { recursive: true, force: true })
+  }
+})
+
+test('ignores declarations and non-TypeScript files in a child-context discovery root', () => {
+  const check = vi.fn(() => [])
+  const projectRoot = mkdtempSync(join(tmpdir(), 'dependency-boundaries-launcher-'))
+
+  try {
+    mkdirSync(join(projectRoot, 'contexts/orders/src'), { recursive: true })
+    writeFileSync(join(projectRoot, 'contexts/globals.d.ts'), '')
+    writeFileSync(join(projectRoot, 'contexts/README.md'), '')
+
+    expect(
+      runDependencyBoundaries(
+        {
+          configFile: 'tsconfig.json',
+          contextDiscovery: { kind: 'children', root: 'contexts', sourcePath: 'src' },
+          boundedContexts: [
+            { name: 'orders', sourceRoot: 'contexts/orders/src', boundaries: [boundary] }
+          ]
+        },
+        { projectRoot, check }
+      )
+    ).toBe(0)
+    expect(check).toHaveBeenCalledOnce()
   } finally {
     rmSync(projectRoot, { recursive: true, force: true })
   }
